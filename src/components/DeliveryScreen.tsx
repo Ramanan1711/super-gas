@@ -10,11 +10,9 @@ import {
   Clock,
   Package,
   ArrowRight,
-  TrendingUp,
   X,
   CreditCard,
   IndianRupee,
-  Fuel,
   RefreshCw,
   User,
   ChevronDown,
@@ -304,26 +302,31 @@ export default function DeliveryScreen({
               </div>
             </div>
 
-            {/* Counter Row 2: Empty Cylinders & Total Collection */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Empty Cylinders Card */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-black text-emerald-600">{stats.emptyCylindersCollected}</span>
-                  <Fuel className="w-4 h-4 text-emerald-600 ml-auto" />
+            {/* Today's Deliveries Card (Matched exactly to Figma design) */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
+              <h3 className="text-[13px] font-bold tracking-wider text-slate-900 uppercase">
+                Today&apos;s Deliveries
+              </h3>
+              <div className="border-b border-slate-100 my-3.5"></div>
+              
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl sm:text-4xl font-extrabold text-[#17a44b] tracking-tight">
+                    {stats.completedDeliveries}
+                  </p>
+                  <p className="text-xs font-bold tracking-wider text-[#17a44b] uppercase mt-1">
+                    Completed
+                  </p>
                 </div>
-                <p className="text-xs font-medium text-slate-500 mt-1">Empty Collected</p>
-              </div>
 
-              {/* Total Revenue Card */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-black text-emerald-600">
+                <div className="text-right">
+                  <p className="text-3xl sm:text-4xl font-extrabold text-[#17a44b] tracking-tight">
                     ₹ {stats.totalCollected.toLocaleString('en-IN')}
-                  </span>
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  </p>
+                  <p className="text-xs font-bold tracking-wider text-[#17a44b] uppercase mt-1">
+                    Total Amount
+                  </p>
                 </div>
-                <p className="text-xs font-medium text-slate-500 mt-1">Total Collected</p>
               </div>
             </div>
 
