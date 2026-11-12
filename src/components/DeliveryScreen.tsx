@@ -199,10 +199,10 @@ export default function DeliveryScreen({
             <div className="flex items-center">
               <BrandLogo className="h-8 w-auto object-contain" />
             </div>
-            {/* Active / Duty Status Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-bold shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Active</span>
+            {/* Active Shift Status Badge */}
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200/90 text-slate-800 text-xs sm:text-[13px] font-bold shadow-2xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#17A44B] shrink-0"></span>
+              <span>Active Shift</span>
             </div>
           </div>
 
