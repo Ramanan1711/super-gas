@@ -20,6 +20,8 @@ import {
   ArrowLeft,
   AlertTriangle,
   Check,
+  Minus,
+  Plus,
 } from 'lucide-react';
 
 export interface Customer {
@@ -81,6 +83,11 @@ export default function DeliveryScreen({
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [step, setStep] = useState<'CATEGORY' | 'COMPLETED'>('CATEGORY');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({
+    '5 KG': 10,
+    '21 KG': 1,
+    '33 KG': 1,
+  });
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
   const [emptyCount, setEmptyCount] = useState(8);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
@@ -113,12 +120,21 @@ export default function DeliveryScreen({
     setSelectedCategories((prev) =>
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
+    setCategoryQuantities((prev) => ({
+      ...prev,
+      [category]: prev[category] ?? (category === '5 KG' ? 10 : 1),
+    }));
   };
 
   // Handle open delivery flow
   const handleStartDelivery = (delivery: Delivery) => {
     setSelectedDelivery(delivery);
     setSelectedCategories([]);
+    setCategoryQuantities({
+      '5 KG': 10,
+      '21 KG': 1,
+      '33 KG': 1,
+    });
     setDeliveredQuantity(delivery.quantity);
     setEmptyCount(delivery.emptyCollected || 8);
     setPaymentMode(delivery.paymentMethod === 'UPI' ? 'UPI' : 'CASH');
@@ -137,7 +153,12 @@ export default function DeliveryScreen({
     if (!selectedDelivery) return;
     setIsSubmitting(true);
     try {
-      const categoryStr = selectedCategories.length > 0 ? selectedCategories.join(', ') : selectedDelivery.cylinderType;
+      const categoryStr = selectedCategories.length > 0
+        ? selectedCategories.map((c) => `${categoryQuantities[c] ?? (c === '5 KG' ? 10 : 1)}x ${c}`).join(', ')
+        : selectedDelivery.cylinderType;
+      const totalDelivered = selectedCategories.length > 0
+        ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? (c === '5 KG' ? 10 : 1)), 0)
+        : deliveredQuantity;
       const res = await fetch(`/api/deliveries/${selectedDelivery.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -173,7 +194,7 @@ export default function DeliveryScreen({
         });
 
         // Update custody stock
-        setFilledStock((prev) => Math.max(0, prev - deliveredQuantity));
+        setFilledStock((prev) => Math.max(0, prev - totalDelivered));
         setEmptyStock((prev) => prev + emptyCount);
 
         setStep('COMPLETED');
@@ -292,25 +313,70 @@ export default function DeliveryScreen({
                   {['5 KG', '21 KG', '33 KG'].map((category) => {
                     const isChecked = selectedCategories.includes(category);
                     return (
-                      <button
+                      <div
                         key={category}
-                        type="button"
-                        onClick={() => toggleCategory(category)}
-                        className="flex items-center gap-3.5 w-full text-left cursor-pointer group select-none"
+                        className="flex items-center justify-between min-h-[36px]"
                       >
-                        <div
-                          className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-colors ${
-                            isChecked
-                              ? 'border-[#E81B24] bg-[#E81B24] text-white'
-                              : 'border-[#E81B24] bg-white group-hover:border-red-700'
-                          }`}
+                        {/* Checkbox & Category Label */}
+                        <button
+                          type="button"
+                          onClick={() => toggleCategory(category)}
+                          className="flex items-center gap-3.5 text-left cursor-pointer group select-none"
                         >
-                          {isChecked && <Check className="w-3.5 h-3.5 stroke-[3] text-white" />}
-                        </div>
-                        <span className="text-sm font-bold text-slate-900 tracking-wide">
-                          {category}
-                        </span>
-                      </button>
+                          <div
+                            className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-colors ${
+                              isChecked
+                                ? 'border-[#BC0118] bg-[#BC0118] text-white'
+                                : 'border-[#BC0118] bg-white group-hover:border-red-700'
+                            }`}
+                          >
+                            {isChecked && <Check className="w-3.5 h-3.5 stroke-[3] text-white" />}
+                          </div>
+                          <span className="text-sm sm:text-[15px] font-bold text-slate-900 tracking-wide">
+                            {category}
+                          </span>
+                        </button>
+
+                        {/* Quantity Counter (Displayed when checkbox is selected) */}
+                        {isChecked && (
+                          <div className="flex items-center gap-3 animate-in fade-in zoom-in-95 duration-150">
+                            {/* Decrement (-) Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCategoryQuantities((prev) => ({
+                                  ...prev,
+                                  [category]: Math.max(1, (prev[category] ?? (category === '5 KG' ? 10 : 1)) - 1),
+                                }));
+                              }}
+                              className="w-7 h-7 rounded-lg bg-white border border-rose-200/90 shadow-2xs hover:bg-rose-50/40 active:scale-95 flex items-center justify-center text-slate-900 transition cursor-pointer"
+                            >
+                              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+
+                            {/* Quantity Number */}
+                            <span className="font-extrabold text-slate-900 text-sm sm:text-base min-w-[22px] text-center">
+                              {categoryQuantities[category] ?? (category === '5 KG' ? 10 : 1)}
+                            </span>
+
+                            {/* Increment (+) Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCategoryQuantities((prev) => ({
+                                  ...prev,
+                                  [category]: (prev[category] ?? (category === '5 KG' ? 10 : 1)) + 1,
+                                }));
+                              }}
+                              className="w-7 h-7 rounded-lg bg-[#E81B24] hover:bg-red-700 active:scale-95 shadow-xs flex items-center justify-center text-white transition cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
