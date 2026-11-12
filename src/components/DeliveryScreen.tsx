@@ -7,15 +7,18 @@ import {
   MapPin,
   Search,
   CheckCircle2,
-  Clock,
   Package,
   ArrowRight,
   X,
   CreditCard,
   IndianRupee,
   RefreshCw,
-  User,
   ChevronDown,
+  Home,
+  Users,
+  Box,
+  Banknote,
+  Menu,
 } from 'lucide-react';
 
 export interface Customer {
@@ -73,7 +76,7 @@ export default function DeliveryScreen({
   const [emptyCount, setEmptyCount] = useState(1);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeBottomNav, setActiveBottomNav] = useState<'DELIVERY' | 'HISTORY' | 'EARNINGS' | 'PROFILE'>('DELIVERY');
+  const [activeBottomNav, setActiveBottomNav] = useState<'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE'>('HOME');
 
   // Cylinder custody stock on van (matching Figma design)
   const [filledStock, setFilledStock] = useState(10);
@@ -405,7 +408,7 @@ export default function DeliveryScreen({
           </div>
 
           {/* Customers Section */}
-          <div className="space-y-3">
+          <div id="customers-list-section" className="space-y-3">
             <div className="flex items-center justify-between pt-1">
               <h2 className="text-base font-bold text-slate-900">Customers</h2>
               <span className="text-xs text-slate-400 font-medium">
@@ -518,43 +521,80 @@ export default function DeliveryScreen({
           </div>
         </div>
 
-        {/* Bottom App Navigation Bar */}
-        <div className="bg-white border-t border-slate-200/80 px-6 py-2.5 flex justify-between items-center text-xs font-semibold text-slate-500 absolute bottom-0 left-0 right-0 z-20">
+        {/* Bottom App Navigation Bar (Matched exactly to Figma design) */}
+        <div className="bg-white border-t border-slate-200/80 px-2 py-2 grid grid-cols-5 items-center text-xs absolute bottom-0 left-0 right-0 z-20">
+          {/* Home */}
           <button
-            onClick={() => setActiveBottomNav('DELIVERY')}
-            className={`flex flex-col items-center gap-1 ${
-              activeBottomNav === 'DELIVERY' ? 'text-red-600' : 'hover:text-slate-900'
+            type="button"
+            onClick={() => setActiveBottomNav('HOME')}
+            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
+              activeBottomNav === 'HOME' ? 'text-[#ED222C]' : 'text-[#AFAFAF] hover:text-slate-600'
             }`}
           >
-            <Package className="w-5 h-5" />
-            <span className="text-[10px]">Delivery</span>
+            <Home className="w-5 h-5 stroke-[2]" />
+            <span className={`text-[11px] ${activeBottomNav === 'HOME' ? 'font-bold' : 'font-medium'}`}>
+              Home
+            </span>
           </button>
+
+          {/* Customers */}
           <button
-            onClick={() => setActiveBottomNav('HISTORY')}
-            className={`flex flex-col items-center gap-1 ${
-              activeBottomNav === 'HISTORY' ? 'text-red-600' : 'hover:text-slate-900'
+            type="button"
+            onClick={() => {
+              setActiveBottomNav('CUSTOMERS');
+              const el = document.getElementById('customers-list-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
+              activeBottomNav === 'CUSTOMERS' ? 'text-[#ED222C]' : 'text-[#AFAFAF] hover:text-slate-600'
             }`}
           >
-            <Clock className="w-5 h-5" />
-            <span className="text-[10px]">History</span>
+            <Users className="w-5 h-5 stroke-[2]" />
+            <span className={`text-[11px] ${activeBottomNav === 'CUSTOMERS' ? 'font-bold' : 'font-medium'}`}>
+              Customers
+            </span>
           </button>
+
+          {/* My stocks */}
           <button
-            onClick={() => setActiveBottomNav('EARNINGS')}
-            className={`flex flex-col items-center gap-1 ${
-              activeBottomNav === 'EARNINGS' ? 'text-red-600' : 'hover:text-slate-900'
+            type="button"
+            onClick={() => setActiveBottomNav('STOCKS')}
+            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
+              activeBottomNav === 'STOCKS' ? 'text-[#ED222C]' : 'text-[#AFAFAF] hover:text-slate-600'
             }`}
           >
-            <IndianRupee className="w-5 h-5" />
-            <span className="text-[10px]">Earnings</span>
+            <Box className="w-5 h-5 stroke-[2]" />
+            <span className={`text-[11px] ${activeBottomNav === 'STOCKS' ? 'font-bold' : 'font-medium'}`}>
+              My stocks
+            </span>
           </button>
+
+          {/* Expenses */}
           <button
-            onClick={() => setActiveBottomNav('PROFILE')}
-            className={`flex flex-col items-center gap-1 ${
-              activeBottomNav === 'PROFILE' ? 'text-red-600' : 'hover:text-slate-900'
+            type="button"
+            onClick={() => setActiveBottomNav('EXPENSES')}
+            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
+              activeBottomNav === 'EXPENSES' ? 'text-[#ED222C]' : 'text-[#AFAFAF] hover:text-slate-600'
             }`}
           >
-            <User className="w-5 h-5" />
-            <span className="text-[10px]">Profile</span>
+            <Banknote className="w-5 h-5 stroke-[2]" />
+            <span className={`text-[11px] ${activeBottomNav === 'EXPENSES' ? 'font-bold' : 'font-medium'}`}>
+              Expenses
+            </span>
+          </button>
+
+          {/* More */}
+          <button
+            type="button"
+            onClick={() => setActiveBottomNav('MORE')}
+            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
+              activeBottomNav === 'MORE' ? 'text-[#ED222C]' : 'text-[#AFAFAF] hover:text-slate-600'
+            }`}
+          >
+            <Menu className="w-5 h-5 stroke-[2]" />
+            <span className={`text-[11px] ${activeBottomNav === 'MORE' ? 'font-bold' : 'font-medium'}`}>
+              More
+            </span>
           </button>
         </div>
 
