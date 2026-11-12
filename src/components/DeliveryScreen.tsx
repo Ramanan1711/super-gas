@@ -218,9 +218,9 @@ export default function DeliveryScreen({
           {/* KPI Statistics Section */}
           <div className="space-y-3">
             {/* My Cylinder Status Section (Matched exactly to Figma design) */}
-            <div className="space-y-3">
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-3.5">
               {/* Header Row */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between">
                 <h2 className="text-[13px] font-bold tracking-wider text-slate-800 uppercase">
                   My Cylinder Status
                 </h2>
@@ -235,7 +235,7 @@ export default function DeliveryScreen({
               {/* 2 Status Cards */}
               <div className="grid grid-cols-2 gap-3.5">
                 {/* FILLED Card */}
-                <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+                <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-wider text-slate-900 uppercase">
                       Filled
@@ -251,7 +251,7 @@ export default function DeliveryScreen({
                 </div>
 
                 {/* EMPTY Card */}
-                <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+                <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                       Empty
@@ -272,7 +272,7 @@ export default function DeliveryScreen({
                 <button
                   type="button"
                   onClick={() => setShowCylinderDetails(!showCylinderDetails)}
-                  className="w-full flex items-center justify-between py-2 text-left group cursor-pointer select-none"
+                  className="w-full flex items-center justify-between py-1 text-left group cursor-pointer select-none"
                 >
                   <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">
                     View Cylinder Details
@@ -285,7 +285,7 @@ export default function DeliveryScreen({
                 </button>
 
                 {showCylinderDetails && (
-                  <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200/80 space-y-2 mb-2 text-xs">
+                  <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200/80 space-y-2 mt-2 mb-1 text-xs">
                     <div className="flex justify-between items-center text-slate-600">
                       <span className="font-medium">19kg Commercial (Filled / Empty)</span>
                       <span className="font-bold text-slate-900">
@@ -302,8 +302,6 @@ export default function DeliveryScreen({
                     </div>
                   </div>
                 )}
-
-                <div className="border-b border-slate-100"></div>
               </div>
             </div>
 
