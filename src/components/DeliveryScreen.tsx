@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   Package,
   X,
-  CreditCard,
-  IndianRupee,
   RefreshCw,
   ChevronDown,
   ChevronRight,
@@ -19,6 +17,9 @@ import {
   Box,
   Banknote,
   Menu,
+  ArrowLeft,
+  AlertTriangle,
+  Check,
 } from 'lucide-react';
 
 export interface Customer {
@@ -76,11 +77,12 @@ export default function DeliveryScreen({
   const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Delivery Flow Modal State
+  // Delivery Flow State
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [step, setStep] = useState<'DETAILS' | 'CYLINDERS' | 'PAYMENT' | 'COMPLETED'>('DETAILS');
+  const [step, setStep] = useState<'CATEGORY' | 'COMPLETED'>('CATEGORY');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
-  const [emptyCount, setEmptyCount] = useState(1);
+  const [emptyCount, setEmptyCount] = useState(8);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeBottomNav, setActiveBottomNav] = useState<'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE'>('HOME');
@@ -106,19 +108,28 @@ export default function DeliveryScreen({
     });
   }, [deliveries, searchQuery]);
 
+  // Toggle category checkbox
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
+    );
+  };
+
   // Handle open delivery flow
   const handleStartDelivery = (delivery: Delivery) => {
     setSelectedDelivery(delivery);
+    setSelectedCategories([]);
     setDeliveredQuantity(delivery.quantity);
-    setEmptyCount(delivery.quantity);
+    setEmptyCount(delivery.emptyCollected || 8);
     setPaymentMode(delivery.paymentMethod === 'UPI' ? 'UPI' : 'CASH');
-    setStep('DETAILS');
+    setStep('CATEGORY');
   };
 
   // Close modal
   const handleCloseModal = () => {
     setSelectedDelivery(null);
-    setStep('DETAILS');
+    setSelectedCategories([]);
+    setStep('CATEGORY');
   };
 
   // Complete delivery submission
@@ -126,12 +137,14 @@ export default function DeliveryScreen({
     if (!selectedDelivery) return;
     setIsSubmitting(true);
     try {
+      const categoryStr = selectedCategories.length > 0 ? selectedCategories.join(', ') : selectedDelivery.cylinderType;
       const res = await fetch(`/api/deliveries/${selectedDelivery.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'DELIVERED',
           emptyCollected: emptyCount,
+          cylinderType: categoryStr,
           paymentMethod: paymentMode,
           paymentStatus: 'PAID',
         }),
@@ -192,8 +205,149 @@ export default function DeliveryScreen({
           </div>
         </div>
 
-        {/* Top Header */}
-        <div className="shrink-0 bg-white px-5 pt-2 pb-3.5 border-b border-slate-100 z-10">
+        {selectedDelivery && step !== 'COMPLETED' ? (
+          /* Screen 2: Record Cylinder Handover (Matched exactly to Figma design) */
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-3.5">
+              {/* Header Card */}
+              <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-800 hover:bg-slate-200 active:scale-95 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
+                  </button>
+                  <div>
+                    <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">Delivery</h1>
+                    <p className="text-xs text-slate-500 font-medium">Record cylinder handover</p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-slate-100/90 border border-slate-200/60 flex items-center justify-center p-1.5 shadow-2xs">
+                  <BrandLogo className="h-4 w-auto object-contain" />
+                </div>
+              </div>
+
+              {/* Customer Details Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-3.5">
+                {/* Header Row: Name, Code & Red Initials Avatar */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
+                      {selectedDelivery.customer.name}
+                    </h2>
+                    <div className="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200/90 mt-1">
+                      CUS-{String(deliveries.findIndex((d) => d.id === selectedDelivery.id) >= 0 ? deliveries.findIndex((d) => d.id === selectedDelivery.id) + 124 : 124).padStart(5, '0')}
+                    </div>
+                  </div>
+
+                  {/* Red Initials Circle Avatar */}
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#BC0118] text-white font-bold text-base flex items-center justify-center shrink-0 shadow-2xs">
+                    {getInitials(selectedDelivery.customer.name)}
+                  </div>
+                </div>
+
+                {/* Horizontal Divider */}
+                <div className="border-b border-slate-100"></div>
+
+                {/* Contact & Address */}
+                <div className="space-y-2">
+                  <a
+                    href={`tel:${selectedDelivery.customer.phone}`}
+                    className="flex items-center gap-2.5 text-slate-800 hover:text-red-600 transition-colors w-fit"
+                  >
+                    <Phone className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="text-sm font-semibold tracking-wide">
+                      {selectedDelivery.customer.phone}
+                    </span>
+                  </a>
+                  <div className="flex items-start gap-2.5 text-slate-500">
+                    <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                    <p className="text-sm font-normal text-slate-600 leading-snug">
+                      {selectedDelivery.customer.address || '12, Anna Nagar, Madurai, Tamil Nadu'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Amber Warning Banner: Pending Empty Return */}
+                <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[#92400E]">
+                    <AlertTriangle className="w-4 h-4 text-[#D97706] stroke-[2.2] shrink-0" />
+                    <span className="text-xs font-semibold">Pending Empty Return</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-md bg-[#FEF3C7] text-[#92400E] text-[11px] font-bold border border-[#FDE68A]/60">
+                    8 Cylinders
+                  </span>
+                </div>
+              </div>
+
+              {/* Select Category Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
+                <h3 className="text-xs sm:text-[13px] font-black tracking-wider text-slate-900 uppercase mb-4">
+                  Select Category
+                </h3>
+                <div className="space-y-4">
+                  {['5 KG', '21 KG', '33 KG'].map((category) => {
+                    const isChecked = selectedCategories.includes(category);
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => toggleCategory(category)}
+                        className="flex items-center gap-3.5 w-full text-left cursor-pointer group select-none"
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-colors ${
+                            isChecked
+                              ? 'border-[#E81B24] bg-[#E81B24] text-white'
+                              : 'border-[#E81B24] bg-white group-hover:border-red-700'
+                          }`}
+                        >
+                          {isChecked && <Check className="w-3.5 h-3.5 stroke-[3] text-white" />}
+                        </div>
+                        <span className="text-sm font-bold text-slate-900 tracking-wide">
+                          {category}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Action Area */}
+            <div className="shrink-0 p-4 pt-2 pb-6 bg-slate-50 border-t border-slate-200/60">
+              <button
+                type="button"
+                onClick={handleConfirmDelivery}
+                disabled={isSubmitting || selectedCategories.length === 0}
+                className={`w-full py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-[0.99] shadow-xs cursor-pointer ${
+                  selectedCategories.length > 0
+                    ? 'bg-[#E81B24] hover:bg-red-700 text-white shadow-md'
+                    : 'bg-[#D9D9D9] text-slate-600 hover:bg-[#D0D0D0]'
+                }`}
+              >
+                {isSubmitting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Continue</span>
+                    <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                  </>
+                )}
+              </button>
+              <p className="text-xs text-slate-400 font-normal text-center mt-2.5">
+                Invoice will be generated automatically in next step
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* Screen 1: Dashboard */
+          <>
+            {/* Top Header */}
+            <div className="shrink-0 bg-white px-5 pt-2 pb-3.5 border-b border-slate-100 z-10">
           {/* Top Brand Bar */}
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center">
@@ -566,193 +720,48 @@ export default function DeliveryScreen({
             </span>
           </button>
         </div>
+      </>
+    )}
 
-        {/* INTERACTIVE DELIVERY MODAL / SHEET */}
-        {selectedDelivery && (
-          <div className="fixed inset-0 sm:absolute z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end">
-            <div className="bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4 animate-in slide-in-from-bottom duration-200">
-              
-              {/* Modal Drag Handle & Close */}
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-2.5"></div>
-                <h3 className="text-base font-black text-slate-900">
-                  {step === 'COMPLETED' ? 'Delivery Success' : 'Order Delivery'}
-                </h3>
-                <button
-                  onClick={handleCloseModal}
-                  className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+    {/* Delivery Completed Success Modal */}
+    {step === 'COMPLETED' && selectedDelivery && (
+      <div className="fixed inset-0 sm:absolute z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95 duration-200 shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 className="w-10 h-10" />
+          </div>
+          <div>
+            <h4 className="text-xl font-black text-slate-900">Delivery Completed!</h4>
+            <p className="text-xs text-slate-500 mt-1">Invoice and receipt generated successfully</p>
+          </div>
 
-              {step === 'DETAILS' && (
-                <div className="space-y-4">
-                  {/* Customer Card Summary */}
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900 text-sm">{selectedDelivery.customer.name}</span>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
-                        {selectedDelivery.customer.type}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5" />
-                      {selectedDelivery.customer.phone}
-                    </p>
-                    <p className="text-xs text-slate-500 flex items-start gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                      {selectedDelivery.customer.address}
-                    </p>
-                  </div>
-
-                  {/* Quantity & Empty Cylinder Stepper */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">Delivering {selectedDelivery.cylinderType}</p>
-                        <p className="text-[11px] text-slate-500">Cylinders to unload</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setDeliveredQuantity((q) => Math.max(1, q - 1))}
-                          className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-bold text-sm shadow-xs active:scale-95"
-                        >
-                          -
-                        </button>
-                        <span className="font-bold text-sm text-slate-900">{deliveredQuantity}</span>
-                        <button
-                          onClick={() => setDeliveredQuantity((q) => q + 1)}
-                          className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-bold text-sm shadow-xs active:scale-95"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">Empty Cylinders Collected</p>
-                        <p className="text-[11px] text-slate-500">Return empties</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setEmptyCount((e) => Math.max(0, e - 1))}
-                          className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-bold text-sm shadow-xs active:scale-95"
-                        >
-                          -
-                        </button>
-                        <span className="font-bold text-sm text-slate-900">{emptyCount}</span>
-                        <button
-                          onClick={() => setEmptyCount((e) => e + 1)}
-                          className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-bold text-sm shadow-xs active:scale-95"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Payment Mode Selection */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-slate-900">Payment Collection Mode</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setPaymentMode('CASH')}
-                        className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
-                          paymentMode === 'CASH'
-                            ? 'border-red-600 bg-red-50 text-red-700'
-                            : 'border-slate-200 bg-white text-slate-700'
-                        }`}
-                      >
-                        <IndianRupee className="w-4 h-4" />
-                        <span>Cash On Delivery</span>
-                      </button>
-                      <button
-                        onClick={() => setPaymentMode('UPI')}
-                        className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
-                          paymentMode === 'UPI'
-                            ? 'border-red-600 bg-red-50 text-red-700'
-                            : 'border-slate-200 bg-white text-slate-700'
-                        }`}
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        <span>UPI / QR Code</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Total Payable */}
-                  <div className="p-3 bg-slate-900 text-white rounded-xl flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Total Payable</p>
-                      <p className="text-xs text-slate-300">Inclusive of GST</p>
-                    </div>
-                    <span className="text-xl font-black text-white">
-                      ₹ {selectedDelivery.amount.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    onClick={handleConfirmDelivery}
-                    disabled={isSubmitting}
-                    className="w-full py-3 bg-red-600 hover:bg-red-700 active:scale-[0.98] transition text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <span>Confirm & Complete Delivery</span>
-                        <CheckCircle2 className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {/* SUCCESS MODAL (Figma Screen 11) */}
-              {step === 'COMPLETED' && (
-                <div className="py-4 text-center space-y-4 animate-in zoom-in-95 duration-200">
-                  <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-                    <CheckCircle2 className="w-10 h-10" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-black text-slate-900">Delivery Completed!</h4>
-                    <p className="text-xs text-slate-500 mt-1">Invoice and receipt generated successfully</p>
-                  </div>
-
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 text-xs space-y-2 text-left">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Customer:</span>
-                      <span className="font-bold text-slate-900">{selectedDelivery.customer.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Delivered:</span>
-                      <span className="font-bold text-slate-900">{deliveredQuantity}x {selectedDelivery.cylinderType}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Empties Collected:</span>
-                      <span className="font-bold text-emerald-600">{emptyCount} Cylinders</span>
-                    </div>
-                    <div className="flex justify-between border-t border-slate-200 pt-2 font-bold">
-                      <span className="text-slate-700">Amount Collected ({paymentMode}):</span>
-                      <span className="text-slate-900">₹ {selectedDelivery.amount.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleCloseModal}
-                    className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md transition"
-                  >
-                    Back to Delivery List
-                  </button>
-                </div>
-              )}
-
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 text-xs space-y-2 text-left">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Customer:</span>
+              <span className="font-bold text-slate-900">{selectedDelivery.customer.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Categories Handed:</span>
+              <span className="font-bold text-slate-900">
+                {selectedCategories.length > 0 ? selectedCategories.join(', ') : selectedDelivery.cylinderType}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Empties Pending / Handled:</span>
+              <span className="font-bold text-emerald-600">8 Cylinders</span>
             </div>
           </div>
-        )}
+
+          <button
+            type="button"
+            onClick={handleCloseModal}
+            className="w-full py-3 bg-[#E81B24] hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md transition cursor-pointer"
+          >
+            Back to Delivery List
+          </button>
+        </div>
+      </div>
+    )}
 
       </div>
     </div>
