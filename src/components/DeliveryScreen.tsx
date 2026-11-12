@@ -17,6 +17,7 @@ import {
   Fuel,
   RefreshCw,
   User,
+  ChevronDown,
 } from 'lucide-react';
 
 export interface Customer {
@@ -75,6 +76,11 @@ export default function DeliveryScreen({
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeBottomNav, setActiveBottomNav] = useState<'DELIVERY' | 'HISTORY' | 'EARNINGS' | 'PROFILE'>('DELIVERY');
+
+  // Cylinder custody stock on van (matching Figma design)
+  const [filledStock, setFilledStock] = useState(10);
+  const [emptyStock, setEmptyStock] = useState(15);
+  const [showCylinderDetails, setShowCylinderDetails] = useState(false);
 
   // Filtered deliveries based on active tab and search query
   const filteredDeliveries = useMemo(() => {
@@ -150,6 +156,10 @@ export default function DeliveryScreen({
           };
         });
 
+        // Update custody stock
+        setFilledStock((prev) => Math.max(0, prev - deliveredQuantity));
+        setEmptyStock((prev) => prev + emptyCount);
+
         setStep('COMPLETED');
       } else {
         alert('Failed to complete delivery. Please try again.');
@@ -204,28 +214,93 @@ export default function DeliveryScreen({
           
           {/* KPI Statistics Section */}
           <div className="space-y-3">
-            {/* Counter Row 1 */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Completed Card */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <span className="text-3xl font-black text-slate-900">{stats.completedDeliveries}</span>
-                  <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
+            {/* My Cylinder Status Section (Matched exactly to Figma design) */}
+            <div className="space-y-3">
+              {/* Header Row */}
+              <div className="flex items-center justify-between pt-1">
+                <h2 className="text-[13px] font-bold tracking-wider text-slate-800 uppercase">
+                  My Cylinder Status
+                </h2>
+                <div className="px-3 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-200/90 rounded-lg shadow-2xs">
+                  On Van / Custody
                 </div>
-                <p className="text-xs font-medium text-slate-500 mt-1">Completed</p>
               </div>
 
-              {/* Total Orders Card */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <span className="text-3xl font-black text-slate-900">{stats.totalDeliveries}</span>
-                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
-                    <Package className="w-4 h-4" />
+              {/* Top Divider */}
+              <div className="border-b border-slate-100"></div>
+
+              {/* 2 Status Cards */}
+              <div className="grid grid-cols-2 gap-3.5">
+                {/* FILLED Card */}
+                <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold tracking-wider text-slate-900 uppercase">
+                      Filled
+                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                   </div>
+                  <p className="text-3xl font-extrabold text-slate-900 mt-2.5 tracking-tight">
+                    {filledStock}
+                  </p>
+                  <p className="text-sm font-semibold text-emerald-600 mt-1">
+                    Available
+                  </p>
                 </div>
-                <p className="text-xs font-medium text-slate-500 mt-1">Overall</p>
+
+                {/* EMPTY Card */}
+                <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                      Empty
+                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                  </div>
+                  <p className="text-3xl font-extrabold text-slate-900 mt-2.5 tracking-tight">
+                    {emptyStock}
+                  </p>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    Collected
+                  </p>
+                </div>
+              </div>
+
+              {/* View Cylinder Details Accordion */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowCylinderDetails(!showCylinderDetails)}
+                  className="w-full flex items-center justify-between py-2 text-left group cursor-pointer select-none"
+                >
+                  <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">
+                    View Cylinder Details
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-red-600 stroke-[2.5] transition-transform duration-200 ${
+                      showCylinderDetails ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {showCylinderDetails && (
+                  <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200/80 space-y-2 mb-2 text-xs">
+                    <div className="flex justify-between items-center text-slate-600">
+                      <span className="font-medium">19kg Commercial (Filled / Empty)</span>
+                      <span className="font-bold text-slate-900">
+                        {Math.max(0, filledStock - 4)} / {Math.max(0, emptyStock - 6)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-600">
+                      <span className="font-medium">14.2kg Domestic (Filled / Empty)</span>
+                      <span className="font-bold text-slate-900">4 / 6</span>
+                    </div>
+                    <div className="pt-1.5 border-t border-slate-200 flex justify-between items-center font-bold text-slate-800">
+                      <span>Total Custody Count</span>
+                      <span>{filledStock + emptyStock} Units</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="border-b border-slate-100"></div>
               </div>
             </div>
 
