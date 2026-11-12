@@ -8,12 +8,12 @@ import {
   Search,
   CheckCircle2,
   Package,
-  ArrowRight,
   X,
   CreditCard,
   IndianRupee,
   RefreshCw,
   ChevronDown,
+  ChevronRight,
   Home,
   Users,
   Box,
@@ -58,6 +58,14 @@ export interface DeliveryStats {
 interface DeliveryScreenProps {
   initialStats: DeliveryStats;
   initialDeliveries: Delivery[];
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
 }
 
 export default function DeliveryScreen({
@@ -405,75 +413,78 @@ export default function DeliveryScreen({
                   <p className="text-xs text-slate-400 mt-1">Try adjusting your filters or search terms.</p>
                 </div>
               ) : (
-                filteredDeliveries.map((delivery) => (
+                filteredDeliveries.map((delivery, index) => (
                   <div
                     key={delivery.id}
-                    className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-sm space-y-3 relative overflow-hidden transition hover:border-slate-300"
+                    className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-2xs space-y-3.5 transition hover:border-slate-300"
                   >
-                    {/* Top row: Customer Name & Call Button */}
-                    <div className="flex items-start justify-between gap-2">
+                    {/* Top Row: Customer Name, Code & Red Initials Avatar */}
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-slate-900">{delivery.customer.name}</h3>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                            delivery.customer.type === 'Commercial'
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'bg-amber-50 text-amber-700'
-                          }`}>
-                            {delivery.customer.type}
-                          </span>
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
+                          {delivery.customer.name}
+                        </h3>
+                        <div className="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200/90 mt-1">
+                          CUS-{String(index + 124).padStart(5, '0')}
                         </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">{delivery.customer.phone}</p>
                       </div>
 
-                      {/* Red Circular Call Button */}
+                      {/* Red Initials Circle Avatar */}
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#BC0118] text-white font-bold text-base flex items-center justify-center shrink-0 shadow-2xs">
+                        {getInitials(delivery.customer.name)}
+                      </div>
+                    </div>
+
+                    {/* Subtle Horizontal Divider */}
+                    <div className="border-b border-slate-100"></div>
+
+                    {/* Contact & Address Section */}
+                    <div className="space-y-2">
+                      {/* Phone */}
                       <a
                         href={`tel:${delivery.customer.phone}`}
-                        className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 active:scale-90 transition flex items-center justify-center text-white shadow-sm flex-shrink-0"
-                        title="Call Customer"
+                        className="flex items-center gap-2.5 text-slate-800 hover:text-red-600 transition-colors w-fit group"
                       >
-                        <Phone className="w-4 h-4 fill-white" />
+                        <Phone className="w-4 h-4 text-slate-500 group-hover:text-red-600 transition-colors shrink-0" />
+                        <span className="text-sm font-semibold tracking-wide">
+                          {delivery.customer.phone}
+                        </span>
                       </a>
-                    </div>
 
-                    {/* Address Line with MapPin */}
-                    <div className="flex items-start gap-1.5 text-xs text-slate-500">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <p className="line-clamp-2 leading-relaxed">{delivery.customer.address || 'Address not specified'}</p>
-                    </div>
-
-                    {/* Order Details & Pricing Pill */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-slate-800">
-                          {delivery.quantity}x {delivery.cylinderType}
-                        </span>
-                      </div>
-                      <span className="font-bold text-slate-900">
-                        ₹ {delivery.amount.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-
-                    {/* Action Button */}
-                    {delivery.status === 'PENDING' ? (
-                      <button
-                        onClick={() => handleStartDelivery(delivery)}
-                        className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 active:scale-[0.98] transition text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm"
-                      >
-                        <span>Deliver</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    ) : (
-                      <div className="w-full py-2 px-3 bg-emerald-50 border border-emerald-200/80 rounded-xl flex items-center justify-between text-xs text-emerald-800 font-semibold">
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          <span>Delivered</span>
+                      {/* Address */}
+                      {delivery.customer.address && (
+                        <div className="flex items-start gap-2.5 text-slate-500">
+                          <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                          <p className="text-sm font-normal text-slate-600 leading-snug">
+                            {delivery.customer.address}
+                          </p>
                         </div>
-                        <span className="text-[11px] font-normal text-emerald-700">
-                          Empty returned: {delivery.emptyCollected}
-                        </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    {/* Bottom Action: Delivery Button */}
+                    <div className="pt-1 flex items-center justify-between">
+                      {delivery.status === 'DELIVERED' ? (
+                        <div className="w-full flex items-center justify-between py-2 px-3 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800 font-semibold">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>Delivered</span>
+                          </div>
+                          <span className="text-[11px] font-normal text-emerald-700">
+                            Empty returned: {delivery.emptyCollected}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleStartDelivery(delivery)}
+                          className="ml-auto bg-[#F3202B] hover:bg-red-700 active:scale-95 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+                        >
+                          <span>Delivery</span>
+                          <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
