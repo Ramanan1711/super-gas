@@ -66,7 +66,6 @@ export default function DeliveryScreen({
 }: DeliveryScreenProps) {
   const [stats, setStats] = useState<DeliveryStats>(initialStats);
   const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'DELIVERED' | 'CANCELLED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Delivery Flow Modal State
@@ -83,14 +82,9 @@ export default function DeliveryScreen({
   const [emptyStock, setEmptyStock] = useState(15);
   const [showCylinderDetails, setShowCylinderDetails] = useState(false);
 
-  // Filtered deliveries based on active tab and search query
+  // Filtered deliveries based on search query
   const filteredDeliveries = useMemo(() => {
     return deliveries.filter((item) => {
-      // Tab filter
-      if (activeTab === 'PENDING' && item.status !== 'PENDING') return false;
-      if (activeTab === 'DELIVERED' && item.status !== 'DELIVERED') return false;
-      if (activeTab === 'CANCELLED' && item.status !== 'CANCELLED') return false;
-
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -102,7 +96,7 @@ export default function DeliveryScreen({
       }
       return true;
     });
-  }, [deliveries, activeTab, searchQuery]);
+  }, [deliveries, searchQuery]);
 
   // Handle open delivery flow
   const handleStartDelivery = (delivery: Delivery) => {
@@ -371,40 +365,6 @@ export default function DeliveryScreen({
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Segmented Filter Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-200/60 rounded-xl text-xs font-bold">
-            <button
-              onClick={() => setActiveTab('ALL')}
-              className={`flex-1 py-2 rounded-lg transition text-center ${
-                activeTab === 'ALL'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              All ({deliveries.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('PENDING')}
-              className={`flex-1 py-2 rounded-lg transition text-center ${
-                activeTab === 'PENDING'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Pending ({stats.pendingDeliveries})
-            </button>
-            <button
-              onClick={() => setActiveTab('DELIVERED')}
-              className={`flex-1 py-2 rounded-lg transition text-center ${
-                activeTab === 'DELIVERED'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Delivered ({stats.completedDeliveries})
-            </button>
           </div>
 
           {/* Customers Section */}
