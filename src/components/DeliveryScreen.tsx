@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import BrandLogo from '@/components/BrandLogo';
 import {
   Phone,
   MapPin,
@@ -179,17 +180,22 @@ export default function DeliveryScreen({
         </div>
 
         {/* Top Header */}
-        <div className="bg-white px-5 pt-2 pb-4 border-b border-slate-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">Delivery</h1>
-              <p className="text-xs text-slate-500 font-medium">Track and Manage Deliveries</p>
+        <div className="bg-white px-5 pt-2 pb-3.5 border-b border-slate-100">
+          {/* Top Brand Bar */}
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center">
+              <BrandLogo className="h-8 w-auto object-contain" />
             </div>
             {/* Active / Duty Status Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-bold">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-bold shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>Active</span>
             </div>
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">Delivery</h1>
+            <p className="text-xs text-slate-500 font-medium">Track and Manage Deliveries</p>
           </div>
         </div>
 
