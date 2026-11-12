@@ -54,23 +54,18 @@ async function DeliveryContainer() {
 
 function DeliverySkeleton() {
   return (
-    <div className="min-h-screen bg-slate-100 flex justify-center py-0 sm:py-6">
-      <div className="w-full sm:max-w-[430px] bg-slate-50 min-h-screen sm:min-h-[880px] sm:rounded-[36px] p-5 space-y-4">
-        <div className="h-8 bg-slate-200 rounded-lg animate-pulse w-1/3"></div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="h-24 bg-slate-200 rounded-2xl animate-pulse"></div>
-          <div className="h-24 bg-slate-200 rounded-2xl animate-pulse"></div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+    <div className="h-screen max-h-screen bg-slate-100 flex justify-center items-center py-0 sm:py-4 overflow-hidden">
+      <div className="w-full sm:max-w-[430px] bg-slate-50 h-[100dvh] sm:h-[880px] sm:max-h-[94vh] sm:rounded-[36px] p-5 space-y-4 flex flex-col justify-between">
+        <div className="space-y-4">
+          <div className="h-8 bg-slate-200 rounded-lg animate-pulse w-1/3"></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-24 bg-slate-200 rounded-2xl animate-pulse"></div>
+            <div className="h-24 bg-slate-200 rounded-2xl animate-pulse"></div>
+          </div>
           <div className="h-20 bg-slate-200 rounded-2xl animate-pulse"></div>
-          <div className="h-20 bg-slate-200 rounded-2xl animate-pulse"></div>
+          <div className="h-24 bg-slate-200 rounded-2xl animate-pulse"></div>
         </div>
-        <div className="h-20 bg-slate-200 rounded-2xl animate-pulse"></div>
-        <div className="h-10 bg-slate-200 rounded-xl animate-pulse"></div>
-        <div className="space-y-3">
-          <div className="h-32 bg-slate-200 rounded-2xl animate-pulse"></div>
-          <div className="h-32 bg-slate-200 rounded-2xl animate-pulse"></div>
-        </div>
+        <div className="h-14 bg-slate-200 rounded-xl animate-pulse"></div>
       </div>
     </div>
   );

@@ -174,12 +174,12 @@ export default function DeliveryScreen({
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex justify-center py-0 sm:py-6 text-slate-900 font-sans">
+    <div className="h-screen max-h-screen bg-slate-100 flex justify-center items-center py-0 sm:py-4 text-slate-900 font-sans overflow-hidden">
       {/* Mobile Frame Container */}
-      <div className="w-full sm:max-w-[430px] bg-slate-50 min-h-screen sm:min-h-[880px] sm:rounded-[36px] sm:shadow-2xl flex flex-col relative overflow-hidden border border-slate-200/80">
+      <div className="w-full sm:max-w-[430px] bg-slate-50 h-[100dvh] sm:h-[880px] sm:max-h-[94vh] sm:rounded-[36px] sm:shadow-2xl flex flex-col relative overflow-hidden border border-slate-200/80">
         
         {/* Mobile Device Status Bar */}
-        <div className="px-6 pt-3 pb-2 flex justify-between items-center text-xs font-semibold text-slate-800 bg-white">
+        <div className="shrink-0 px-6 pt-3 pb-2 flex justify-between items-center text-xs font-semibold text-slate-800 bg-white z-10">
           <span>9:41</span>
           <div className="w-20 h-4 bg-slate-900 rounded-full mx-auto hidden sm:block"></div>
           <div className="flex items-center gap-1.5">
@@ -191,7 +191,7 @@ export default function DeliveryScreen({
         </div>
 
         {/* Top Header */}
-        <div className="bg-white px-5 pt-2 pb-3.5 border-b border-slate-100">
+        <div className="shrink-0 bg-white px-5 pt-2 pb-3.5 border-b border-slate-100 z-10">
           {/* Top Brand Bar */}
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center">
@@ -211,7 +211,7 @@ export default function DeliveryScreen({
         </div>
 
         {/* Scrollable Screen Body */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-6">
           
           {/* KPI Statistics Section */}
           <div className="space-y-3">
@@ -522,7 +522,7 @@ export default function DeliveryScreen({
         </div>
 
         {/* Bottom App Navigation Bar (Matched exactly to Figma design) */}
-        <div className="bg-white border-t border-slate-200/80 px-2 py-2 grid grid-cols-5 items-center text-xs absolute bottom-0 left-0 right-0 z-20">
+        <div className="shrink-0 bg-white border-t border-slate-200/80 px-2 pt-2 pb-3 sm:pb-2 grid grid-cols-5 items-center text-xs z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
           {/* Home */}
           <button
             type="button"
