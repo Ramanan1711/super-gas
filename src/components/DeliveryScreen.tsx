@@ -330,19 +330,42 @@ export default function DeliveryScreen({
               </div>
             </div>
 
-            {/* Cash In Hand Card Banner */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-sm flex items-center justify-between">
+            {/* Today's Collection Card (Matched exactly to Figma design) */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
+              <h3 className="text-[13px] font-bold tracking-wider text-slate-900 uppercase">
+                Today&apos;s Collection
+              </h3>
+              <div className="border-b border-slate-100 my-3.5"></div>
+
               <div>
-                <p className="text-2xl font-black text-slate-900">
-                  ₹ {stats.cashInHand.toLocaleString('en-IN')}
+                <p className="text-sm font-medium text-slate-500">Total Collected</p>
+                <p className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-1 mb-4">
+                  ₹{(stats.cashInHand + stats.onlineCollected).toLocaleString('en-IN')}
                 </p>
-                <p className="text-xs font-medium text-slate-500">Cash In Hand</p>
               </div>
-              <div className="text-right">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                  Online: ₹ {stats.onlineCollected.toLocaleString('en-IN')}
-                </span>
-                <p className="text-[10px] text-slate-400 mt-0.5">UPI / Cards</p>
+
+              <div className="space-y-2.5">
+                {/* Cash Row */}
+                <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
+                    <span className="text-sm font-semibold text-slate-900">Cash</span>
+                  </div>
+                  <span className="text-base font-bold text-slate-900">
+                    ₹{stats.cashInHand.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                {/* UPI Row */}
+                <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <span className="text-sm font-semibold text-slate-900">UPI</span>
+                  </div>
+                  <span className="text-base font-bold text-slate-900">
+                    ₹{stats.onlineCollected.toLocaleString('en-IN')}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
