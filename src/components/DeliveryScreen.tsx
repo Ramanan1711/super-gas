@@ -826,19 +826,20 @@ export default function DeliveryScreen({
               </div>
 
               {/* GST Required Card */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex items-center justify-between">
+              <div
+                onClick={() => setGstRequired(!gstRequired)}
+                className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex items-center justify-between cursor-pointer select-none group transition hover:border-slate-300"
+              >
                 <span className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
                   GST REQUIRED
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setGstRequired(!gstRequired)}
-                  className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-colors cursor-pointer ${
-                    gstRequired ? 'border-[#BC0118] bg-[#BC0118] text-white' : 'border-[#BC0118] bg-white'
+                <div
+                  className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-colors ${
+                    gstRequired ? 'border-[#BC0118] bg-[#BC0118] text-white' : 'border-[#BC0118] bg-white group-hover:border-red-700'
                   }`}
                 >
                   {gstRequired && <Check className="w-3.5 h-3.5 stroke-[3] text-white" />}
-                </button>
+                </div>
               </div>
 
               {/* Billing Summary */}
@@ -856,6 +857,17 @@ export default function DeliveryScreen({
                     <span>Subtotal (2x15kg, 3x21kg, 1x33kg)</span>
                     <span className="font-bold text-slate-900">₹18,500.00</span>
                   </div>
+                  {gstRequired && (
+                    <div className="flex items-center justify-between text-slate-600 animate-in fade-in duration-150">
+                      <div className="flex items-center gap-1.5">
+                        <span>GST / Applicable Taxes (5%)</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200/60">
+                          CGST+SGST
+                        </span>
+                      </div>
+                      <span className="font-bold text-slate-900">₹925.00</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-slate-600">
                     <span>Delivery &amp; Handling Charges</span>
                     <span className="font-bold text-emerald-600">FREE (₹0.00)</span>
@@ -874,7 +886,7 @@ export default function DeliveryScreen({
                   </span>
                 </div>
                 <span className="text-2xl sm:text-3xl font-black text-[#E81B24] tracking-tight">
-                  ₹18,500/-
+                  {gstRequired ? '₹19,425' : '₹18,500/-'}
                 </span>
               </div>
 
