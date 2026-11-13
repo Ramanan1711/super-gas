@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import BrandLogo from '@/components/BrandLogo';
 import {
   ArrowLeft,
@@ -45,13 +45,86 @@ export default function PaymentScreen({
   const seq = String(customerIndex >= 0 ? customerIndex + 1 : 1).padStart(3, '0');
   const currentInvoiceNo = `INV-${dateCode}-${seq}`;
 
-  // Billing calculation
-  const previousOutstanding = 1800;
+  // Check if first-time buyer
+  const isFirstTimeBuyer =
+    selectedDelivery.customer.type === 'Domestic' ||
+    selectedDelivery.notes?.toLowerCase().includes('first') ||
+    selectedDelivery.customer.name.toLowerCase().includes('priya');
+
+  // Customer's past deliveries in system
+  const customerPastDeliveries = deliveries.filter(
+    (d) => d.customerId === selectedDelivery.customerId && d.id !== selectedDelivery.id
+  );
+
+  // Derive recent billing history records
+  const pastInvoices = useMemo(() => {
+    if (isFirstTimeBuyer) {
+      return [];
+    }
+
+    if (customerPastDeliveries.length > 0) {
+      return customerPastDeliveries.map((d, i) => {
+        const isPaid = d.paymentStatus === 'PAID';
+        const dDate = d.deliveredAt ? new Date(d.deliveredAt) : new Date(d.createdAt);
+        const formatted = new Intl.DateTimeFormat('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }).format(dDate);
+
+        return {
+          id: d.id,
+          invoiceNo: `INV-${d.createdAt.slice(0, 10).replace(/-/g, '')}-${String(i + 18).padStart(3, '0')}`,
+          dateStr: `${formatted} · ${isPaid ? 'Delivered' : `₹${d.amount.toLocaleString('en-IN')} Total`}`,
+          amount: d.amount,
+          isPaid,
+          statusText: isPaid
+            ? `₹${d.amount.toLocaleString('en-IN')} · Paid`
+            : `₹${d.amount.toLocaleString('en-IN')} Pending`,
+        };
+      });
+    }
+
+    // Default ledger history for returning commercial customers
+    // Displays previous paid invoice and previous pending invoice (e.g. ₹800)
+    const pendingAmount = selectedDelivery.customer.name.toLowerCase().includes('saravana')
+      ? 2400
+      : selectedDelivery.customer.name.toLowerCase().includes('muthu')
+      ? 1200
+      : 800;
+
+    return [
+      {
+        id: 'hist-1',
+        invoiceNo: 'INV-20261001-018',
+        dateStr: '01 Oct 2026 · Delivered',
+        amount: 1000,
+        isPaid: true,
+        statusText: '₹1,000 · Paid',
+      },
+      {
+        id: 'hist-2',
+        invoiceNo: 'INV-20261003-021',
+        dateStr: `03 Oct 2026 · ₹${pendingAmount.toLocaleString('en-IN')} Total`,
+        amount: pendingAmount,
+        isPaid: false,
+        statusText: `₹${pendingAmount.toLocaleString('en-IN')} Pending`,
+      },
+    ];
+  }, [isFirstTimeBuyer, customerPastDeliveries, selectedDelivery.customer.name]);
+
+  // Calculate previous pending amount from unpaid past invoices
+  const previousOutstanding = useMemo(() => {
+    return pastInvoices
+      .filter((inv) => !inv.isPaid)
+      .reduce((sum, inv) => sum + inv.amount, 0);
+  }, [pastInvoices]);
+
   const currentInvoice = currentInvoiceAmount > 0 ? currentInvoiceAmount : 1200;
   const totalBalanceDue = previousOutstanding + currentInvoice;
 
-  // Amount received state
-  const [amountReceived, setAmountReceived] = useState<string>('1500');
+  // Amount received state (defaults to total balance due)
+  const [amountReceived, setAmountReceived] = useState<string>(() => String(totalBalanceDue));
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'UPI'>('CASH');
 
   const parsedAmount = parseFloat(amountReceived) || 0;
@@ -113,42 +186,38 @@ export default function PaymentScreen({
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               INVOICE PAYMENT STATUS
             </h3>
-            <span className="text-xs font-semibold text-slate-600">3 Records</span>
+            <span className="text-xs font-semibold text-slate-600">
+              {pastInvoices.length + 1} Record{pastInvoices.length + 1 === 1 ? '' : 's'}
+            </span>
           </div>
 
           <p className="text-xs font-semibold text-slate-800 -mt-1.5">
             Recent customer billing history
           </p>
 
-          {/* 3 Records List */}
+          {/* Records List */}
           <div className="space-y-3 pt-1">
-            {/* Row 1: Paid */}
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              <div className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+            {/* Past Invoices */}
+            {pastInvoices.map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between text-xs sm:text-sm">
+                <div className="flex items-center gap-2.5">
+                  {inv.isPaid ? (
+                    <div className="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0">
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    </div>
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-slate-700 stroke-[2.2] shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-bold text-slate-800 text-xs sm:text-[13px]">{inv.invoiceNo}</p>
+                    <p className="text-[11px] text-slate-400">{inv.dateStr}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-slate-800 text-xs sm:text-[13px]">INV-20261001-018</p>
-                  <p className="text-[11px] text-slate-400">01 Oct 2026 · Delivered</p>
-                </div>
+                <span className="font-bold text-slate-900 text-xs sm:text-sm">{inv.statusText}</span>
               </div>
-              <span className="font-bold text-slate-900 text-xs sm:text-sm">₹1,000 · Paid</span>
-            </div>
+            ))}
 
-            {/* Row 2: Pending */}
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              <div className="flex items-center gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-slate-700 stroke-[2.2] shrink-0" />
-                <div>
-                  <p className="font-bold text-slate-800 text-xs sm:text-[13px]">INV-20261003-021</p>
-                  <p className="text-[11px] text-slate-400">03 Oct 2026 · ₹800 Total</p>
-                </div>
-              </div>
-              <span className="font-bold text-slate-900 text-xs sm:text-sm">₹800 Pending</span>
-            </div>
-
-            {/* Row 3: Current Unpaid */}
+            {/* Current Invoice Unpaid */}
             <div className="flex items-center justify-between text-xs sm:text-sm">
               <div className="flex items-center gap-2.5">
                 <CircleDot className="w-4 h-4 text-slate-800 stroke-[2.5] shrink-0" />
