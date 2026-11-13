@@ -146,7 +146,12 @@ export default function DeliveryScreen({
       '33 KG': 0,
     });
     setDeliveredQuantity(delivery.quantity);
-    setEmptyCount(delivery.emptyCollected || 8);
+    const isFirstTime =
+      delivery.customer.type === 'Domestic' ||
+      delivery.notes?.toLowerCase().includes('first') ||
+      delivery.customer.name.toLowerCase().includes('priya');
+    const initialEmpty = isFirstTime ? 0 : (delivery.emptyCollected || delivery.quantity || 1);
+    setEmptyCount(initialEmpty);
     setPaymentMode(delivery.paymentMethod === 'UPI' ? 'UPI' : 'CASH');
     setGstRequired(false);
     setStep('CATEGORY');
@@ -380,7 +385,9 @@ export default function DeliveryScreen({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Empties Pending / Handled:</span>
-                  <span className="font-bold text-emerald-600">8 Cylinders</span>
+                  <span className="font-bold text-emerald-600">
+                    {Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0)} Cylinders
+                  </span>
                 </div>
               </div>
 

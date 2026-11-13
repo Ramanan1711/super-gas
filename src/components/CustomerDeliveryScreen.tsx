@@ -46,6 +46,16 @@ export default function CustomerDeliveryScreen({
   const customerIndex = deliveries.findIndex((d) => d.id === selectedDelivery.id);
   const customerCode = `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
 
+  // Dynamic Pending Empty Return count:
+  // First-time buyers (e.g. Domestic new connections like Priya Sharma, or emptyCollected === 0) have 0 pending empties.
+  // Regular commercial customers have their pending empty exchange count.
+  const isFirstTimeBuyer =
+    selectedDelivery.customer.type === 'Domestic' ||
+    selectedDelivery.notes?.toLowerCase().includes('first') ||
+    selectedDelivery.customer.name.toLowerCase().includes('priya');
+
+  const pendingEmptyCount = isFirstTimeBuyer ? 0 : (selectedDelivery.emptyCollected || selectedDelivery.quantity || 1);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
       {/* Scrollable Content */}
@@ -111,16 +121,28 @@ export default function CustomerDeliveryScreen({
             </div>
           </div>
 
-          {/* Amber Warning Banner: Pending Empty Return */}
-          <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#92400E]">
-              <AlertTriangle className="w-4 h-4 text-[#D97706] stroke-[2.2] shrink-0" />
-              <span className="text-xs font-semibold">Pending Empty Return</span>
+          {/* Pending Empty Return Banner or First-Time Buyer Status */}
+          {pendingEmptyCount > 0 ? (
+            <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[#92400E]">
+                <AlertTriangle className="w-4 h-4 text-[#D97706] stroke-[2.2] shrink-0" />
+                <span className="text-xs font-semibold">Pending Empty Return</span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-md bg-[#FEF3C7] text-[#92400E] text-[11px] font-bold border border-[#FDE68A]/60">
+                {pendingEmptyCount} {pendingEmptyCount === 1 ? 'Cylinder' : 'Cylinders'}
+              </span>
             </div>
-            <span className="px-2.5 py-0.5 rounded-md bg-[#FEF3C7] text-[#92400E] text-[11px] font-bold border border-[#FDE68A]/60">
-              8 Cylinders
-            </span>
-          </div>
+          ) : (
+            <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span className="text-xs font-semibold">First-Time Buyer</span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-md bg-white text-emerald-700 text-[11px] font-bold border border-emerald-200">
+                No Empty Return
+              </span>
+            </div>
+          )}
         </div>
 
         {/* STEP 1: SELECT CATEGORY */}
