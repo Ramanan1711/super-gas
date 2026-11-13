@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import BrandLogo from '@/components/BrandLogo';
 import {
   ArrowLeft,
@@ -277,9 +278,13 @@ export default function PaymentAllocationScreen({
 
         {/* FIFO PAYMENT ALLOCATION Info Banner */}
         <div className="bg-[#EFF5FF] border border-[#DCE8FC] rounded-2xl p-3.5 flex items-start gap-3">
-          <div className="w-5 h-5 rounded-full border border-[#E81B24] text-[#E81B24] flex items-center justify-center shrink-0 mt-0.5">
-            <span className="text-xs font-black italic">i</span>
-          </div>
+          <Image
+            src="/images/icons/info-red.png"
+            alt="FIFO Info"
+            width={18}
+            height={18}
+            className="w-[18px] h-[18px] shrink-0 mt-0.5 object-contain"
+          />
           <div className="space-y-1">
             <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
               FIFO PAYMENT ALLOCATION
