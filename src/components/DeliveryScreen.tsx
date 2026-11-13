@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { CheckCircle2 } from 'lucide-react';
 import MainDeliveryScreen from './MainDeliveryScreen';
 import CustomerDeliveryScreen from './CustomerDeliveryScreen';
 import InvoiceScreen from './InvoiceScreen';
 import PaymentScreen from './PaymentScreen';
 import PaymentAllocationScreen from './PaymentAllocationScreen';
 import ConfirmDeliveryScreen from './ConfirmDeliveryScreen';
+import DeliveryCompletedModal from './DeliveryCompletedModal';
 
 export interface Customer {
   id: string;
@@ -421,46 +421,19 @@ export default function DeliveryScreen({
 
         {/* 4. Delivery Completed Success Modal */}
         {step === 'COMPLETED' && selectedDelivery && (
-          <div className="fixed inset-0 sm:absolute z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95 duration-200 shadow-2xl">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 className="w-10 h-10" />
-              </div>
-              <div>
-                <h4 className="text-xl font-black text-slate-900">Delivery Completed!</h4>
-                <p className="text-xs text-slate-500 mt-1">Invoice and receipt generated successfully</p>
-              </div>
-
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 text-xs space-y-2 text-left">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Customer:</span>
-                  <span className="font-bold text-slate-900">{selectedDelivery.customer.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Categories Handed:</span>
-                  <span className="font-bold text-slate-900">
-                    {selectedCategories.length > 0
-                      ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x ${c}`).join(', ')
-                      : selectedDelivery.cylinderType}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Empties Pending / Handled:</span>
-                  <span className="font-bold text-emerald-600">
-                    {Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0)} Cylinders
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="w-full py-3 bg-[#E81B24] hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md transition cursor-pointer"
-              >
-                Back to Delivery List
-              </button>
-            </div>
-          </div>
+          <DeliveryCompletedModal
+            selectedDelivery={selectedDelivery}
+            deliveries={deliveries}
+            selectedCategories={selectedCategories}
+            categoryQuantities={categoryQuantities}
+            emptyCollectedCounts={emptyCollectedCounts}
+            deliveredQuantity={deliveredQuantity}
+            emptyCount={emptyCount}
+            amountReceived={collectedAmount}
+            outstandingBalance={outstandingBalance}
+            onShareAndReturn={handleCloseModal}
+            onViewReceipt={() => setStep('INVOICE')}
+          />
         )}
 
       </div>
