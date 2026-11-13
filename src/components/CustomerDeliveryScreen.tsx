@@ -223,8 +223,8 @@ export default function CustomerDeliveryScreen({
 
             {/* Empty Cylinders Collection Cards */}
             {[
-              { category: '19.5 KG', defaultCount: 5 },
-              { category: '21.5 KG', defaultCount: 2 },
+              { category: '19.5 KG', defaultCount: 0 },
+              { category: '21.5 KG', defaultCount: 0 },
               { category: '32.5 KG', defaultCount: 0 },
             ].map((item) => (
               <div
@@ -266,7 +266,7 @@ export default function CustomerDeliveryScreen({
                     </button>
 
                     <span className="font-extrabold text-slate-900 text-lg sm:text-xl min-w-[24px] text-center">
-                      {emptyCollectedCounts[item.category] ?? item.defaultCount}
+                      {emptyCollectedCounts[item.category] ?? 0}
                     </span>
 
                     <button
@@ -294,13 +294,15 @@ export default function CustomerDeliveryScreen({
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-slate-600 font-medium">Filled Delivered</span>
                   <span className="font-bold text-slate-900 text-right">
-                    10x19.5kg, 2x21.5kg,100x31.5kg
+                    {selectedCategories.length > 0
+                      ? selectedCategories.map((cat) => `${categoryQuantities[cat] ?? 1}x${cat.toLowerCase().replace(' ', '')}`).join(', ')
+                      : '10x19.5kg, 2x21.5kg, 100x31.5kg'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-slate-600 font-medium">Empty Collected</span>
                   <span className="font-bold text-slate-900 text-right">
-                    67x19.5kg, 2x21.5kg,0x31.5kg
+                    {`${emptyCollectedCounts['19.5 KG'] ?? 0}x19.5kg, ${emptyCollectedCounts['21.5 KG'] ?? 0}x21.5kg, ${emptyCollectedCounts['32.5 KG'] ?? 0}x32.5kg`}
                   </span>
                 </div>
               </div>

@@ -73,8 +73,8 @@ export default function DeliveryScreen({
     '33 KG': 1,
   });
   const [emptyCollectedCounts, setEmptyCollectedCounts] = useState<Record<string, number>>({
-    '19.5 KG': 5,
-    '21.5 KG': 2,
+    '19.5 KG': 0,
+    '21.5 KG': 0,
     '32.5 KG': 0,
   });
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
@@ -125,10 +125,9 @@ export default function DeliveryScreen({
 
   // Update empty cylinder count
   const updateEmptyCount = (category: string, delta: number) => {
-    const defaults: Record<string, number> = { '19.5 KG': 5, '21.5 KG': 2, '32.5 KG': 0 };
     setEmptyCollectedCounts((prev) => ({
       ...prev,
-      [category]: Math.max(0, (prev[category] ?? defaults[category] ?? 0) + delta),
+      [category]: Math.max(0, (prev[category] ?? 0) + delta),
     }));
   };
 
@@ -142,8 +141,8 @@ export default function DeliveryScreen({
       '33 KG': 1,
     });
     setEmptyCollectedCounts({
-      '19.5 KG': 5,
-      '21.5 KG': 2,
+      '19.5 KG': 0,
+      '21.5 KG': 0,
       '32.5 KG': 0,
     });
     setDeliveredQuantity(delivery.quantity);
