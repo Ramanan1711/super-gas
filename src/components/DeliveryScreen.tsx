@@ -73,9 +73,9 @@ export default function DeliveryScreen({
     '33 KG': 1,
   });
   const [emptyCollectedCounts, setEmptyCollectedCounts] = useState<Record<string, number>>({
-    '19.5 KG': 0,
-    '21.5 KG': 0,
-    '32.5 KG': 0,
+    '5 KG': 0,
+    '21 KG': 0,
+    '33 KG': 0,
   });
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
   const [emptyCount, setEmptyCount] = useState(8);
@@ -141,9 +141,9 @@ export default function DeliveryScreen({
       '33 KG': 1,
     });
     setEmptyCollectedCounts({
-      '19.5 KG': 0,
-      '21.5 KG': 0,
-      '32.5 KG': 0,
+      '5 KG': 0,
+      '21 KG': 0,
+      '33 KG': 0,
     });
     setDeliveredQuantity(delivery.quantity);
     setEmptyCount(delivery.emptyCollected || 8);

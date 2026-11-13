@@ -214,8 +214,8 @@ export default function CustomerDeliveryScreen({
                   ))
                 ) : (
                   <>
-                    <p className="text-sm font-bold text-slate-900 tracking-wide">19.5 KG X 5</p>
-                    <p className="text-sm font-bold text-slate-900 tracking-wide">21.5 KG X 2</p>
+                    <p className="text-sm font-bold text-slate-900 tracking-wide">5 KG X 1</p>
+                    <p className="text-sm font-bold text-slate-900 tracking-wide">21 KG X 1</p>
                   </>
                 )}
               </div>
@@ -223,9 +223,9 @@ export default function CustomerDeliveryScreen({
 
             {/* Empty Cylinders Collection Cards */}
             {[
-              { category: '19.5 KG', defaultCount: 0 },
-              { category: '21.5 KG', defaultCount: 0 },
-              { category: '32.5 KG', defaultCount: 0 },
+              { category: '5 KG', defaultCount: 0 },
+              { category: '21 KG', defaultCount: 0 },
+              { category: '33 KG', defaultCount: 0 },
             ].map((item) => (
               <div
                 key={item.category}
@@ -296,13 +296,13 @@ export default function CustomerDeliveryScreen({
                   <span className="font-bold text-slate-900 text-right">
                     {selectedCategories.length > 0
                       ? selectedCategories.map((cat) => `${categoryQuantities[cat] ?? 1}x${cat.toLowerCase().replace(' ', '')}`).join(', ')
-                      : '10x19.5kg, 2x21.5kg, 100x31.5kg'}
+                      : '1x5kg, 1x21kg'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-slate-600 font-medium">Empty Collected</span>
                   <span className="font-bold text-slate-900 text-right">
-                    {`${emptyCollectedCounts['19.5 KG'] ?? 0}x19.5kg, ${emptyCollectedCounts['21.5 KG'] ?? 0}x21.5kg, ${emptyCollectedCounts['32.5 KG'] ?? 0}x32.5kg`}
+                    {`${emptyCollectedCounts['5 KG'] ?? 0}x5kg, ${emptyCollectedCounts['21 KG'] ?? 0}x21kg, ${emptyCollectedCounts['33 KG'] ?? 0}x33kg`}
                   </span>
                 </div>
               </div>
