@@ -5,6 +5,7 @@ import { CheckCircle2 } from 'lucide-react';
 import MainDeliveryScreen from './MainDeliveryScreen';
 import CustomerDeliveryScreen from './CustomerDeliveryScreen';
 import InvoiceScreen from './InvoiceScreen';
+import PaymentScreen from './PaymentScreen';
 
 export interface Customer {
   id: string;
@@ -65,7 +66,7 @@ export default function DeliveryScreen({
   
   // Delivery Flow State
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'COMPLETED'>('CATEGORY');
+  const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'PAYMENT' | 'COMPLETED'>('CATEGORY');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({
     '5 KG': 1,
@@ -199,10 +200,28 @@ export default function DeliveryScreen({
     }
   };
 
+  // Dynamic current invoice total
+  const currentInvoiceTotal = useMemo(() => {
+    const CYLINDER_PRICES: Record<string, number> = {
+      '5 KG': 400,
+      '21 KG': 2000,
+      '33 KG': 4500,
+    };
+    const sub = selectedCategories.length > 0
+      ? selectedCategories.reduce(
+          (sum, cat) => sum + (categoryQuantities[cat] ?? 1) * (CYLINDER_PRICES[cat] ?? 2000),
+          0
+        )
+      : (CYLINDER_PRICES['21 KG'] ?? 2000);
+    return gstRequired ? Math.round(sub * 1.05) : sub;
+  }, [selectedCategories, categoryQuantities, gstRequired]);
+
   // Complete delivery submission
-  const handleConfirmDelivery = async () => {
+  const handleConfirmDelivery = async (methodOverride?: 'CASH' | 'UPI', amountOverride?: number) => {
     if (!selectedDelivery) return;
     setIsSubmitting(true);
+    const chosenMethod = methodOverride || paymentMode;
+    const finalAmount = amountOverride !== undefined ? amountOverride : currentInvoiceTotal;
     try {
       const categoryStr = selectedCategories.length > 0
         ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x ${c}`).join(', ')
@@ -213,20 +232,6 @@ export default function DeliveryScreen({
       const totalEmptyCollected = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
       const finalEmptyCount = totalEmptyCollected > 0 ? totalEmptyCollected : emptyCount;
 
-      // Pricing Calculation: 5 KG = 400, 21 KG = 2000, 33 KG = 4500
-      const CYLINDER_PRICES: Record<string, number> = {
-        '5 KG': 400,
-        '21 KG': 2000,
-        '33 KG': 4500,
-      };
-      const calculatedSubtotal = selectedCategories.length > 0
-        ? selectedCategories.reduce(
-            (sum, cat) => sum + (categoryQuantities[cat] ?? 1) * (CYLINDER_PRICES[cat] ?? 2000),
-            0
-          )
-        : (CYLINDER_PRICES['21 KG'] ?? 2000);
-      const finalAmount = gstRequired ? Math.round(calculatedSubtotal * 1.05) : calculatedSubtotal;
-
       const res = await fetch(`/api/deliveries/${selectedDelivery.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -235,7 +240,7 @@ export default function DeliveryScreen({
           emptyCollected: finalEmptyCount,
           cylinderType: categoryStr,
           amount: finalAmount,
-          paymentMethod: paymentMode,
+          paymentMethod: chosenMethod,
           paymentStatus: 'PAID',
         }),
       });
@@ -250,7 +255,7 @@ export default function DeliveryScreen({
 
         // Update stats
         setStats((prev) => {
-          const isCash = paymentMode === 'CASH';
+          const isCash = chosenMethod === 'CASH';
           return {
             ...prev,
             completedDeliveries: prev.completedDeliveries + 1,
@@ -334,12 +339,26 @@ export default function DeliveryScreen({
             gstRequired={gstRequired}
             onToggleGst={() => setGstRequired((prev) => !prev)}
             onBack={() => setStep('EMPTY_COLLECTION')}
-            onContinueToPayment={handleConfirmDelivery}
+            onContinueToPayment={() => setStep('PAYMENT')}
+            isSubmitting={isSubmitting}
+            getInitials={getInitials}
+          />
+        ) : selectedDelivery && step === 'PAYMENT' ? (
+          /* 3. Payment Screen */
+          <PaymentScreen
+            selectedDelivery={selectedDelivery}
+            deliveries={deliveries}
+            currentInvoiceAmount={currentInvoiceTotal}
+            onBack={() => setStep('INVOICE')}
+            onConfirmPayment={(paymentMethod, amountCollected) => {
+              setPaymentMode(paymentMethod);
+              handleConfirmDelivery(paymentMethod, amountCollected);
+            }}
             isSubmitting={isSubmitting}
             getInitials={getInitials}
           />
         ) : (
-          /* 3. Main Delivery Screen (Dashboard) */
+          /* 4. Main Delivery Screen (Dashboard) */
           <MainDeliveryScreen
             deliveries={filteredDeliveries}
             stats={stats}
