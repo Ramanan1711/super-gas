@@ -356,7 +356,7 @@ export default function DeliveryScreen({
                   <span className="text-slate-500">Categories Handed:</span>
                   <span className="font-bold text-slate-900">
                     {selectedCategories.length > 0
-                      ? selectedCategories.map((c) => `${categoryQuantities[c] ?? (c === '5 KG' ? 10 : 1)}x ${c}`).join(', ')
+                      ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x ${c}`).join(', ')
                       : selectedDelivery.cylinderType}
                   </span>
                 </div>

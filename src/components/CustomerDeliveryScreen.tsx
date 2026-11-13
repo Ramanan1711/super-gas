@@ -302,7 +302,12 @@ export default function CustomerDeliveryScreen({
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-slate-600 font-medium">Empty Collected</span>
                   <span className="font-bold text-slate-900 text-right">
-                    {`${emptyCollectedCounts['5 KG'] ?? 0}x5kg, ${emptyCollectedCounts['21 KG'] ?? 0}x21kg, ${emptyCollectedCounts['33 KG'] ?? 0}x33kg`}
+                    {(() => {
+                      const collected = ['5 KG', '21 KG', '33 KG']
+                        .filter((cat) => (emptyCollectedCounts[cat] ?? 0) > 0)
+                        .map((cat) => `${emptyCollectedCounts[cat]}x${cat.toLowerCase().replace(' ', '')}`);
+                      return collected.length > 0 ? collected.join(', ') : '0 Collected';
+                    })()}
                   </span>
                 </div>
               </div>
