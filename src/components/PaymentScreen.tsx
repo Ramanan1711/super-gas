@@ -5,7 +5,6 @@ import Image from 'next/image';
 import BrandLogo from '@/components/BrandLogo';
 import {
   ArrowLeft,
-  Receipt,
   X,
   Info,
   Banknote,
@@ -274,7 +273,13 @@ export default function PaymentScreen({
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               BILLING BREAKDOWN
             </h3>
-            <Receipt className="w-4 h-4 text-slate-700 stroke-[2]" />
+            <Image
+              src="/images/icons/billing-receipt.png"
+              alt="Billing Receipt"
+              width={16}
+              height={18}
+              className="w-4 h-[18px] shrink-0 object-contain"
+            />
           </div>
 
           <div className="space-y-2 text-xs sm:text-sm">
