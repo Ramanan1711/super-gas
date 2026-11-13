@@ -81,12 +81,17 @@ export default function DeliveryScreen({
   
   // Delivery Flow State
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [step, setStep] = useState<'CATEGORY' | 'COMPLETED'>('CATEGORY');
+  const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'COMPLETED'>('CATEGORY');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({
     '5 KG': 10,
     '21 KG': 1,
     '33 KG': 1,
+  });
+  const [emptyCollectedCounts, setEmptyCollectedCounts] = useState<Record<string, number>>({
+    '19.5 KG': 5,
+    '21.5 KG': 2,
+    '32.5 KG': 0,
   });
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
   const [emptyCount, setEmptyCount] = useState(8);
@@ -135,6 +140,11 @@ export default function DeliveryScreen({
       '21 KG': 1,
       '33 KG': 1,
     });
+    setEmptyCollectedCounts({
+      '19.5 KG': 5,
+      '21.5 KG': 2,
+      '32.5 KG': 0,
+    });
     setDeliveredQuantity(delivery.quantity);
     setEmptyCount(delivery.emptyCollected || 8);
     setPaymentMode(delivery.paymentMethod === 'UPI' ? 'UPI' : 'CASH');
@@ -159,12 +169,15 @@ export default function DeliveryScreen({
       const totalDelivered = selectedCategories.length > 0
         ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? (c === '5 KG' ? 10 : 1)), 0)
         : deliveredQuantity;
+      const totalEmptyCollected = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
+      const finalEmptyCount = totalEmptyCollected > 0 ? totalEmptyCollected : emptyCount;
+
       const res = await fetch(`/api/deliveries/${selectedDelivery.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'DELIVERED',
-          emptyCollected: emptyCount,
+          emptyCollected: finalEmptyCount,
           cylinderType: categoryStr,
           paymentMethod: paymentMode,
           paymentStatus: 'PAID',
@@ -186,7 +199,7 @@ export default function DeliveryScreen({
             ...prev,
             completedDeliveries: prev.completedDeliveries + 1,
             pendingDeliveries: Math.max(0, prev.pendingDeliveries - 1),
-            emptyCylindersCollected: prev.emptyCylindersCollected + emptyCount,
+            emptyCylindersCollected: prev.emptyCylindersCollected + finalEmptyCount,
             totalCollected: prev.totalCollected + selectedDelivery.amount,
             cashInHand: isCash ? prev.cashInHand + selectedDelivery.amount : prev.cashInHand,
             onlineCollected: !isCash ? prev.onlineCollected + selectedDelivery.amount : prev.onlineCollected,
@@ -195,7 +208,7 @@ export default function DeliveryScreen({
 
         // Update custody stock
         setFilledStock((prev) => Math.max(0, prev - totalDelivered));
-        setEmptyStock((prev) => prev + emptyCount);
+        setEmptyStock((prev) => prev + finalEmptyCount);
 
         setStep('COMPLETED');
       } else {
@@ -226,7 +239,7 @@ export default function DeliveryScreen({
           </div>
         </div>
 
-        {selectedDelivery && step !== 'COMPLETED' ? (
+        {selectedDelivery && step === 'CATEGORY' ? (
           /* Screen 2: Record Cylinder Handover (Matched exactly to Figma design) */
           <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
             {/* Scrollable Content */}
@@ -387,13 +400,224 @@ export default function DeliveryScreen({
             <div className="shrink-0 p-4 pt-2 pb-6 bg-slate-50 border-t border-slate-200/60">
               <button
                 type="button"
-                onClick={handleConfirmDelivery}
-                disabled={isSubmitting || selectedCategories.length === 0}
+                onClick={() => setStep('EMPTY_COLLECTION')}
+                disabled={selectedCategories.length === 0}
                 className={`w-full py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-[0.99] shadow-xs cursor-pointer ${
                   selectedCategories.length > 0
                     ? 'bg-[#E81B24] hover:bg-red-700 text-white shadow-md'
                     : 'bg-[#D9D9D9] text-slate-600 hover:bg-[#D0D0D0]'
                 }`}
+              >
+                <span>Continue</span>
+                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
+              <p className="text-xs text-slate-400 font-normal text-center mt-2.5">
+                Invoice will be generated automatically in next step
+              </p>
+            </div>
+          </div>
+        ) : selectedDelivery && step === 'EMPTY_COLLECTION' ? (
+          /* Screen 3: Empty Cylinders Collection & Delivery Summary (Matched exactly to Figma design) */
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-3.5">
+              {/* Header Card */}
+              <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep('CATEGORY')}
+                    className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-800 hover:bg-slate-200 active:scale-95 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
+                  </button>
+                  <div>
+                    <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight">Delivery</h1>
+                    <p className="text-xs text-slate-500 font-medium">Record cylinder handover</p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-slate-100/90 border border-slate-200/60 flex items-center justify-center p-1.5 shadow-2xs">
+                  <BrandLogo className="h-4 w-auto object-contain" />
+                </div>
+              </div>
+
+              {/* Customer Details Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-3.5">
+                {/* Header Row: Name, Code & Red Initials Avatar */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
+                      {selectedDelivery.customer.name}
+                    </h2>
+                    <div className="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200/90 mt-1">
+                      CUS-{String(deliveries.findIndex((d) => d.id === selectedDelivery.id) >= 0 ? deliveries.findIndex((d) => d.id === selectedDelivery.id) + 124 : 124).padStart(5, '0')}
+                    </div>
+                  </div>
+
+                  {/* Red Initials Circle Avatar */}
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#BC0118] text-white font-bold text-base flex items-center justify-center shrink-0 shadow-2xs">
+                    {getInitials(selectedDelivery.customer.name)}
+                  </div>
+                </div>
+
+                {/* Horizontal Divider */}
+                <div className="border-b border-slate-100"></div>
+
+                {/* Contact & Address */}
+                <div className="space-y-2">
+                  <a
+                    href={`tel:${selectedDelivery.customer.phone}`}
+                    className="flex items-center gap-2.5 text-slate-800 hover:text-red-600 transition-colors w-fit"
+                  >
+                    <Phone className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="text-sm font-semibold tracking-wide">
+                      {selectedDelivery.customer.phone}
+                    </span>
+                  </a>
+                  <div className="flex items-start gap-2.5 text-slate-500">
+                    <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                    <p className="text-sm font-normal text-slate-600 leading-snug">
+                      {selectedDelivery.customer.address || '12, Anna Nagar, Madurai, Tamil Nadu'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Amber Warning Banner: Pending Empty Return */}
+                <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[#92400E]">
+                    <AlertTriangle className="w-4 h-4 text-[#D97706] stroke-[2.2] shrink-0" />
+                    <span className="text-xs font-semibold">Pending Empty Return</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-md bg-[#FEF3C7] text-[#92400E] text-[11px] font-bold border border-[#FDE68A]/60">
+                    8 Cylinders
+                  </span>
+                </div>
+              </div>
+
+              {/* Cylinder Breakdown Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-2.5">
+                <h3 className="text-xs sm:text-[13px] font-black tracking-wider text-slate-900 uppercase">
+                  Cylinder Breakdown
+                </h3>
+                <div className="space-y-1.5 pt-1">
+                  {selectedCategories.length > 0 ? (
+                    selectedCategories.map((cat) => (
+                      <p key={cat} className="text-sm font-bold text-slate-900 tracking-wide">
+                        {cat} X {categoryQuantities[cat] ?? 1}
+                      </p>
+                    ))
+                  ) : (
+                    <>
+                      <p className="text-sm font-bold text-slate-900 tracking-wide">19.5 KG X 5</p>
+                      <p className="text-sm font-bold text-slate-900 tracking-wide">21.5 KG X 2</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Empty Cylinders Collection Cards */}
+              {[
+                { category: '19.5 KG', defaultCount: 5 },
+                { category: '21.5 KG', defaultCount: 2 },
+                { category: '32.5 KG', defaultCount: 0 },
+              ].map((item) => (
+                <div
+                  key={item.category}
+                  className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs sm:text-[13px] font-black tracking-wider text-slate-900 uppercase">
+                      Empty Cylinders
+                    </h3>
+                    <span className="text-xs font-bold text-slate-900">
+                      {item.category}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-normal">
+                    Enter the quantity collected from the customer
+                  </p>
+
+                  {/* Inner Card */}
+                  <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-3.5 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Collected
+                      </span>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>Returns</span>
+                      </div>
+                    </div>
+
+                    {/* Stepper */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmptyCollectedCounts((prev) => ({
+                            ...prev,
+                            [item.category]: Math.max(0, (prev[item.category] ?? item.defaultCount) - 1),
+                          }));
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 active:scale-95 flex items-center justify-center text-slate-900 transition cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+
+                      <span className="font-extrabold text-slate-900 text-lg sm:text-xl min-w-[24px] text-center">
+                        {emptyCollectedCounts[item.category] ?? item.defaultCount}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmptyCollectedCounts((prev) => ({
+                            ...prev,
+                            [item.category]: (prev[item.category] ?? item.defaultCount) + 1,
+                          }));
+                        }}
+                        className="w-8 h-8 rounded-lg bg-[#E81B24] hover:bg-red-700 active:scale-95 shadow-xs flex items-center justify-center text-white transition cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 font-normal">
+                    Enter the number of empty cylinders collected.
+                  </p>
+                </div>
+              ))}
+
+              {/* Delivery Summary Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-3">
+                <h3 className="text-xs sm:text-[13px] font-black tracking-wider text-slate-600 uppercase">
+                  Delivery Summary
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-slate-600 font-medium">Filled Delivered</span>
+                    <span className="font-bold text-slate-900 text-right">
+                      10x19.5kg, 2x21.5kg,100x31.5kg
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-slate-600 font-medium">Empty Collected</span>
+                    <span className="font-bold text-slate-900 text-right">
+                      67x19.5kg, 2x21.5kg,0x31.5kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Action Area */}
+            <div className="shrink-0 p-4 pt-2 pb-6 bg-slate-50 border-t border-slate-200/60">
+              <button
+                type="button"
+                onClick={handleConfirmDelivery}
+                disabled={isSubmitting}
+                className="w-full py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-[0.99] shadow-md bg-[#E81B24] hover:bg-red-700 text-white cursor-pointer"
               >
                 {isSubmitting ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
