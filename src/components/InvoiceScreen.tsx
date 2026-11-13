@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
+import Image from 'next/image';
 import BrandLogo from '@/components/BrandLogo';
 import {
   Phone,
   MapPin,
   ArrowLeft,
   Check,
-  FileText,
   ArrowLeftRight,
   ArrowUp,
   ArrowDown,
@@ -150,8 +150,14 @@ export default function InvoiceScreen({
         {/* Document Meta Card */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-red-600 font-bold text-xs uppercase tracking-wider">
-              <FileText className="w-4 h-4 stroke-[2.2]" />
+            <div className="flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider">
+              <Image
+                src="/images/icons/receipt-red.png"
+                alt="Document Meta"
+                width={16}
+                height={18}
+                className="w-4 h-[18px] shrink-0 object-contain"
+              />
               <span className="text-slate-400">DOCUMENT META</span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FFFBEB] border border-[#FDE68A] text-[#D97706] text-[11px] font-bold">
