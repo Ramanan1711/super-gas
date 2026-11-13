@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import BrandLogo from '@/components/BrandLogo';
 import {
   Phone,
@@ -48,6 +48,35 @@ export default function InvoiceScreen({
 }: InvoiceScreenProps) {
   const customerIndex = deliveries.findIndex((d) => d.id === selectedDelivery.id);
   const customerCode = `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
+
+  // Dynamic Invoice Metadata (Invoice No and Date & Time)
+  const invoiceMeta = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dateCode = `${year}${month}${day}`;
+    const seq = String(customerIndex >= 0 ? customerIndex + 1 : 1).padStart(3, '0');
+    const invoiceNo = `INV-${dateCode}-${seq}`;
+
+    // Format: "DD MMM YYYY • hh:mm A" (e.g. "13 Nov 2026 • 12:38 PM")
+    const formattedDate = new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(now);
+
+    const formattedTime = new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }).format(now);
+
+    return {
+      invoiceNo,
+      dateTime: `${formattedDate} • ${formattedTime}`,
+    };
+  }, [customerIndex]);
 
   // Dynamic Outgoing (Handed Over) Text from previous page
   const outgoingCategories = selectedCategories.length > 0
@@ -128,7 +157,7 @@ export default function InvoiceScreen({
                 INVOICE NO.
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 mt-0.5 block truncate">
-                INV-20261005-001
+                {invoiceMeta.invoiceNo}
               </span>
             </div>
             <div className="bg-[#F8FAFC] border border-slate-100 rounded-xl p-3">
@@ -136,7 +165,7 @@ export default function InvoiceScreen({
                 DATE &amp; TIME
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 mt-0.5 block truncate">
-                05 Oct 2026 • 03:42 PM
+                {invoiceMeta.dateTime}
               </span>
             </div>
           </div>
