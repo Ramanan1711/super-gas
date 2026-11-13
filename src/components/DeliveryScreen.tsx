@@ -6,6 +6,7 @@ import MainDeliveryScreen from './MainDeliveryScreen';
 import CustomerDeliveryScreen from './CustomerDeliveryScreen';
 import InvoiceScreen from './InvoiceScreen';
 import PaymentScreen from './PaymentScreen';
+import PaymentAllocationScreen from './PaymentAllocationScreen';
 
 export interface Customer {
   id: string;
@@ -66,7 +67,7 @@ export default function DeliveryScreen({
   
   // Delivery Flow State
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'PAYMENT' | 'COMPLETED'>('CATEGORY');
+  const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'PAYMENT' | 'PAYMENT_ALLOCATION' | 'COMPLETED'>('CATEGORY');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({
     '5 KG': 1,
@@ -81,6 +82,7 @@ export default function DeliveryScreen({
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
   const [emptyCount, setEmptyCount] = useState(8);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
+  const [collectedAmount, setCollectedAmount] = useState<number>(0);
   const [gstRequired, setGstRequired] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeBottomNav, setActiveBottomNav] = useState<'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE'>('HOME');
@@ -350,9 +352,25 @@ export default function DeliveryScreen({
             deliveries={deliveries}
             currentInvoiceAmount={currentInvoiceTotal}
             onBack={() => setStep('INVOICE')}
-            onConfirmPayment={(paymentMethod, amountCollected) => {
+            onContinueToAllocation={(paymentMethod, amountCollected) => {
               setPaymentMode(paymentMethod);
-              handleConfirmDelivery(paymentMethod, amountCollected);
+              setCollectedAmount(amountCollected);
+              setStep('PAYMENT_ALLOCATION');
+            }}
+            isSubmitting={isSubmitting}
+            getInitials={getInitials}
+          />
+        ) : selectedDelivery && step === 'PAYMENT_ALLOCATION' ? (
+          /* 3.5. Payment Allocation Screen (Automated FIFO settlement) */
+          <PaymentAllocationScreen
+            selectedDelivery={selectedDelivery}
+            deliveries={deliveries}
+            currentInvoiceAmount={currentInvoiceTotal}
+            amountReceived={collectedAmount}
+            paymentMethod={paymentMode}
+            onBack={() => setStep('PAYMENT')}
+            onContinueToConfirmation={() => {
+              handleConfirmDelivery(paymentMode, collectedAmount);
             }}
             isSubmitting={isSubmitting}
             getInitials={getInitials}

@@ -21,7 +21,7 @@ interface PaymentScreenProps {
   deliveries: Delivery[];
   currentInvoiceAmount: number;
   onBack: () => void;
-  onConfirmPayment: (paymentMethod: 'CASH' | 'UPI', amountCollected: number) => void;
+  onContinueToAllocation: (paymentMethod: 'CASH' | 'UPI', amountCollected: number) => void;
   isSubmitting: boolean;
   getInitials: (name: string) => string;
 }
@@ -31,7 +31,7 @@ export default function PaymentScreen({
   deliveries,
   currentInvoiceAmount,
   onBack,
-  onConfirmPayment,
+  onContinueToAllocation,
   isSubmitting,
   getInitials,
 }: PaymentScreenProps) {
@@ -437,11 +437,11 @@ export default function PaymentScreen({
       <div className="shrink-0 p-4 pt-2 pb-6 bg-slate-50 border-t border-slate-200/60">
         <button
           type="button"
-          onClick={() => onConfirmPayment(paymentMethod, parsedAmount)}
+          onClick={() => onContinueToAllocation(paymentMethod, parsedAmount)}
           disabled={isSubmitting}
           className="w-full py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 bg-[#E81B24] hover:bg-red-700 active:scale-[0.99] text-white transition shadow-md cursor-pointer disabled:opacity-50"
         >
-          <span>{isSubmitting ? 'Confirming...' : 'Continue to Payment Allocation'}</span>
+          <span>Continue to Payment Allocation</span>
           <ChevronRight className="w-4 h-4 stroke-[2.5]" />
         </button>
         <p className="text-xs text-slate-400 font-normal text-center mt-2.5">
