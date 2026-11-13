@@ -7,6 +7,7 @@ import CustomerDeliveryScreen from './CustomerDeliveryScreen';
 import InvoiceScreen from './InvoiceScreen';
 import PaymentScreen from './PaymentScreen';
 import PaymentAllocationScreen from './PaymentAllocationScreen';
+import ConfirmDeliveryScreen from './ConfirmDeliveryScreen';
 
 export interface Customer {
   id: string;
@@ -67,7 +68,7 @@ export default function DeliveryScreen({
   
   // Delivery Flow State
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'PAYMENT' | 'PAYMENT_ALLOCATION' | 'COMPLETED'>('CATEGORY');
+  const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'PAYMENT' | 'PAYMENT_ALLOCATION' | 'CONFIRM_DELIVERY' | 'COMPLETED'>('CATEGORY');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({
     '5 KG': 1,
@@ -83,6 +84,7 @@ export default function DeliveryScreen({
   const [emptyCount, setEmptyCount] = useState(8);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
   const [collectedAmount, setCollectedAmount] = useState<number>(0);
+  const [outstandingBalance, setOutstandingBalance] = useState<number>(0);
   const [gstRequired, setGstRequired] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeBottomNav, setActiveBottomNav] = useState<'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE'>('HOME');
@@ -369,7 +371,29 @@ export default function DeliveryScreen({
             amountReceived={collectedAmount}
             paymentMethod={paymentMode}
             onBack={() => setStep('PAYMENT')}
-            onContinueToConfirmation={() => {
+            onContinueToConfirmation={(uncollected) => {
+              setOutstandingBalance(uncollected);
+              setStep('CONFIRM_DELIVERY');
+            }}
+            isSubmitting={isSubmitting}
+            getInitials={getInitials}
+          />
+        ) : selectedDelivery && step === 'CONFIRM_DELIVERY' ? (
+          /* 3.6. Confirm Delivery Screen (Final transaction review & sign-off) */
+          <ConfirmDeliveryScreen
+            selectedDelivery={selectedDelivery}
+            deliveries={deliveries}
+            selectedCategories={selectedCategories}
+            categoryQuantities={categoryQuantities}
+            emptyCollectedCounts={emptyCollectedCounts}
+            deliveredQuantity={deliveredQuantity}
+            emptyCount={emptyCount}
+            currentInvoiceAmount={currentInvoiceTotal}
+            amountReceived={collectedAmount}
+            paymentMethod={paymentMode}
+            totalOutstandingBalance={outstandingBalance}
+            onBack={() => setStep('PAYMENT_ALLOCATION')}
+            onConfirmDelivery={() => {
               handleConfirmDelivery(paymentMode, collectedAmount);
             }}
             isSubmitting={isSubmitting}

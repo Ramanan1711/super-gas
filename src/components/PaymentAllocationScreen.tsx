@@ -21,7 +21,7 @@ interface PaymentAllocationScreenProps {
   amountReceived: number;
   paymentMethod: 'CASH' | 'UPI';
   onBack: () => void;
-  onContinueToConfirmation: () => void;
+  onContinueToConfirmation: (uncollectedBalance: number) => void;
   isSubmitting: boolean;
   getInitials: (name: string) => string;
 }
@@ -497,7 +497,7 @@ export default function PaymentAllocationScreen({
       <div className="shrink-0 p-4 pt-2 pb-6 bg-slate-50 border-t border-slate-200/60">
         <button
           type="button"
-          onClick={onContinueToConfirmation}
+          onClick={() => onContinueToConfirmation(allocation.totalUncollected)}
           disabled={isSubmitting}
           className="w-full py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 bg-[#E81B24] hover:bg-red-700 active:scale-[0.99] text-white transition shadow-md cursor-pointer disabled:opacity-50"
         >
