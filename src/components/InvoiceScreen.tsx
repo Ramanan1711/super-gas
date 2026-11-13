@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import BrandLogo from '@/components/BrandLogo';
 import {
   Phone,
@@ -49,34 +49,43 @@ export default function InvoiceScreen({
   const customerIndex = deliveries.findIndex((d) => d.id === selectedDelivery.id);
   const customerCode = `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
 
-  // Dynamic Invoice Metadata (Invoice No and Date & Time)
-  const invoiceMeta = useMemo(() => {
+  // Live real-time clock: continuously updates every second so the date & time stays live
+  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Dynamic unique invoice number
+  const invoiceNo = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const dateCode = `${year}${month}${day}`;
     const seq = String(customerIndex >= 0 ? customerIndex + 1 : 1).padStart(3, '0');
-    const invoiceNo = `INV-${dateCode}-${seq}`;
+    return `INV-${dateCode}-${seq}`;
+  }, [customerIndex]);
 
-    // Format: "DD MMM YYYY • hh:mm A" (e.g. "13 Nov 2026 • 12:38 PM")
+  // Format live Date & Time: "DD MMM YYYY • hh:mm A" (e.g. "13 Nov 2026 • 12:52 PM")
+  const formattedDateTime = useMemo(() => {
     const formattedDate = new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
-    }).format(now);
+    }).format(currentTime);
 
     const formattedTime = new Intl.DateTimeFormat('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
-    }).format(now);
+    }).format(currentTime);
 
-    return {
-      invoiceNo,
-      dateTime: `${formattedDate} • ${formattedTime}`,
-    };
-  }, [customerIndex]);
+    return `${formattedDate} • ${formattedTime}`;
+  }, [currentTime]);
 
   // Dynamic Outgoing (Handed Over) Text from previous page
   const outgoingCategories = selectedCategories.length > 0
@@ -157,7 +166,7 @@ export default function InvoiceScreen({
                 INVOICE NO.
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 mt-0.5 block truncate">
-                {invoiceMeta.invoiceNo}
+                {invoiceNo}
               </span>
             </div>
             <div className="bg-[#F8FAFC] border border-slate-100 rounded-xl p-3">
@@ -165,7 +174,7 @@ export default function InvoiceScreen({
                 DATE &amp; TIME
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 mt-0.5 block truncate">
-                {invoiceMeta.dateTime}
+                {formattedDateTime}
               </span>
             </div>
           </div>
