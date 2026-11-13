@@ -66,6 +66,25 @@ export default function InvoiceScreen({
     ? `${collectedEmptyCategories.join(', ')} Empty Cylinders`
     : '0 Empty Cylinders Returned';
 
+  // Dynamic pricing according to cylinder:
+  // 5 KG: ₹400 / cylinder, 21 KG: ₹2,000 / cylinder, 33 KG: ₹4,500 / cylinder
+  const CYLINDER_PRICES: Record<string, number> = {
+    '5 KG': 400,
+    '21 KG': 2000,
+    '33 KG': 4500,
+  };
+
+  const subtotal = selectedCategories.length > 0
+    ? selectedCategories.reduce((sum, cat) => {
+        const qty = categoryQuantities[cat] ?? 1;
+        const price = CYLINDER_PRICES[cat] ?? 2000;
+        return sum + qty * price;
+      }, 0)
+    : (CYLINDER_PRICES['21 KG'] ?? 2000);
+
+  const gstAmount = gstRequired ? subtotal * 0.05 : 0;
+  const totalPayable = subtotal + gstAmount;
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
       {/* Scrollable Content */}
@@ -185,7 +204,7 @@ export default function InvoiceScreen({
                   SUBTOTAL
                 </span>
                 <span className="text-sm sm:text-base font-extrabold text-slate-900">
-                  ₹18,500
+                  ₹{subtotal.toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -249,7 +268,9 @@ export default function InvoiceScreen({
           <div className="space-y-1.5 text-xs sm:text-sm">
             <div className="flex items-center justify-between text-slate-600">
               <span>Subtotal ({outgoingCategories})</span>
-              <span className="font-bold text-slate-900">₹18,500.00</span>
+              <span className="font-bold text-slate-900">
+                ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
             {gstRequired && (
               <div className="flex items-center justify-between text-slate-600 animate-in fade-in duration-150">
@@ -259,7 +280,9 @@ export default function InvoiceScreen({
                     CGST+SGST
                   </span>
                 </div>
-                <span className="font-bold text-slate-900">₹925.00</span>
+                <span className="font-bold text-slate-900">
+                  ₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
             )}
             <div className="flex items-center justify-between text-slate-600">
@@ -280,7 +303,7 @@ export default function InvoiceScreen({
             </span>
           </div>
           <span className="text-2xl sm:text-3xl font-black text-[#E81B24] tracking-tight">
-            {gstRequired ? '₹19,425' : '₹18,500/-'}
+            ₹{Math.round(totalPayable).toLocaleString('en-IN')}/-
           </span>
         </div>
 

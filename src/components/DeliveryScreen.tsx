@@ -200,13 +200,27 @@ export default function DeliveryScreen({
     setIsSubmitting(true);
     try {
       const categoryStr = selectedCategories.length > 0
-        ? selectedCategories.map((c) => `${categoryQuantities[c] ?? (c === '5 KG' ? 10 : 1)}x ${c}`).join(', ')
+        ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x ${c}`).join(', ')
         : selectedDelivery.cylinderType;
       const totalDelivered = selectedCategories.length > 0
-        ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? (c === '5 KG' ? 10 : 1)), 0)
+        ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? 1), 0)
         : deliveredQuantity;
       const totalEmptyCollected = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
       const finalEmptyCount = totalEmptyCollected > 0 ? totalEmptyCollected : emptyCount;
+
+      // Pricing Calculation: 5 KG = 400, 21 KG = 2000, 33 KG = 4500
+      const CYLINDER_PRICES: Record<string, number> = {
+        '5 KG': 400,
+        '21 KG': 2000,
+        '33 KG': 4500,
+      };
+      const calculatedSubtotal = selectedCategories.length > 0
+        ? selectedCategories.reduce(
+            (sum, cat) => sum + (categoryQuantities[cat] ?? 1) * (CYLINDER_PRICES[cat] ?? 2000),
+            0
+          )
+        : (CYLINDER_PRICES['21 KG'] ?? 2000);
+      const finalAmount = gstRequired ? Math.round(calculatedSubtotal * 1.05) : calculatedSubtotal;
 
       const res = await fetch(`/api/deliveries/${selectedDelivery.id}`, {
         method: 'PATCH',
@@ -215,6 +229,7 @@ export default function DeliveryScreen({
           status: 'DELIVERED',
           emptyCollected: finalEmptyCount,
           cylinderType: categoryStr,
+          amount: finalAmount,
           paymentMethod: paymentMode,
           paymentStatus: 'PAID',
         }),
@@ -236,9 +251,9 @@ export default function DeliveryScreen({
             completedDeliveries: prev.completedDeliveries + 1,
             pendingDeliveries: Math.max(0, prev.pendingDeliveries - 1),
             emptyCylindersCollected: prev.emptyCylindersCollected + finalEmptyCount,
-            totalCollected: prev.totalCollected + selectedDelivery.amount,
-            cashInHand: isCash ? prev.cashInHand + selectedDelivery.amount : prev.cashInHand,
-            onlineCollected: !isCash ? prev.onlineCollected + selectedDelivery.amount : prev.onlineCollected,
+            totalCollected: prev.totalCollected + finalAmount,
+            cashInHand: isCash ? prev.cashInHand + finalAmount : prev.cashInHand,
+            onlineCollected: !isCash ? prev.onlineCollected + finalAmount : prev.onlineCollected,
           };
         });
 
