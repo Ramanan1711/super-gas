@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import BrandLogo from '@/components/BrandLogo';
 import {
   ArrowLeft,
-  AlertTriangle,
-  CircleDot,
   Receipt,
   X,
   Info,
@@ -202,11 +201,21 @@ export default function PaymentScreen({
               <div key={inv.id} className="flex items-center justify-between text-xs sm:text-sm">
                 <div className="flex items-center gap-2.5">
                   {inv.isPaid ? (
-                    <div className="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0">
-                      <Check className="w-2.5 h-2.5 stroke-[3]" />
-                    </div>
+                    <Image
+                      src="/images/icons/invoice-paid.png"
+                      alt="Paid Invoice"
+                      width={16}
+                      height={16}
+                      className="w-4 h-4 shrink-0 object-contain"
+                    />
                   ) : (
-                    <AlertTriangle className="w-4 h-4 text-slate-700 stroke-[2.2] shrink-0" />
+                    <Image
+                      src="/images/icons/invoice-pending.png"
+                      alt="Pending Invoice"
+                      width={16}
+                      height={16}
+                      className="w-4 h-4 shrink-0 object-contain"
+                    />
                   )}
                   <div>
                     <p className="font-bold text-slate-800 text-xs sm:text-[13px]">{inv.invoiceNo}</p>
@@ -220,7 +229,13 @@ export default function PaymentScreen({
             {/* Current Invoice Unpaid */}
             <div className="flex items-center justify-between text-xs sm:text-sm">
               <div className="flex items-center gap-2.5">
-                <CircleDot className="w-4 h-4 text-slate-800 stroke-[2.5] shrink-0" />
+                <Image
+                  src="/images/icons/invoice-current-unpaid.png"
+                  alt="Current Invoice Unpaid"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4 shrink-0 object-contain"
+                />
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="font-bold text-slate-800 text-xs sm:text-[13px]">{currentInvoiceNo}</p>
