@@ -11,7 +11,6 @@ interface DeliveryCompletedModalProps {
   categoryQuantities: Record<string, number>;
   emptyCollectedCounts: Record<string, number>;
   deliveredQuantity: number;
-  emptyCount: number;
   amountReceived: number;
   outstandingBalance: number;
   onShareAndReturn: () => void;
@@ -25,7 +24,6 @@ export default function DeliveryCompletedModal({
   categoryQuantities,
   emptyCollectedCounts,
   deliveredQuantity,
-  emptyCount,
   amountReceived,
   outstandingBalance,
   onShareAndReturn,
@@ -39,15 +37,17 @@ export default function DeliveryCompletedModal({
   const seq = String(customerIndex >= 0 ? customerIndex + 1 : 1).padStart(3, '0');
   const invoiceNo = `INV-${dateCode}-${seq}`;
 
-  // Physical stock counts
-  const activeEmpties = Object.entries(emptyCollectedCounts).filter(([, qty]) => qty > 0);
+  // Physical stock counts (van reconciliation)
+  const allDeliveredEmpties = deliveries
+    .filter((d) => d.status === 'DELIVERED')
+    .reduce((sum, d) => sum + (d.emptyCollected || 0), 0);
+  const thisDeliveryEmpties = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
+
   const totalFilled = selectedCategories.length > 0
     ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? 1), 0)
     : deliveredQuantity || 10;
 
-  const totalEmpty = activeEmpties.length > 0
-    ? activeEmpties.reduce((sum, [, qty]) => sum + qty, 0)
-    : emptyCount || 5;
+  const totalEmpty = allDeliveredEmpties + thisDeliveryEmpties || 5;
 
   const displayPayment = amountReceived > 0 ? amountReceived : 1500;
   const displayOutstanding = outstandingBalance > 0 ? outstandingBalance : 1500;

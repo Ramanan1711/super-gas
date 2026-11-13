@@ -387,11 +387,11 @@ export default function DeliveryScreen({
             categoryQuantities={categoryQuantities}
             emptyCollectedCounts={emptyCollectedCounts}
             deliveredQuantity={deliveredQuantity}
-            emptyCount={emptyCount}
             currentInvoiceAmount={currentInvoiceTotal}
             amountReceived={collectedAmount}
             paymentMethod={paymentMode}
             totalOutstandingBalance={outstandingBalance}
+            vanEmptyCollected={stats.emptyCylindersCollected + Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0)}
             onBack={() => setStep('PAYMENT_ALLOCATION')}
             onConfirmDelivery={() => {
               handleConfirmDelivery(paymentMode, collectedAmount);
@@ -428,7 +428,6 @@ export default function DeliveryScreen({
             categoryQuantities={categoryQuantities}
             emptyCollectedCounts={emptyCollectedCounts}
             deliveredQuantity={deliveredQuantity}
-            emptyCount={emptyCount}
             amountReceived={collectedAmount}
             outstandingBalance={outstandingBalance}
             onShareAndReturn={handleCloseModal}

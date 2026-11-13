@@ -23,11 +23,11 @@ interface ConfirmDeliveryScreenProps {
   categoryQuantities: Record<string, number>;
   emptyCollectedCounts: Record<string, number>;
   deliveredQuantity: number;
-  emptyCount: number;
   currentInvoiceAmount: number;
   amountReceived: number;
   paymentMethod: 'CASH' | 'UPI';
   totalOutstandingBalance: number;
+  vanEmptyCollected?: number;
   onBack: () => void;
   onConfirmDelivery: () => void;
   isSubmitting: boolean;
@@ -41,11 +41,11 @@ export default function ConfirmDeliveryScreen({
   categoryQuantities,
   emptyCollectedCounts,
   deliveredQuantity,
-  emptyCount,
   currentInvoiceAmount,
   amountReceived,
   paymentMethod,
   totalOutstandingBalance,
+  vanEmptyCollected,
   onBack,
   onConfirmDelivery,
   isSubmitting,
@@ -91,22 +91,29 @@ export default function ConfirmDeliveryScreen({
     ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x${c.replace(/\s+/g, '').toLowerCase()}`).join(', ')
     : `${deliveredQuantity}x${selectedDelivery.cylinderType.replace(/\s+/g, '').toLowerCase()}`;
 
-  // Formatted Empty Collected
-  const activeEmpties = Object.entries(emptyCollectedCounts).filter(([, qty]) => qty > 0);
-  const emptyCollectedStr = activeEmpties.length > 0
-    ? activeEmpties.map(([c, qty]) => `${qty}x${c.replace(/\s+/g, '').toLowerCase()}`).join(', ')
-    : emptyCount > 0
-    ? `${emptyCount}x empty`
-    : 'None';
+  // Formatted Empty Collected from THIS customer (no hardcoded fallback)
+  const collectedEmptyCategories = ['5 KG', '21 KG', '33 KG']
+    .filter((cat) => (emptyCollectedCounts[cat] ?? 0) > 0)
+    .map((cat) => `${emptyCollectedCounts[cat]}x${cat.replace(/\s+/g, '').toLowerCase()}`);
+
+  const emptyCollectedStr = collectedEmptyCategories.length > 0
+    ? collectedEmptyCategories.join(', ')
+    : '0x empty';
 
   // Total counts for van stock adjustment
   const totalFilled = selectedCategories.length > 0
     ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? 1), 0)
     : deliveredQuantity;
 
-  const totalEmpty = activeEmpties.length > 0
-    ? activeEmpties.reduce((sum, [, qty]) => sum + qty, 0)
-    : emptyCount;
+  // Empty cylinders collected from all customers to the van
+  const allDeliveredEmpties = deliveries
+    .filter((d) => d.status === 'DELIVERED')
+    .reduce((sum, d) => sum + (d.emptyCollected || 0), 0);
+  const thisDeliveryEmpties = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
+
+  const totalEmpty = vanEmptyCollected !== undefined
+    ? vanEmptyCollected
+    : (allDeliveredEmpties + thisDeliveryEmpties || 5);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
