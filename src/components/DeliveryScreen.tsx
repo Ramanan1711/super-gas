@@ -308,6 +308,9 @@ export default function DeliveryScreen({
           <InvoiceScreen
             selectedDelivery={selectedDelivery}
             deliveries={deliveries}
+            selectedCategories={selectedCategories}
+            categoryQuantities={categoryQuantities}
+            emptyCollectedCounts={emptyCollectedCounts}
             gstRequired={gstRequired}
             onToggleGst={() => setGstRequired((prev) => !prev)}
             onBack={() => setStep('EMPTY_COLLECTION')}

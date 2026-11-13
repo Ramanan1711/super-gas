@@ -22,6 +22,9 @@ import type { Delivery } from './DeliveryScreen';
 interface InvoiceScreenProps {
   selectedDelivery: Delivery;
   deliveries: Delivery[];
+  selectedCategories: string[];
+  categoryQuantities: Record<string, number>;
+  emptyCollectedCounts: Record<string, number>;
   gstRequired: boolean;
   onToggleGst: () => void;
   onBack: () => void;
@@ -33,6 +36,9 @@ interface InvoiceScreenProps {
 export default function InvoiceScreen({
   selectedDelivery,
   deliveries,
+  selectedCategories,
+  categoryQuantities,
+  emptyCollectedCounts,
   gstRequired,
   onToggleGst,
   onBack,
@@ -42,6 +48,23 @@ export default function InvoiceScreen({
 }: InvoiceScreenProps) {
   const customerIndex = deliveries.findIndex((d) => d.id === selectedDelivery.id);
   const customerCode = `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
+
+  // Dynamic Outgoing (Handed Over) Text from previous page
+  const outgoingCategories = selectedCategories.length > 0
+    ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x${c.toLowerCase().replace(' ', '')}`).join(', ')
+    : '1x21kg';
+  const outgoingText = `${outgoingCategories} Cylinders Filled`;
+
+  // Dynamic Incoming (Collected) Empty Cylinders & Total Count from previous page
+  const collectedEmptyCategories = ['5 KG', '21 KG', '33 KG']
+    .filter((cat) => (emptyCollectedCounts[cat] ?? 0) > 0)
+    .map((cat) => `${emptyCollectedCounts[cat]}x${cat.toLowerCase().replace(' ', '')}`);
+  
+  const totalReturned = Object.values(emptyCollectedCounts).reduce((acc, curr) => acc + curr, 0);
+
+  const incomingText = collectedEmptyCategories.length > 0
+    ? `${collectedEmptyCategories.join(', ')} Empty Cylinders`
+    : '0 Empty Cylinders Returned';
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
@@ -155,7 +178,7 @@ export default function InvoiceScreen({
             <div className="border-b border-red-100"></div>
             <div className="flex items-center justify-between">
               <span className="text-xs sm:text-sm font-bold text-slate-800">
-                2x15kg, 3x21kg, 1x33kg Cylinders Filled
+                {outgoingText}
               </span>
               <div className="text-right shrink-0 ml-2">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase block">
@@ -181,12 +204,12 @@ export default function InvoiceScreen({
               </div>
               <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
                 <Check className="w-3 h-3 stroke-[3]" />
-                <span>5 Returned</span>
+                <span>{totalReturned} Returned</span>
               </div>
             </div>
             <div className="pt-1">
               <p className="text-xs sm:text-sm font-bold text-slate-800">
-                2x15kg, 3x21kg Empty Cylinders
+                {incomingText}
               </p>
               <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 mt-1.5">
                 <Info className="w-3.5 h-3.5 shrink-0" />
@@ -225,7 +248,7 @@ export default function InvoiceScreen({
           </div>
           <div className="space-y-1.5 text-xs sm:text-sm">
             <div className="flex items-center justify-between text-slate-600">
-              <span>Subtotal (2x15kg, 3x21kg, 1x33kg)</span>
+              <span>Subtotal ({outgoingCategories})</span>
               <span className="font-bold text-slate-900">₹18,500.00</span>
             </div>
             {gstRequired && (
