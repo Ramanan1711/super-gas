@@ -158,6 +158,42 @@ export default function DeliveryScreen({
     setStep('CATEGORY');
   };
 
+  // Reset deliveries for testing demo
+  const handleResetAllToPending = async () => {
+    try {
+      setIsSubmitting(true);
+      const res = await fetch('/api/deliveries/reset', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setDeliveries(data.deliveries);
+        setStats(data.stats);
+        setFilledStock(10);
+        setEmptyStock(15);
+      } else {
+        // In-memory fallback
+        setDeliveries((prev) =>
+          prev.map((d, i) => ({
+            ...d,
+            status: i < 5 ? 'PENDING' : 'DELIVERED',
+            emptyCollected: i < 5 ? 0 : (d.emptyCollected || 1),
+            paymentStatus: i < 5 ? 'PENDING' : 'PAID',
+          }))
+        );
+      }
+    } catch {
+      setDeliveries((prev) =>
+        prev.map((d, i) => ({
+          ...d,
+          status: i < 5 ? 'PENDING' : 'DELIVERED',
+          emptyCollected: i < 5 ? 0 : (d.emptyCollected || 1),
+          paymentStatus: i < 5 ? 'PENDING' : 'PAID',
+        }))
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Complete delivery submission
   const handleConfirmDelivery = async () => {
     if (!selectedDelivery) return;
@@ -820,10 +856,22 @@ export default function DeliveryScreen({
           {/* Customers Section */}
           <div id="customers-list-section" className="space-y-3">
             <div className="flex items-center justify-between pt-1">
-              <h2 className="text-base font-bold text-slate-900">Customers</h2>
-              <span className="text-xs text-slate-400 font-medium">
-                {filteredDeliveries.length} result{filteredDeliveries.length !== 1 ? 's' : ''}
-              </span>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900">Customers</h2>
+                <span className="text-xs text-slate-400 font-medium">
+                  ({filteredDeliveries.length})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleResetAllToPending}
+                disabled={isSubmitting}
+                className="text-[11px] font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/80 px-2.5 py-1 rounded-lg border border-red-200/80 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                title="Reset sample deliveries to Pending so you can test the delivery handover flow again"
+              >
+                <RefreshCw className={`w-3 h-3 ${isSubmitting ? 'animate-spin' : ''}`} />
+                <span>Reset Demo to Pending</span>
+              </button>
             </div>
 
             {/* Search Input Bar */}
@@ -905,17 +953,28 @@ export default function DeliveryScreen({
                     </div>
 
                     {/* Bottom Action: Delivery Button */}
-                    <div className="pt-1 flex items-center justify-between">
+                    <div className="pt-1 flex items-center justify-between gap-2">
                       {delivery.status === 'DELIVERED' ? (
-                        <div className="w-full flex items-center justify-between py-2 px-3 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800 font-semibold">
-                          <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            <span>Delivered</span>
+                        <>
+                          <div className="flex-1 flex items-center justify-between py-2 px-3 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800 font-semibold">
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>Delivered</span>
+                            </div>
+                            <span className="text-[11px] font-normal text-emerald-700">
+                              Empty: {delivery.emptyCollected}
+                            </span>
                           </div>
-                          <span className="text-[11px] font-normal text-emerald-700">
-                            Empty returned: {delivery.emptyCollected}
-                          </span>
-                        </div>
+                          <button
+                            type="button"
+                            onClick={() => handleStartDelivery(delivery)}
+                            className="bg-[#F3202B] hover:bg-red-700 active:scale-95 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-sm flex items-center gap-1 transition cursor-pointer shrink-0"
+                            title="Open delivery handover flow for this customer"
+                          >
+                            <span>Delivery</span>
+                            <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </button>
+                        </>
                       ) : (
                         <button
                           type="button"
