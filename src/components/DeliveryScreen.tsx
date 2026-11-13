@@ -68,7 +68,7 @@ export default function DeliveryScreen({
   const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'COMPLETED'>('CATEGORY');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({
-    '5 KG': 10,
+    '5 KG': 1,
     '21 KG': 1,
     '33 KG': 1,
   });
@@ -111,7 +111,7 @@ export default function DeliveryScreen({
     );
     setCategoryQuantities((prev) => ({
       ...prev,
-      [category]: prev[category] ?? (category === '5 KG' ? 10 : 1),
+      [category]: prev[category] ?? 1,
     }));
   };
 
@@ -119,7 +119,7 @@ export default function DeliveryScreen({
   const updateCategoryQuantity = (category: string, delta: number) => {
     setCategoryQuantities((prev) => ({
       ...prev,
-      [category]: Math.max(1, (prev[category] ?? (category === '5 KG' ? 10 : 1)) + delta),
+      [category]: Math.max(1, (prev[category] ?? 1) + delta),
     }));
   };
 
@@ -137,7 +137,7 @@ export default function DeliveryScreen({
     setSelectedDelivery(delivery);
     setSelectedCategories([]);
     setCategoryQuantities({
-      '5 KG': 10,
+      '5 KG': 1,
       '21 KG': 1,
       '33 KG': 1,
     });

@@ -174,7 +174,7 @@ export default function CustomerDeliveryScreen({
 
                         {/* Quantity Number */}
                         <span className="font-extrabold text-slate-900 text-sm sm:text-base min-w-[22px] text-center">
-                          {categoryQuantities[category] ?? (category === '5 KG' ? 10 : 1)}
+                          {categoryQuantities[category] ?? 1}
                         </span>
 
                         {/* Increment (+) Button */}
