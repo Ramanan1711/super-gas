@@ -1,19 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import AdminSidebar from './AdminSidebar';
 import {
-  LayoutDashboard,
-  Users,
-  Box,
-  Truck,
-  Receipt,
-  Layers,
-  CreditCard,
-  BarChart2,
-  Settings,
-  LogOut,
   Search,
   Bell,
   ChevronDown,
@@ -28,6 +17,8 @@ import {
   Package,
   Clock,
   Wallet,
+  Receipt,
+  CreditCard,
   ShieldCheck,
   Check,
   X,
@@ -39,95 +30,14 @@ export default function AdminDashboard() {
   const [chart2Period, setChart2Period] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [fuelClaimStatus, setFuelClaimStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
-  const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard },
-    { name: 'Customers', icon: Users },
-    { name: 'Inventory', icon: Box },
-    { name: 'Delivery Partners', icon: Truck },
-    { name: 'Invoices & Payments', icon: Receipt },
-    { name: 'Settlements', icon: Layers },
-    { name: 'Expenses', icon: CreditCard },
-    { name: 'Reports', icon: BarChart2 },
-    { name: 'Settings', icon: Settings },
-  ];
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans antialiased">
       {/* 1. Left Sidebar */}
-      <aside className="w-64 shrink-0 bg-white border-r border-slate-200/90 flex flex-col justify-between sticky top-0 h-screen z-30 select-none">
-        <div>
-          {/* Brand Header */}
-          <div className="px-5 py-4.5 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <Image
-                src="/super-gas-logo.png"
-                alt="Super Gas Logo"
-                width={120}
-                height={26}
-                className="h-7 w-auto object-contain"
-                priority
-                unoptimized
-              />
-            </div>
-            <span className="bg-[#FEE2E2] text-[#DC2626] font-black text-[10px] px-2 py-0.5 rounded-md tracking-wider">
-              ADMIN
-            </span>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="p-3 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeNav === item.name;
-              return (
-                <button
-                  key={item.name}
-                  type="button"
-                  onClick={() => setActiveNav(item.name)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left ${
-                    isActive
-                      ? 'bg-[#FEE2E2]/70 text-[#E81B24]'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-semibold'
-                  }`}
-                >
-                  <Icon
-                    className={`w-4 h-4 stroke-[2.2] shrink-0 ${
-                      isActive ? 'text-[#E81B24]' : 'text-slate-500'
-                    }`}
-                  />
-                  <span>{item.name}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Sidebar Footer: Profile */}
-        <div className="p-3 border-t border-slate-100 bg-white">
-          <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-[#BC0118] text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                A
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-extrabold text-slate-900 truncate leading-tight">
-                  Agency Admin
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
-                  Administrator
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/"
-              title="Switch to Delivery Partner App"
-              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/50 transition cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar
+        activeItem={activeNav}
+        onNavigate={setActiveNav}
+        className="sticky top-0 h-screen z-30 border-r border-slate-200/90 rounded-none shrink-0"
+      />
 
       {/* 2. Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
