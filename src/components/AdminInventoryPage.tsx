@@ -308,38 +308,67 @@ export default function AdminInventoryPage() {
   const [showStockMovementModal, setShowStockMovementModal] = useState(false);
   const [viewPartnerDetails, setViewPartnerDetails] = useState<PartnerMovement | null>(null);
 
+  interface CylinderMovementItem {
+    id: string;
+    size: string;
+    state: string;
+    quantity: string;
+    price: string;
+  }
+
   // Record Stock Movement Modal State (matching exact attached design)
   const [movementCategory, setMovementCategory] = useState('Receive Filled Cylinders');
-  const [cylinderSize, setCylinderSize] = useState('15 Kg');
-  const [cylinderState, setCylinderState] = useState('Filled (Sealed & Checked)');
-  const [movementQuantity, setMovementQuantity] = useState('20');
-  const [movementPrice, setMovementPrice] = useState('');
   const [truckBillNumber, setTruckBillNumber] = useState('');
-  const [extraCategories, setExtraCategories] = useState<
-    Array<{ id: string; size: string; state: string; qty: string; price: string }>
-  >([]);
+  const [cylinderItems, setCylinderItems] = useState<CylinderMovementItem[]>([
+    {
+      id: 'c-1',
+      size: '14.2 Kg Domestic',
+      state: 'Filled (Sealed & Checked)',
+      quantity: '20',
+      price: '',
+    },
+  ]);
 
   const handleAddCylinderCategory = () => {
-    setExtraCategories((prev) => [
+    setCylinderItems((prev) => [
       ...prev,
       {
-        id: `cat-${Date.now()}`,
-        size: '19.5 Kg',
+        id: `c-${prev.length + 1}`,
+        size: '14.2 Kg Domestic',
         state: 'Filled (Sealed & Checked)',
-        qty: '10',
+        quantity: '20',
         price: '',
       },
     ]);
-    triggerToast('Added extra cylinder category row.');
+    triggerToast('Added cylinder category row.');
+  };
+
+  const handleUpdateCylinderItem = (
+    id: string,
+    field: keyof CylinderMovementItem,
+    val: string
+  ) => {
+    setCylinderItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
+    );
+  };
+
+  const handleRemoveCylinderItem = (id: string) => {
+    if (cylinderItems.length <= 1) return;
+    setCylinderItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleCommitMovementEntry = (e: React.FormEvent) => {
     e.preventDefault();
-    const qtyNum = parseInt(movementQuantity, 10) || 0;
+    const totalQty = cylinderItems.reduce(
+      (sum, item) => sum + (parseInt(item.quantity, 10) || 0),
+      0
+    );
     const refNum = truckBillNumber.trim() || `TNO:${10000 + (auditRecords.length + 1) * 73}`;
     const newRef = `#MV-20261016-${(auditRecords.length + 1).toString().padStart(2, '0')}`;
 
-    const isFilled = cylinderState.includes('Filled');
+    const primaryState = cylinderItems[0]?.state || 'Filled (Sealed & Checked)';
+    const isFilled = primaryState.includes('Filled');
     const recordType: AuditRecord['type'] =
       movementCategory === 'Receive Filled Cylinders'
         ? 'Refill Arrival'
@@ -354,7 +383,7 @@ export default function AdminInventoryPage() {
         dateTime: 'Oct 16, Just Now',
         type: recordType,
         condition: isFilled ? 'FILLED' : 'EMPTY',
-        quantity: isFilled ? `${qtyNum} units` : `+${qtyNum} units`,
+        quantity: isFilled ? `${totalQty} units` : `+${totalQty} units`,
         source: 'Plant Indent / External Truck',
         destination: 'Depot Yard Central',
         recordedBy: 'Agency Admin',
@@ -363,7 +392,9 @@ export default function AdminInventoryPage() {
       ...prev,
     ]);
 
-    triggerToast(`Movement committed: ${qtyNum} units (${cylinderSize}) under ref ${refNum}`);
+    triggerToast(
+      `Movement committed: ${totalQty} units across ${cylinderItems.length} categories under ref ${refNum}`
+    );
     setShowStockMovementModal(false);
   };
 
@@ -1728,31 +1759,28 @@ export default function AdminInventoryPage() {
         </div>
       )}
 
-      {/* Modal 2: Record Stock Movement (matching exact attached design) */}
+      {/* Modal 2: Record Stock Movement (matching exact attached design - full flow) */}
       {showStockMovementModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[28px] max-w-xl w-full shadow-2xl border border-slate-100 p-7 sm:p-8 space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
+          <div className="bg-white rounded-[28px] max-w-xl w-full shadow-2xl border border-slate-100 p-7 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
             {/* Header: Title, Subtitle, Close X */}
-            <div>
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                    Record Stock Movement
-                  </h3>
-                  <p className="text-xs sm:text-[13px] text-slate-500 font-medium mt-1">
-                    Link customer for exclusive cylinder dispatch handovers
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowStockMovementModal(false)}
-                  className="text-slate-900 hover:text-slate-600 p-1 cursor-pointer transition"
-                  title="Close"
-                >
-                  <X className="w-6 h-6 stroke-[1.8]" />
-                </button>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  Record Stock Movement
+                </h3>
+                <p className="text-xs sm:text-[13px] text-slate-500 font-medium mt-1">
+                  Link customer for exclusive cylinder dispatch handovers
+                </p>
               </div>
-              <div className="border-b border-slate-200/80 mt-5" />
+              <button
+                type="button"
+                onClick={() => setShowStockMovementModal(false)}
+                className="text-slate-900 hover:text-slate-600 p-1 cursor-pointer transition"
+                title="Close"
+              >
+                <X className="w-6 h-6 stroke-[1.8]" />
+              </button>
             </div>
 
             <form onSubmit={handleCommitMovementEntry} className="space-y-4">
@@ -1777,130 +1805,106 @@ export default function AdminInventoryPage() {
                 </div>
               </div>
 
-              {/* Row 2: CYLINDER SIZE & CYLINDER STATE */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
-                    Cylinder Size
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={cylinderSize}
-                      onChange={(e) => setCylinderSize(e.target.value)}
-                      className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
-                    >
-                      <option value="15 Kg">15 Kg</option>
-                      <option value="14.2 Kg">14.2 Kg</option>
-                      <option value="19.5 Kg">19.5 Kg</option>
-                      <option value="47.5 Kg">47.5 Kg</option>
-                      <option value="5 Kg">5 Kg</option>
-                    </select>
-                    <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
-                  </div>
-                </div>
+              {/* Dynamic Cylinder Category Rows (Full Flow) */}
+              <div className="space-y-4">
+                {cylinderItems.map((item) => (
+                  <div key={item.id} className="space-y-4">
+                    {/* Row 1: CYLINDER SIZE & CYLINDER STATE */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                          Cylinder Size
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={item.size}
+                            onChange={(e) => handleUpdateCylinderItem(item.id, 'size', e.target.value)}
+                            className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                          >
+                            <option value="14.2 Kg Domestic">14.2 Kg Domestic</option>
+                            <option value="15 Kg">15 Kg</option>
+                            <option value="19.5 Kg Commercial">19.5 Kg Commercial</option>
+                            <option value="47.5 Kg Industrial">47.5 Kg Industrial</option>
+                            <option value="5 Kg Domestic">5 Kg Domestic</option>
+                          </select>
+                          <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                        </div>
+                      </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
-                    Cylinder State
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={cylinderState}
-                      onChange={(e) => setCylinderState(e.target.value)}
-                      className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
-                    >
-                      <option value="Filled (Sealed & Checked)">Filled (Sealed &amp; Checked)</option>
-                      <option value="Empty (Awaiting Refill)">Empty (Awaiting Refill)</option>
-                      <option value="Damaged / Defective">Damaged / Defective</option>
-                    </select>
-                    <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            Cylinder State
+                          </label>
+                          {cylinderItems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCylinderItem(item.id)}
+                              className="text-[11px] font-semibold text-slate-400 hover:text-red-600 transition cursor-pointer"
+                              title="Remove category"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <select
+                            value={item.state}
+                            onChange={(e) => handleUpdateCylinderItem(item.id, 'state', e.target.value)}
+                            className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                          >
+                            <option value="Filled (Sealed & Checked)">Filled (Sealed &amp; Checked)</option>
+                            <option value="Empty (Awaiting Refill)">Empty (Awaiting Refill)</option>
+                            <option value="Damaged / Defective">Damaged / Defective</option>
+                          </select>
+                          <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2: MOVEMENT QUANTITY & PRICE */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                          Movement Quantity
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateCylinderItem(item.id, 'quantity', e.target.value)}
+                          className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 text-sm sm:text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                          placeholder="20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                          Price
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-slate-900 text-sm sm:text-base">
+                            ₹
+                          </span>
+                          <input
+                            type="text"
+                            value={item.price}
+                            onChange={(e) => handleUpdateCylinderItem(item.id, 'price', e.target.value)}
+                            className="w-full bg-[#F1F4FA] rounded-2xl pl-10 pr-5 py-3.5 text-sm sm:text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                            placeholder=""
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-
-              {/* Row 3: MOVEMENT QUANTITY & PRICE */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
-                    Movement Quantity
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={movementQuantity}
-                    onChange={(e) => setMovementQuantity(e.target.value)}
-                    className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 text-sm sm:text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                    placeholder="20"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
-                    Price
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-slate-900 text-sm sm:text-base">
-                      ₹
-                    </span>
-                    <input
-                      type="text"
-                      value={movementPrice}
-                      onChange={(e) => setMovementPrice(e.target.value)}
-                      className="w-full bg-[#F1F4FA] rounded-2xl pl-10 pr-5 py-3.5 text-sm sm:text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                      placeholder=""
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Extra Dynamic Categories */}
-              {extraCategories.map((cat, idx) => (
-                <div key={cat.id} className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">Category #{idx + 2}</span>
-                    <button
-                      type="button"
-                      onClick={() => setExtraCategories((prev) => prev.filter((c) => c.id !== cat.id))}
-                      className="text-xs text-red-600 hover:text-red-800 font-bold cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <select
-                      value={cat.size}
-                      onChange={(e) =>
-                        setExtraCategories((prev) =>
-                          prev.map((c) => (c.id === cat.id ? { ...c, size: e.target.value } : c))
-                        )
-                      }
-                      className="bg-white rounded-xl px-3 py-2 text-xs font-bold text-slate-800 border border-slate-200"
-                    >
-                      <option value="15 Kg">15 Kg</option>
-                      <option value="19.5 Kg">19.5 Kg</option>
-                      <option value="14.2 Kg">14.2 Kg</option>
-                      <option value="47.5 Kg">47.5 Kg</option>
-                    </select>
-                    <input
-                      type="number"
-                      value={cat.qty}
-                      onChange={(e) =>
-                        setExtraCategories((prev) =>
-                          prev.map((c) => (c.id === cat.id ? { ...c, qty: e.target.value } : c))
-                        )
-                      }
-                      className="bg-white rounded-xl px-3 py-2 text-xs font-bold text-slate-800 border border-slate-200"
-                      placeholder="Qty"
-                    />
-                  </div>
-                </div>
-              ))}
 
               {/* Add Cylinder Category Button */}
               <button
                 type="button"
                 onClick={handleAddCylinderCategory}
-                className="w-full bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-900 font-bold text-sm py-3.5 rounded-2xl flex items-center justify-center gap-2.5 transition cursor-pointer my-2"
+                className="w-full bg-[#F1F4FA] hover:bg-slate-200 active:scale-98 text-slate-900 font-bold text-sm sm:text-base py-3.5 rounded-2xl flex items-center justify-center gap-2.5 transition cursor-pointer my-2"
               >
                 <PlusCircle className="w-5 h-5 text-slate-900 stroke-[2]" />
                 <span>Add Cylinder Category</span>
@@ -1916,7 +1920,7 @@ export default function AdminInventoryPage() {
                   value={truckBillNumber}
                   onChange={(e) => setTruckBillNumber(e.target.value)}
                   placeholder="eg. TNO:09876"
-                  className="w-full bg-[#F1F4FA] border border-blue-400/90 rounded-2xl px-5 py-3.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full bg-[#F1F4FA] border border-blue-400/90 rounded-2xl px-5 py-3.5 text-sm sm:text-base font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -1925,13 +1929,13 @@ export default function AdminInventoryPage() {
                 <button
                   type="button"
                   onClick={() => setShowStockMovementModal(false)}
-                  className="bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-sm px-6 py-3 rounded-2xl transition cursor-pointer"
+                  className="bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-sm px-7 py-3 rounded-2xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-sm px-6 py-3 rounded-2xl shadow-xs transition cursor-pointer"
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-sm px-7 py-3 rounded-2xl shadow-xs transition cursor-pointer"
                 >
                   Commit Movement Entry
                 </button>
