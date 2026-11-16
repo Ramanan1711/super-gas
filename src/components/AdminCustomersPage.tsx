@@ -154,6 +154,28 @@ const initialCustomers: CustomerRecord[] = [
   },
 ];
 
+// Delivery partners list matching design
+const authorizedDeliveryPartners = [
+  {
+    id: 'DP-02',
+    name: 'Suresh Babu',
+    phone: '+91 94432 10987',
+    deliveries: 8,
+  },
+  {
+    id: 'DP-09',
+    name: 'Mohamed Irfan',
+    phone: '+91 97890 55412',
+    deliveries: 10,
+  },
+  {
+    id: 'DP-04',
+    name: 'Rajesh Kumar',
+    phone: '+91 98401 22340',
+    deliveries: 4,
+  },
+];
+
 export default function AdminCustomersPage() {
   const [activeNav, setActiveNav] = useState('Customers');
   const [searchQuery, setSearchQuery] = useState('');
@@ -169,7 +191,8 @@ export default function AdminCustomersPage() {
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
   const [newCustomerPartner, setNewCustomerPartner] = useState('Leave unassign');
   const [assigningCustomer, setAssigningCustomer] = useState<CustomerRecord | null>(null);
-  const [selectedPartnerForAssign, setSelectedPartnerForAssign] = useState('Rajesh · DP- 001');
+  const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [customerList, setCustomerList] = useState<CustomerRecord[]>(initialCustomers);
 
   // Action Popup & Interactive Modals State
@@ -185,6 +208,15 @@ export default function AdminCustomersPage() {
   const [editCategory, setEditCategory] = useState<'Residential' | 'COMMERCIAL' | 'B2B'>('Residential');
   const [editAddress, setEditAddress] = useState('');
   const [editPartner, setEditPartner] = useState('');
+
+  const handleOpenAssignModal = (cust: CustomerRecord) => {
+    setAssigningCustomer(cust);
+    setPartnerSearchQuery('');
+    const matched = authorizedDeliveryPartners.find((p) =>
+      cust.deliveryPartner.name.includes(p.name) || p.name.includes(cust.deliveryPartner.name)
+    );
+    setSelectedPartnerId(matched ? matched.id : 'DP-02');
+  };
 
   const handleOpenEditModal = (cust: CustomerRecord) => {
     setEditingCustomer(cust);
@@ -298,6 +330,18 @@ export default function AdminCustomersPage() {
       return true;
     });
   }, [customerList, searchQuery, statusFilter, partnerFilter, assignmentFilter, balanceFilter]);
+
+  // Filtered Delivery Partners for Assign Modal
+  const filteredAuthorizePartners = useMemo(() => {
+    if (!partnerSearchQuery.trim()) return authorizedDeliveryPartners;
+    const q = partnerSearchQuery.toLowerCase();
+    return authorizedDeliveryPartners.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.id.toLowerCase().includes(q) ||
+        p.phone.toLowerCase().includes(q)
+    );
+  }, [partnerSearchQuery]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
@@ -720,7 +764,7 @@ export default function AdminCustomersPage() {
                           {cust.deliveryPartner.isUnassigned ? (
                             <button
                               type="button"
-                              onClick={() => setAssigningCustomer(cust)}
+                              onClick={() => handleOpenAssignModal(cust)}
                               className="bg-[#A61017] hover:bg-red-800 active:scale-95 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-2xs transition cursor-pointer"
                             >
                               Assign Now
@@ -792,7 +836,7 @@ export default function AdminCustomersPage() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        setAssigningCustomer(cust);
+                                        handleOpenAssignModal(cust);
                                         setActiveActionMenuId(null);
                                       }}
                                       className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
@@ -1092,38 +1136,48 @@ export default function AdminCustomersPage() {
           </div>
         </div>
       )}
-      {/* Assign Delivery Partner Modal */}
+      {/* Assign Delivery Partner Modal matching exact attached design */}
       {assigningCustomer && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">Assign Delivery Partner</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {assigningCustomer.name} ({assigningCustomer.code})
-                </p>
+          <div className="bg-white rounded-[28px] max-w-lg w-full shadow-2xl border border-slate-100 p-7 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header: Title, Subtitle, Close X */}
+            <div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    Assign Delivery Partner
+                  </h3>
+                  <p className="text-xs sm:text-[13px] text-slate-500 font-medium mt-1">
+                    Link customer for exclusive cylinder dispatch handovers
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAssigningCustomer(null)}
+                  className="text-slate-900 hover:text-slate-600 p-1 cursor-pointer transition"
+                  title="Close"
+                >
+                  <X className="w-6 h-6 stroke-[1.8]" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setAssigningCustomer(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="border-b border-slate-200/80 mt-5" />
             </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                const partner =
+                  authorizedDeliveryPartners.find((p) => p.id === selectedPartnerId) ||
+                  authorizedDeliveryPartners[0];
+
                 setCustomerList((prev) =>
                   prev.map((item) => {
                     if (item.id === assigningCustomer.id) {
-                      const [name, code] = selectedPartnerForAssign.split(' · ');
                       return {
                         ...item,
                         deliveryPartner: {
-                          name,
-                          code,
+                          name: partner.name,
+                          code: partner.id,
                           isUnassigned: false,
                         },
                       };
@@ -1131,48 +1185,108 @@ export default function AdminCustomersPage() {
                     return item;
                   })
                 );
+
+                setActionToast(
+                  `Assigned ${partner.name} to ${assigningCustomer.name} successfully.`
+                );
+                setTimeout(() => setActionToast(null), 3000);
                 setAssigningCustomer(null);
               }}
-              className="space-y-4"
+              className="space-y-6"
             >
+              {/* Field 1: Customer Name */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Customer Address
+                <label className="text-xs sm:text-sm font-bold text-slate-900 block mb-2">
+                  Customer Name
                 </label>
-                <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                  {assigningCustomer.address}
-                </p>
+                <div className="bg-[#EEF2F8] rounded-2xl px-5 py-3.5 flex items-center justify-between">
+                  <span className="font-bold text-slate-900 text-sm sm:text-base">
+                    {assigningCustomer.name}
+                  </span>
+                  <span className="bg-white text-slate-900 text-xs font-bold px-3.5 py-1 rounded-full shadow-2xs">
+                    {assigningCustomer.code}
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Select Delivery Partner
+              {/* Field 2: Select Authorize Delivery Partner */}
+              <div className="space-y-3">
+                <label className="text-xs sm:text-sm font-bold text-slate-900 block">
+                  Select Authorize Delivery Partner
                 </label>
-                <select
-                  value={selectedPartnerForAssign}
-                  onChange={(e) => setSelectedPartnerForAssign(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
-                >
-                  <option value="Rajesh · DP- 001">Rajesh (DP- 001) — Anna Nagar route</option>
-                  <option value="Mohamed Irfan · DP-002">Mohamed Irfan (DP-002) — KK Nagar / Mattuthavani</option>
-                  <option value="Suresh · DP- 003">Suresh (DP- 003) — Tallakulam route</option>
-                </select>
+
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2]" />
+                  <input
+                    type="text"
+                    placeholder="Search Delivery Partner"
+                    value={partnerSearchQuery}
+                    onChange={(e) => setPartnerSearchQuery(e.target.value)}
+                    className="w-full bg-[#EEF2F8] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-normal text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+
+                {/* List of Delivery Partner Cards */}
+                <div className="space-y-3 pt-1">
+                  {filteredAuthorizePartners.map((partner) => {
+                    const isSelected = selectedPartnerId === partner.id;
+                    return (
+                      <div
+                        key={partner.id}
+                        onClick={() => setSelectedPartnerId(partner.id)}
+                        className={`bg-white border rounded-2xl p-4 flex items-center justify-between cursor-pointer transition ${
+                          isSelected
+                            ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-xs'
+                            : 'border-slate-200/90 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5">
+                          {/* Circular radio button matching mockup */}
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                              isSelected
+                                ? 'border-[#3B82F6] bg-white'
+                                : 'border-[#3B82F6] bg-white'
+                            }`}
+                          >
+                            {isSelected && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" />
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-900 text-sm sm:text-base block">
+                              {partner.name}
+                            </span>
+                            <span className="text-slate-500 text-xs font-medium block mt-0.5">
+                              ID: {partner.id} · {partner.phone}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="bg-[#EAF0F9] text-slate-600 text-xs font-semibold px-3.5 py-1.5 rounded-full shrink-0">
+                          {partner.deliveries} Deliveries
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              {/* Action Buttons: Cancel & Save Customer */}
+              <div className="flex items-center justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setAssigningCustomer(null)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  className="bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-sm px-6 py-3 rounded-2xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#A61017] hover:bg-red-800 transition cursor-pointer shadow-sm flex items-center gap-1.5"
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-sm px-6 py-3 rounded-2xl shadow-xs transition cursor-pointer"
                 >
-                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Confirm Assignment</span>
+                  Save Customer
                 </button>
               </div>
             </form>
