@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
-  Minus,
   ShieldCheck,
   X,
   Check,
@@ -20,6 +19,7 @@ import {
   MapPin,
   Flame,
   User,
+  Printer,
 } from 'lucide-react';
 
 interface PartnerMovement {
@@ -283,10 +283,49 @@ export default function AdminInventoryPage() {
   const [showAlertBanner, setShowAlertBanner] = useState(true);
   const [actionToast, setActionToast] = useState<string | null>(null);
 
-  // Quick Issue Form State
-  const [issuePartner, setIssuePartner] = useState('Rajesh Kumar (DP-001) - Anna Nagar Route');
-  const [issueQty19, setIssueQty19] = useState(10);
-  const [issueQty14, setIssueQty14] = useState(0);
+  interface QuickIssueCylinderRow {
+    id: string;
+    type: string;
+    qty: number;
+  }
+
+  // Quick Issue Form State (matching exact Figma design)
+  const [issuePartner, setIssuePartner] = useState('Rajesh Kumar (DP-001) · Anna Nagar Route');
+  const [quickIssueRows, setQuickIssueRows] = useState<QuickIssueCylinderRow[]>([
+    {
+      id: 'qi-1',
+      type: '14.2 kg Domestic (Red)',
+      qty: 10,
+    },
+    {
+      id: 'qi-2',
+      type: '14.2 kg Comme... (Red)',
+      qty: 10,
+    },
+  ]);
+
+  const handleAddQuickIssueRow = () => {
+    setQuickIssueRows((prev) => [
+      ...prev,
+      {
+        id: `qi-${prev.length + 1}`,
+        type: '19.5 kg Commercial (Red)',
+        qty: 10,
+      },
+    ]);
+    triggerToast('Added cylinder type row.');
+  };
+
+  const handleUpdateQuickIssueRow = (id: string, field: 'type' | 'qty', val: string | number) => {
+    setQuickIssueRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: val } : row))
+    );
+  };
+
+  const handleRemoveQuickIssueRow = (id: string) => {
+    if (quickIssueRows.length <= 1) return;
+    setQuickIssueRows((prev) => prev.filter((row) => row.id !== id));
+  };
 
   // Record Empty Return Form State (matching exact Figma design)
   const [returnPartner, setReturnPartner] = useState(
@@ -516,7 +555,7 @@ export default function AdminInventoryPage() {
   // Quick Issue Submit
   const handleQuickIssueSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const totalIssued = issueQty19 + issueQty14;
+    const totalIssued = quickIssueRows.reduce((sum, r) => sum + r.qty, 0);
     if (totalIssued === 0) {
       triggerToast('Please select at least 1 cylinder to issue.');
       return;
@@ -541,7 +580,7 @@ export default function AdminInventoryPage() {
     const newRef = `#MV-20261016-${(auditRecords.length + 1).toString().padStart(2, '0')}`;
     setAuditRecords((prev) => [
       {
-        id: `a-${Date.now()}`,
+        id: `a-${prev.length + 1}`,
         ref: newRef,
         dateTime: 'Oct 16, Just Now',
         type: 'Issue to Partner',
@@ -555,9 +594,7 @@ export default function AdminInventoryPage() {
       ...prev,
     ]);
 
-    triggerToast(`Gate Pass issued for ${totalIssued} cylinders to ${partnerName}.`);
-    setIssueQty19(0);
-    setIssueQty14(0);
+    triggerToast(`Gate Pass #GP-1095 issued for ${totalIssued} cylinders to ${partnerName}.`);
   };
 
   // Record Empty Return Submit
@@ -959,150 +996,203 @@ export default function AdminInventoryPage() {
               </div>
             </div>
 
-            {/* Right Box: Quick Issue Card (Gate Pass Generator) */}
-            <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-red-100 text-[#BC0118] flex items-center justify-center font-black text-sm">
-                    Q
+            {/* Right Box: Quick Issue Card (Gate Pass Generator - Exact Figma Design) */}
+            <div className="lg:col-span-5 bg-white rounded-[24px] p-7 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div>
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-[#FEECEC] flex items-center justify-center shrink-0">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#BC0118"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="17" rx="3" />
+                        <path d="M10 12h7" />
+                        <path d="m14 9 3 3-3 3" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-snug">
+                        Quick Issue Card
+                      </h2>
+                      <p className="text-xs sm:text-[13px] text-slate-500 font-medium mt-0.5">
+                        Floor Custody Gate Transfer
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-sm font-extrabold text-slate-900">Quick Issue Card</h2>
-                    <p className="text-[11px] text-slate-400 font-medium">Fast Dispatch Out to Partner</p>
-                  </div>
+
+                  <span className="text-xs font-bold text-[#4B6B94] bg-[#EEF3FB] px-3 py-1.5 rounded-lg shrink-0 tracking-wider">
+                    GATE-PASS #GP-1095
+                  </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
-                  Gate Pass Generator
-                </span>
+
+                <div className="border-b border-slate-200/80 my-5" />
+
+                <form onSubmit={handleQuickIssueSubmit} className="space-y-4">
+                  {/* Field 1: SELECT DELIVERY PARTNER */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                      Select Delivery Partner
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={issuePartner}
+                        onChange={(e) => setIssuePartner(e.target.value)}
+                        className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                      >
+                        <option value="Rajesh Kumar (DP-001) · Anna Nagar Route">
+                          Rajesh Kumar (DP-001) · Anna Nagar Route
+                        </option>
+                        <option value="Mohamed Irfan (DP-002) · KK Nagar Route">
+                          Mohamed Irfan (DP-002) · KK Nagar Route
+                        </option>
+                        <option value="Suresh Babu (DP-003) · Tallakulam Route">
+                          Suresh Babu (DP-003) · Tallakulam Route
+                        </option>
+                        <option value="Karthik Raja (DP-004) · Bypass Road Route">
+                          Karthik Raja (DP-004) · Bypass Road Route
+                        </option>
+                        <option value="Vignesh V (DP-005) · Mattuthavani Route">
+                          Vignesh V (DP-005) · Mattuthavani Route
+                        </option>
+                      </select>
+                      <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                    </div>
+                  </div>
+
+                  {/* Section 2: 3-Column Custody Strip Box */}
+                  <div className="bg-[#F1F4FA] rounded-2xl p-4 sm:p-5 grid grid-cols-3 gap-2">
+                    <div>
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                        Agency Filled
+                      </span>
+                      <span className="text-sm sm:text-base font-extrabold text-[#047857] block">
+                        180 units ready
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                        Partner Custody
+                      </span>
+                      <span className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight block">
+                        10 Filled · 8<br />Empty
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1 text-right leading-tight">
+                        Today&apos;s Prev<br />Issued
+                      </span>
+                      <span className="text-sm sm:text-base font-extrabold text-[#BC0118] text-right block mt-0.5">
+                        25 units
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Cylinder Rows */}
+                  <div className="space-y-3.5">
+                    {quickIssueRows.map((row) => (
+                      <div key={row.id} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                            Cylinder Type
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={row.type}
+                              onChange={(e) => handleUpdateQuickIssueRow(row.id, 'type', e.target.value)}
+                              className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer truncate"
+                            >
+                              <option value="14.2 kg Domestic (Red)">14.2 kg Domestic (Red)</option>
+                              <option value="14.2 kg Comme... (Red)">14.2 kg Comme... (Red)</option>
+                              <option value="19.5 kg Commercial (Red)">19.5 kg Commercial (Red)</option>
+                              <option value="47.5 kg Industrial (Blue)">47.5 kg Industrial (Blue)</option>
+                              <option value="5 kg Domestic (Red)">5 kg Domestic (Red)</option>
+                            </select>
+                            <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              Filled Cylinders Issued
+                            </label>
+                            {quickIssueRows.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveQuickIssueRow(row.id)}
+                                className="text-[11px] font-semibold text-slate-400 hover:text-red-600 cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                          <div className="bg-[#F1F4FA] rounded-2xl px-5 py-3.5 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleUpdateQuickIssueRow(row.id, 'qty', Math.max(0, row.qty - 1))
+                              }
+                              className="text-slate-900 font-extrabold text-xl hover:text-red-600 p-1 cursor-pointer transition select-none"
+                            >
+                              −
+                            </button>
+                            <span className="text-base sm:text-lg font-extrabold text-slate-900">
+                              {row.qty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateQuickIssueRow(row.id, 'qty', row.qty + 1)}
+                              className="text-slate-900 font-extrabold text-xl hover:text-red-600 p-1 cursor-pointer transition select-none"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Cylinder Type Button */}
+                  <button
+                    type="button"
+                    onClick={handleAddQuickIssueRow}
+                    className="w-full bg-[#F1F4FA] hover:bg-slate-200 active:scale-98 text-slate-900 font-bold text-sm sm:text-base py-3.5 rounded-2xl flex items-center justify-center gap-2.5 transition cursor-pointer my-2"
+                  >
+                    <PlusCircle className="w-5 h-5 text-slate-900 stroke-[2]" />
+                    <span>Add Cylinder Type</span>
+                  </button>
+
+                  <p className="text-xs sm:text-[13px] italic text-slate-500 font-medium leading-relaxed">
+                    * Gate handover requires driver physical signature upon loading into delivery three-wheeler/van.
+                  </p>
+
+                  {/* Confirm & Issue Gate Pass Button */}
+                  <button
+                    type="submit"
+                    className="w-full bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-sm sm:text-base py-4 rounded-2xl shadow-xs transition flex items-center justify-center gap-2.5 cursor-pointer mt-2"
+                  >
+                    <Printer className="w-5 h-5 text-white stroke-[2.2]" />
+                    <span>Confirm &amp; Issue Gate Pass</span>
+                  </button>
+                </form>
               </div>
 
-              <form onSubmit={handleQuickIssueSubmit} className="space-y-3.5">
-                {/* Field 1: Partner Selector */}
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">
-                    Select Delivery Partner
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={issuePartner}
-                      onChange={(e) => setIssuePartner(e.target.value)}
-                      className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2.5 pr-8 text-xs font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
-                    >
-                      <option value="Rajesh Kumar (DP-001) - Anna Nagar Route">
-                        Rajesh Kumar (DP-001) · Anna Nagar Route
-                      </option>
-                      <option value="Mohamed Irfan (DP-002) - KK Nagar Route">
-                        Mohamed Irfan (DP-002) · KK Nagar Route
-                      </option>
-                      <option value="Suresh Babu (DP-003) - Tallakulam Route">
-                        Suresh Babu (DP-003) · Tallakulam Route
-                      </option>
-                      <option value="Karthik Raja (DP-004) - Bypass Road Route">
-                        Karthik Raja (DP-004) · Bypass Road Route
-                      </option>
-                      <option value="Vignesh V (DP-005) - Mattuthavani Route">
-                        Vignesh V (DP-005) · Mattuthavani Route
-                      </option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+              {/* Bottom footer */}
+              <div>
+                <div className="border-b border-slate-200/80 my-4" />
+                <div className="flex items-center justify-between text-xs sm:text-[13px] pt-0.5">
+                  <span className="text-slate-500 font-medium">Authorized Officer: Agency Admin</span>
+                  <span className="text-[#047857] font-bold">Strict Filled Issue Only</span>
                 </div>
-
-                {/* Partner Live Truck State Preview */}
-                <div className="bg-[#F8FAFC] border border-slate-200/90 rounded-xl p-3 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Current Status</span>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                      Active in Delivery
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Truck Inventory</span>
-                    <span className="text-[11px] font-bold text-slate-800 mt-0.5 block">
-                      10 Filled · 14 Empty
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Max Capacity</span>
-                    <span className="text-[11px] font-black text-red-700 mt-0.5 block">28 units</span>
-                  </div>
-                </div>
-
-                {/* Cylinder Stepper Rows */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-[#F1F4FA] rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
-                      19.5 kg Commercial
-                    </div>
-                    <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setIssueQty19(Math.max(0, issueQty19 - 1))}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-xs font-extrabold text-slate-900 w-4 text-center">
-                        {issueQty19}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIssueQty19(issueQty19 + 1)}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-[#F1F4FA] rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
-                      14.2 kg Domestic
-                    </div>
-                    <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setIssueQty14(Math.max(0, issueQty14 - 1))}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-xs font-extrabold text-slate-900 w-4 text-center">
-                        {issueQty14}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIssueQty14(issueQty14 + 1)}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Additional cylinder category added.')}
-                  className="w-full py-2 border border-dashed border-slate-200 hover:border-slate-300 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Cylinder Type</span>
-                </button>
-
-                <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-                  * Custody will transfer immediately once partner signs Gate Pass on arriving at the agency for morning dispatch.
-                </p>
-
-                <button
-                  type="submit"
-                  className="w-full bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Check className="w-4 h-4 stroke-[2.5]" />
-                  <span>Confirm &amp; Issue Gate Pass</span>
-                </button>
-              </form>
+              </div>
             </div>
           </div>
 
