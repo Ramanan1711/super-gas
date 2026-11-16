@@ -39,6 +39,8 @@ import {
   Banknote,
   ShieldCheck,
   RefreshCw,
+  MoreVertical,
+  Info,
 } from 'lucide-react';
 
 export interface InvoiceRecord {
@@ -526,6 +528,338 @@ const initialPaymentsList: PaymentRecord[] = [
   },
 ];
 
+export interface CashBreakdownItem {
+  paymentRef: string;
+  invoiceNo: string;
+  customerName: string;
+  time: string;
+  amount: number;
+}
+
+export interface CashReconciliationRecord {
+  id: string;
+  reconciliationId: string;
+  collectionDate: string;
+  partnerName: string;
+  partnerCode: string;
+  partnerInitials: string;
+  partnerAvatarBg: string;
+  partnerAvatarText: string;
+  cashReported: number;
+  cashReceived: number | null;
+  difference: number | null;
+  status: 'Pending Verification' | 'Verified' | 'Discrepancy Found' | 'Under Investigation';
+  
+  settlementRef: string;
+  vehicle: string;
+  route: string;
+  timestamp: string;
+  depot: string;
+  invoicesBatchText: string;
+  
+  breakdown: CashBreakdownItem[];
+  totalReportedCash: number;
+  
+  cashCounted: number;
+  shortfall: number;
+  discrepancyNotes: string;
+  
+  cashierName: string;
+  investigationSteps: Array<{
+    title: string;
+    subtitle: string;
+    isFlagged?: boolean;
+  }>;
+  statusBadgeText: string;
+}
+
+const initialCashReconciliationsList: CashReconciliationRecord[] = [
+  {
+    id: 'cash-001',
+    reconciliationId: 'CASH-20261016-001',
+    collectionDate: '16 Oct 2026',
+    partnerName: 'Rajesh Kumar',
+    partnerCode: 'DP-001',
+    partnerInitials: 'RK',
+    partnerAvatarBg: 'bg-slate-100',
+    partnerAvatarText: 'text-slate-700',
+    cashReported: 12000,
+    cashReceived: null,
+    difference: null,
+    status: 'Pending Verification',
+    settlementRef: '#SET-20261016-01',
+    vehicle: 'Tata Ace (Van 01)',
+    route: 'Anna Nagar Route 1A',
+    timestamp: '16 Oct 2026, 05:30 PM',
+    depot: 'HQ Central Vault',
+    invoicesBatchText: '2 Commercial Invoices',
+    breakdown: [
+      {
+        paymentRef: 'PAY-20261016-001',
+        invoiceNo: 'INV-099',
+        customerName: 'Hotel Saravana',
+        time: '02:15 PM',
+        amount: 6500,
+      },
+      {
+        paymentRef: 'PAY-20261016-002',
+        invoiceNo: 'INV-100',
+        customerName: 'A1 Bakery',
+        time: '04:45 PM',
+        amount: 5500,
+      },
+    ],
+    totalReportedCash: 12000,
+    cashCounted: 0,
+    shortfall: 0,
+    discrepancyNotes: 'Awaiting driver physical cash drop at depot vault.',
+    cashierName: 'Admin S. Raman (Staff ID #8841)',
+    investigationSteps: [
+      {
+        title: 'Field App Synchronized',
+        subtitle: '16 Oct, 05:15 PM • DP Mobile App v3.4',
+      },
+      {
+        title: 'Cash Tray Physical Count Pending',
+        subtitle: 'Awaiting Partner Arrival',
+      },
+    ],
+    statusBadgeText: 'Pending Depot Verification',
+  },
+  {
+    id: 'cash-002',
+    reconciliationId: 'CASH-20261016-002',
+    collectionDate: '16 Oct 2026',
+    partnerName: 'Suresh Babu',
+    partnerCode: 'DP-003',
+    partnerInitials: 'SB',
+    partnerAvatarBg: 'bg-slate-100',
+    partnerAvatarText: 'text-slate-700',
+    cashReported: 8500,
+    cashReceived: 8500,
+    difference: 0,
+    status: 'Verified',
+    settlementRef: '#SET-20261016-02',
+    vehicle: 'Mahindra Bolero (Van 03)',
+    route: 'Simmakkal Central 2B',
+    timestamp: '16 Oct 2026, 05:45 PM',
+    depot: 'HQ Central Vault',
+    invoicesBatchText: '2 Commercial Invoices',
+    breakdown: [
+      {
+        paymentRef: 'PAY-20261016-005',
+        invoiceNo: 'INV-095',
+        customerName: 'Madurai Mess',
+        time: '01:40 PM',
+        amount: 4500,
+      },
+      {
+        paymentRef: 'PAY-20261016-008',
+        invoiceNo: 'INV-096',
+        customerName: 'Annapoorna Express',
+        time: '04:10 PM',
+        amount: 4000,
+      },
+    ],
+    totalReportedCash: 8500,
+    cashCounted: 8500,
+    shortfall: 0,
+    discrepancyNotes: 'Cash physically counted and verified matching report.',
+    cashierName: 'Admin S. Raman (Staff ID #8841)',
+    investigationSteps: [
+      {
+        title: 'Field App Synchronized',
+        subtitle: '16 Oct, 05:20 PM • DP Mobile App v3.4',
+      },
+      {
+        title: 'Cash Tray Physical Count Completed',
+        subtitle: '16 Oct, 05:50 PM • Cashier S. Raman',
+      },
+    ],
+    statusBadgeText: 'Audit Clearance Passed',
+  },
+  {
+    id: 'cash-003',
+    reconciliationId: 'CASH-20261015-003',
+    collectionDate: '15 Oct 2026',
+    partnerName: 'Ravi Shanker',
+    partnerCode: 'DP-004',
+    partnerInitials: 'RS',
+    partnerAvatarBg: 'bg-[#FFE4E6]',
+    partnerAvatarText: 'text-[#BE123C]',
+    cashReported: 15000,
+    cashReceived: 14000,
+    difference: -1000,
+    status: 'Discrepancy Found',
+    settlementRef: '#SET-20261015-04',
+    vehicle: 'Tata Ace (Van 01)',
+    route: 'South City Route 4B',
+    timestamp: '15 Oct 2026, 06:10 PM',
+    depot: 'HQ Central Vault',
+    invoicesBatchText: '3 Commercial Invoices',
+    breakdown: [
+      {
+        paymentRef: 'PAY-20261015-012',
+        invoiceNo: 'INV-091',
+        customerName: 'Hotel Annapoorna',
+        time: '01:20 PM',
+        amount: 5550,
+      },
+      {
+        paymentRef: 'PAY-20261015-015',
+        invoiceNo: 'INV-094',
+        customerName: 'Sri Krishna Sweets',
+        time: '03:45 PM',
+        amount: 4500,
+      },
+      {
+        paymentRef: 'PAY-20261015-018',
+        invoiceNo: 'INV-098',
+        customerName: 'Priya Enterprises',
+        time: '05:10 PM',
+        amount: 4950,
+      },
+    ],
+    totalReportedCash: 15000,
+    cashCounted: 14000,
+    shortfall: -1000,
+    discrepancyNotes: 'Physical handover short by ₹1,000. Driver Ravi reported that customer Hotel Annapoorna paid ₹4,550 instead of ₹5,550 due to a pending dispute on tare weight deduction.',
+    cashierName: 'Admin S. Raman (Staff ID #8841)',
+    investigationSteps: [
+      {
+        title: 'Field App Synchronized',
+        subtitle: '15 Oct, 05:40 PM • DP Mobile App v3.4',
+      },
+      {
+        title: 'Cash Tray Physical Count Completed',
+        subtitle: '15 Oct, 06:15 PM • Cashier S. Raman',
+      },
+      {
+        title: 'Shortfall Flagged & Dispute Logged',
+        subtitle: '15 Oct, 06:22 PM • Ref Case #DISC-901',
+        isFlagged: true,
+      },
+    ],
+    statusBadgeText: 'In Audit Inquiry',
+  },
+  {
+    id: 'cash-004',
+    reconciliationId: 'CASH-20261015-004',
+    collectionDate: '15 Oct 2026',
+    partnerName: 'Rajesh Kumar',
+    partnerCode: 'DP-001',
+    partnerInitials: 'RK',
+    partnerAvatarBg: 'bg-slate-100',
+    partnerAvatarText: 'text-slate-700',
+    cashReported: 6000,
+    cashReceived: 6000,
+    difference: 0,
+    status: 'Verified',
+    settlementRef: '#SET-20261015-05',
+    vehicle: 'Tata Ace (Van 01)',
+    route: 'Anna Nagar Route 1A',
+    timestamp: '15 Oct 2026, 06:00 PM',
+    depot: 'HQ Central Vault',
+    invoicesBatchText: '2 Commercial Invoices',
+    breakdown: [
+      {
+        paymentRef: 'PAY-20261015-021',
+        invoiceNo: 'INV-088',
+        customerName: 'Royal Caterers',
+        time: '02:00 PM',
+        amount: 3500,
+      },
+      {
+        paymentRef: 'PAY-20261015-022',
+        invoiceNo: 'INV-089',
+        customerName: 'Blue Star Tea',
+        time: '04:30 PM',
+        amount: 2500,
+      },
+    ],
+    totalReportedCash: 6000,
+    cashCounted: 6000,
+    shortfall: 0,
+    discrepancyNotes: 'Exact match verified by cashier.',
+    cashierName: 'Admin S. Raman (Staff ID #8841)',
+    investigationSteps: [
+      {
+        title: 'Field App Synchronized',
+        subtitle: '15 Oct, 05:40 PM • DP Mobile App v3.4',
+      },
+      {
+        title: 'Cash Tray Physical Count Completed',
+        subtitle: '15 Oct, 06:05 PM • Cashier S. Raman',
+      },
+    ],
+    statusBadgeText: 'Audit Clearance Passed',
+  },
+  {
+    id: 'cash-005',
+    reconciliationId: 'CASH-20261014-005',
+    collectionDate: '14 Oct 2026',
+    partnerName: 'Mohamed Irfan',
+    partnerCode: 'DP-002',
+    partnerInitials: 'MI',
+    partnerAvatarBg: 'bg-[#EEF2FF]',
+    partnerAvatarText: 'text-[#4F46E5]',
+    cashReported: 10500,
+    cashReceived: 9500,
+    difference: -1000,
+    status: 'Under Investigation',
+    settlementRef: '#SET-20261014-08',
+    vehicle: 'Mahindra Maxx (Van 02)',
+    route: 'K.K. Nagar North 3C',
+    timestamp: '14 Oct 2026, 06:30 PM',
+    depot: 'HQ Central Vault',
+    invoicesBatchText: '3 Commercial Invoices',
+    breakdown: [
+      {
+        paymentRef: 'PAY-20261014-031',
+        invoiceNo: 'INV-081',
+        customerName: 'Vasavi Sweets',
+        time: '01:15 PM',
+        amount: 3500,
+      },
+      {
+        paymentRef: 'PAY-20261014-032',
+        invoiceNo: 'INV-082',
+        customerName: 'Meenakshi Bhavan',
+        time: '03:20 PM',
+        amount: 4000,
+      },
+      {
+        paymentRef: 'PAY-20261014-033',
+        invoiceNo: 'INV-083',
+        customerName: 'City Cafe',
+        time: '05:00 PM',
+        amount: 3000,
+      },
+    ],
+    totalReportedCash: 10500,
+    cashCounted: 9500,
+    shortfall: -1000,
+    discrepancyNotes: 'Shortfall of ₹1,000 reported from Vasavi Sweets delivery.',
+    cashierName: 'Admin S. Raman (Staff ID #8841)',
+    investigationSteps: [
+      {
+        title: 'Field App Synchronized',
+        subtitle: '14 Oct, 05:55 PM • DP Mobile App v3.4',
+      },
+      {
+        title: 'Cash Tray Physical Count Completed',
+        subtitle: '14 Oct, 06:35 PM • Cashier S. Raman',
+      },
+      {
+        title: 'Shortfall Flagged & Dispute Logged',
+        subtitle: '14 Oct, 06:40 PM • Ref Case #DISC-887',
+        isFlagged: true,
+      },
+    ],
+    statusBadgeText: 'In Audit Inquiry',
+  },
+];
+
 const overviewInvoices: InvoiceRecord[] = [
   {
     id: 'inv-1',
@@ -619,7 +953,7 @@ interface AdminInvoicesPageProps {
 }
 
 export default function AdminInvoicesPage({
-  initialTab = 'Payments',
+  initialTab = 'Cash Reconciliation',
 }: AdminInvoicesPageProps) {
   const [activeTab, setActiveTab] = useState<'Overview' | 'Invoices' | 'Payments' | 'Cash Reconciliation' | 'Customer Ledger'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
@@ -639,6 +973,16 @@ export default function AdminInvoicesPage({
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('All Methods');
   const [paymentPartnerFilter, setPaymentPartnerFilter] = useState('All Delivery Partners');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('All Statuses');
+
+  // Cash Reconciliation Tab State
+  const [inspectedCashRecord, setInspectedCashRecord] = useState<CashReconciliationRecord | null>(initialCashReconciliationsList[2]); // Default to CASH-20261015-003 Ravi Shanker
+  const [cashSearchQuery, setCashSearchQuery] = useState('');
+  const [cashPartnerFilter, setCashPartnerFilter] = useState('All Delivery Partners');
+  const [cashStatusFilter, setCashStatusFilter] = useState('All Statuses');
+  const [cashCountedInput, setCashCountedInput] = useState('14,000');
+  const [discrepancyMemoInput, setDiscrepancyMemoInput] = useState(
+    'Physical handover short by ₹1,000. Driver Ravi reported that customer Hotel Annapoorna paid ₹4,550 instead of ₹5,550 due to a pending dispute on tare weight deduction.'
+  );
 
   // Modals
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
@@ -742,6 +1086,31 @@ export default function AdminInvoicesPage({
     });
   }, [paymentSearchQuery, paymentMethodFilter, paymentPartnerFilter, paymentStatusFilter]);
 
+  const filteredCashReconciliations = useMemo(() => {
+    return initialCashReconciliationsList.filter((item) => {
+      if (cashSearchQuery.trim()) {
+        const q = cashSearchQuery.toLowerCase();
+        const match =
+          item.reconciliationId.toLowerCase().includes(q) ||
+          item.partnerName.toLowerCase().includes(q) ||
+          item.partnerCode.toLowerCase().includes(q) ||
+          item.settlementRef.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      if (cashPartnerFilter !== 'All Delivery Partners') {
+        const pLower = cashPartnerFilter.toLowerCase();
+        const matchPartner =
+          item.partnerName.toLowerCase().includes(pLower) ||
+          item.partnerCode.toLowerCase().includes(pLower);
+        if (!matchPartner) return false;
+      }
+      if (cashStatusFilter !== 'All Statuses' && cashStatusFilter !== 'All') {
+        if (item.status !== cashStatusFilter) return false;
+      }
+      return true;
+    });
+  }, [cashSearchQuery, cashPartnerFilter, cashStatusFilter]);
+
   const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setShowCreateInvoiceModal(false);
@@ -816,7 +1185,9 @@ export default function AdminInvoicesPage({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  {activeTab === 'Invoices'
+                  {activeTab === 'Cash Reconciliation'
+                    ? 'Cash Reconciliation'
+                    : activeTab === 'Invoices'
                     ? 'Invoices'
                     : activeTab === 'Payments'
                     ? 'Payments'
@@ -840,7 +1211,9 @@ export default function AdminInvoicesPage({
                 )}
               </div>
               <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-                {activeTab === 'Invoices'
+                {activeTab === 'Cash Reconciliation'
+                  ? 'Verify delivery partner cash handovers and investigate collection discrepancies.'
+                  : activeTab === 'Invoices'
                   ? 'View and manage customer invoices, payment status, and outstanding balances.'
                   : activeTab === 'Payments'
                   ? 'Track customer payments, collection methods, invoice allocations, and customer credit balance.'
@@ -850,39 +1223,52 @@ export default function AdminInvoicesPage({
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() =>
-                  triggerToast(
-                    activeTab === 'Payments'
-                      ? 'Exporting payments registry...'
-                      : 'Exporting invoices register...'
-                  )
-                }
-                className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
-              >
-                <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
-                <span>{activeTab === 'Payments' ? 'Export Payments' : 'Export'}</span>
-              </button>
-
-              {activeTab === 'Invoices' ? (
+              {activeTab === 'Cash Reconciliation' ? (
                 <button
                   type="button"
-                  onClick={() => setShowCreateInvoiceModal(true)}
-                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                  onClick={() => triggerToast('Exporting cash reconciliation report...')}
+                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
-                  <span>Create Invoice</span>
+                  <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
+                  <span>Export Report</span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowRecordPaymentModal(true)}
-                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
-                >
-                  <CreditCard className="w-4 h-4 stroke-[2.2]" />
-                  <span>Record Payment</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      triggerToast(
+                        activeTab === 'Payments'
+                          ? 'Exporting payments registry...'
+                          : 'Exporting invoices register...'
+                      )
+                    }
+                    className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
+                    <span>{activeTab === 'Payments' ? 'Export Payments' : 'Export'}</span>
+                  </button>
+
+                  {activeTab === 'Invoices' ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateInvoiceModal(true)}
+                      className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 stroke-[2.5]" />
+                      <span>Create Invoice</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowRecordPaymentModal(true)}
+                      className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <CreditCard className="w-4 h-4 stroke-[2.2]" />
+                      <span>Record Payment</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -2529,22 +2915,644 @@ export default function AdminInvoicesPage({
             </div>
           )}
 
+          {/* ========================================================= */}
+          {/* TAB: CASH RECONCILIATION TAB                               */}
+          {/* ========================================================= */}
+          {activeTab === 'Cash Reconciliation' && (
+            <div className="space-y-5">
+              {/* Filter Controls Bar */}
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
+                  {/* Search input */}
+                  <div className="relative min-w-[280px] flex-1">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={cashSearchQuery}
+                      onChange={(e) => setCashSearchQuery(e.target.value)}
+                      placeholder="Search reconciliation ID or partner name..."
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-9.5 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                    />
+                  </div>
+
+                  {/* Date range */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => triggerToast('Date range: Oct 01, 2026 - Oct 24, 2026')}
+                      className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 flex items-center justify-between gap-2 shadow-2xs cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Oct 01, 2026 - Oct 24, 2026</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Partner dropdown */}
+                  <div className="relative">
+                    <select
+                      value={cashPartnerFilter}
+                      onChange={(e) => setCashPartnerFilter(e.target.value)}
+                      className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All Delivery Partners">All Delivery Partners</option>
+                      <option value="Rajesh">Rajesh Kumar (DP-001)</option>
+                      <option value="Mohamed">Mohamed Irfan (DP-002)</option>
+                      <option value="Suresh">Suresh Babu (DP-003)</option>
+                      <option value="Ravi">Ravi Shanker (DP-004)</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Statuses dropdown */}
+                  <div className="relative">
+                    <select
+                      value={cashStatusFilter}
+                      onChange={(e) => setCashStatusFilter(e.target.value)}
+                      className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All Statuses">All Statuses</option>
+                      <option value="Pending Verification">Pending Verification</option>
+                      <option value="Verified">Verified</option>
+                      <option value="Discrepancy Found">Discrepancy Found</option>
+                      <option value="Under Investigation">Under Investigation</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Reset Filters button */}
+                <div className="flex items-center gap-2 shrink-0 self-end lg:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCashSearchQuery('');
+                      setCashPartnerFilter('All Delivery Partners');
+                      setCashStatusFilter('All Statuses');
+                      triggerToast('Reconciliation filters reset');
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition cursor-pointer px-2 py-1"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Filters</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Content Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                {/* Left: Table Container */}
+                <div className={`${inspectedCashRecord ? 'lg:col-span-8' : 'lg:col-span-12'} bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all space-y-4`}>
+                  {/* Table Card Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                        Cash Handover Records
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Review reported collections, confirm physical cash received, and investigate differences.
+                      </p>
+                    </div>
+                    <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full border border-slate-200">
+                      28 Entries
+                    </span>
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#EDF2F9] text-slate-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                          <th className="py-3.5 px-3 whitespace-nowrap">DELIVERY PARTNER ID</th>
+                          <th className="py-3.5 px-3 whitespace-nowrap">COLLECTION DATE</th>
+                          <th className="py-3.5 px-3 whitespace-nowrap">DELIVERY PARTNER</th>
+                          <th className="py-3.5 px-3 text-right whitespace-nowrap">CASH REPORTED</th>
+                          <th className="py-3.5 px-3 text-right whitespace-nowrap">CASH RECEIVED</th>
+                          <th className="py-3.5 px-3 text-center whitespace-nowrap">DIFFERENCE</th>
+                          <th className="py-3.5 px-3 whitespace-nowrap">STATUS</th>
+                          <th className="py-3.5 px-3 text-center whitespace-nowrap">ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                        {filteredCashReconciliations.map((rec) => {
+                          const isInspected = inspectedCashRecord?.id === rec.id;
+
+                          return (
+                            <tr
+                              key={rec.id}
+                              onClick={() => {
+                                setInspectedCashRecord(rec);
+                                if (rec.cashCounted !== undefined) {
+                                  setCashCountedInput(rec.cashCounted.toLocaleString('en-IN'));
+                                }
+                                if (rec.discrepancyNotes) {
+                                  setDiscrepancyMemoInput(rec.discrepancyNotes);
+                                }
+                              }}
+                              className={`transition cursor-pointer ${
+                                isInspected
+                                  ? 'bg-[#FFF8F8] hover:bg-[#FFF2F2]'
+                                  : 'hover:bg-slate-50/80'
+                              }`}
+                            >
+                              {/* Reconciliation ID */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  {isInspected && (
+                                    <span className="w-1.5 h-3.5 bg-red-600 rounded-full inline-block"></span>
+                                  )}
+                                  <span
+                                    className={`font-black ${
+                                      isInspected || rec.reconciliationId === 'CASH-20261016-001'
+                                        ? 'text-[#BC0118]'
+                                        : 'text-slate-900'
+                                    }`}
+                                  >
+                                    {rec.reconciliationId}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Collection Date */}
+                              <td className="py-3.5 px-3 text-slate-600 font-semibold whitespace-nowrap">
+                                {rec.collectionDate}
+                              </td>
+
+                              {/* Delivery Partner */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2.5">
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${rec.partnerAvatarBg} ${rec.partnerAvatarText}`}
+                                  >
+                                    {rec.partnerInitials}
+                                  </div>
+                                  <div>
+                                    <div className="font-extrabold text-slate-900 leading-tight">
+                                      {rec.partnerName}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-medium">
+                                      {rec.partnerCode}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Cash Reported */}
+                              <td className="py-3.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
+                                ₹{rec.cashReported.toLocaleString('en-IN')}
+                              </td>
+
+                              {/* Cash Received */}
+                              <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
+                                {rec.cashReceived === null ? (
+                                  <span className="text-slate-400 font-semibold">—</span>
+                                ) : rec.difference === 0 ? (
+                                  <span className="text-emerald-600">
+                                    ₹{rec.cashReceived.toLocaleString('en-IN')}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-900">
+                                    ₹{rec.cashReceived.toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Difference */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                {rec.difference === null ? (
+                                  <span className="bg-blue-50/70 text-slate-600 border border-slate-200 text-[11px] font-semibold px-2 py-0.5 rounded">
+                                    Pending
+                                  </span>
+                                ) : rec.difference === 0 ? (
+                                  <span className="text-slate-700 font-semibold">₹0</span>
+                                ) : (
+                                  <span className="text-[#BC0118] font-black">
+                                    -₹{Math.abs(rec.difference).toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Status */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                {rec.status === 'Pending Verification' && (
+                                  <span className="inline-flex items-center gap-1.5 bg-[#FEF3C7] text-[#B45309] font-bold text-[11px] px-2.5 py-1 rounded-full border border-amber-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    Pending Verification
+                                  </span>
+                                )}
+                                {rec.status === 'Verified' && (
+                                  <span className="inline-flex items-center gap-1.5 bg-[#DCFCE7] text-[#15803D] font-bold text-[11px] px-2.5 py-1 rounded-full border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Verified
+                                  </span>
+                                )}
+                                {rec.status === 'Discrepancy Found' && (
+                                  <span className="inline-flex items-center gap-1.5 bg-[#FEE2E2] text-[#B91C1C] font-bold text-[11px] px-2.5 py-1 rounded-full border border-red-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                    Discrepancy Found
+                                  </span>
+                                )}
+                                {rec.status === 'Under Investigation' && (
+                                  <span className="inline-flex items-center gap-1.5 bg-[#DBEAFE] text-[#1D4ED8] font-bold text-[11px] px-2.5 py-1 rounded-full border border-blue-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                    Under Investigation
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-center gap-1 text-slate-400">
+                                  <button
+                                    type="button"
+                                    onClick={() => setInspectedCashRecord(rec)}
+                                    title="View Record"
+                                    className="p-1 hover:text-slate-800 transition cursor-pointer"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerToast(`Actions for ${rec.reconciliationId}`)}
+                                    title="More Options"
+                                    className="p-1 hover:text-slate-800 transition cursor-pointer"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <span>Showing 1 to 5 of 28 records</span>
+                      <span>•</span>
+                      <div className="flex items-center gap-1.5">
+                        <span>Rows per page:</span>
+                        <div className="relative">
+                          <select className="bg-white border border-slate-200 text-slate-800 font-bold px-2 py-0.5 rounded-md appearance-none pr-5 text-xs focus:outline-none cursor-pointer">
+                            <option>10</option>
+                            <option>25</option>
+                            <option>50</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 font-bold">
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Previous page')}
+                        className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition cursor-pointer text-xs"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1 rounded-lg bg-[#BC0118] text-white font-black text-xs shadow-xs"
+                      >
+                        1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Page 2')}
+                        className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition cursor-pointer text-xs"
+                      >
+                        2
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Page 3')}
+                        className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition cursor-pointer text-xs"
+                      >
+                        3
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Next page')}
+                        className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition cursor-pointer text-xs"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Inspection Flyout */}
+                {inspectedCashRecord && (
+                  <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4 animate-in fade-in duration-200">
+                    {/* Header */}
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                          <Banknote className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base font-black text-slate-900 tracking-tight">
+                              {inspectedCashRecord.reconciliationId}
+                            </h3>
+                            {inspectedCashRecord.status === 'Discrepancy Found' && (
+                              <span className="bg-red-100 text-red-700 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-red-200">
+                                Discrepancy Found
+                              </span>
+                            )}
+                            {inspectedCashRecord.status === 'Verified' && (
+                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-emerald-200">
+                                Verified
+                              </span>
+                            )}
+                            {inspectedCashRecord.status === 'Pending Verification' && (
+                              <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-amber-200">
+                                Pending
+                              </span>
+                            )}
+                            {inspectedCashRecord.status === 'Under Investigation' && (
+                              <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-blue-200">
+                                Under Investigation
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                            Physical Handover Audit &amp; Verification
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setInspectedCashRecord(null)}
+                        className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                        title="Close Flyout"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* SECTION A: HANDOVER INFORMATION */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                          SECTION A: HANDOVER INFORMATION
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => triggerToast(`Viewing settlement ${inspectedCashRecord.settlementRef}`)}
+                          className="text-[11px] font-bold text-[#BC0118] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Settlement Ref {inspectedCashRecord.settlementRef}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <div className="bg-[#F8FAFC] rounded-2xl p-3.5 border border-slate-200/80">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <span className="text-[11px] font-medium text-slate-400 block">
+                              Delivery Partner
+                            </span>
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-900 block mt-0.5 leading-tight">
+                              {inspectedCashRecord.partnerName} ({inspectedCashRecord.partnerCode})
+                            </span>
+                            <span className="text-[11px] font-medium text-slate-500 block mt-0.5">
+                              Vehicle: {inspectedCashRecord.vehicle}
+                            </span>
+
+                            <span className="text-[11px] font-medium text-slate-400 block mt-3">
+                              Shift Route
+                            </span>
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-900 block mt-0.5 leading-tight">
+                              {inspectedCashRecord.route}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[11px] font-medium text-slate-400 block">
+                              Handover Timestamp
+                            </span>
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-900 block mt-0.5 leading-tight">
+                              {inspectedCashRecord.timestamp}
+                            </span>
+                            <span className="text-[11px] font-medium text-slate-500 block mt-0.5">
+                              Depot: {inspectedCashRecord.depot}
+                            </span>
+
+                            <span className="text-[11px] font-medium text-slate-400 block mt-3">
+                              Invoices In Cash Batch
+                            </span>
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-900 block mt-0.5 leading-tight">
+                              {inspectedCashRecord.invoicesBatchText}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION B: REPORTED CASH BREAKDOWN */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                          SECTION B: REPORTED CASH BREAKDOWN
+                        </span>
+                        <span className="text-[11px] font-medium text-slate-400">
+                          Automated Field Ingestion
+                        </span>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200/90 overflow-hidden bg-white">
+                        <div className="bg-[#F0F5FF] px-4 py-2 flex items-center justify-between text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          <span className="w-1/2">Ref &amp; Customer</span>
+                          <span className="w-1/4 text-center">Time</span>
+                          <span className="w-1/4 text-right">Collected</span>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                          {inspectedCashRecord.breakdown.map((item, idx) => (
+                            <div key={idx} className="px-4 py-2.5 flex items-center justify-between text-xs">
+                              <div className="w-1/2">
+                                <div className="font-extrabold text-slate-900">{item.paymentRef}</div>
+                                <div className="text-[10px] text-slate-500 font-medium">
+                                  {item.invoiceNo} • {item.customerName}
+                                </div>
+                              </div>
+                              <div className="w-1/4 text-center text-slate-600 font-medium text-xs">
+                                {item.time}
+                              </div>
+                              <div className="w-1/4 text-right font-black text-slate-900 text-xs">
+                                ₹{item.amount.toLocaleString('en-IN')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="bg-[#EFF6FF] px-4 py-2.5 flex items-center justify-between border-t border-blue-100">
+                          <span className="text-xs font-bold text-slate-800">Total Reported Cash</span>
+                          <span className="text-xs font-black text-slate-900">
+                            ₹{inspectedCashRecord.totalReportedCash.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION C: PHYSICAL VERIFICATION */}
+                    <div className="space-y-2.5">
+                      <div className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                        SECTION C: PHYSICAL VERIFICATION
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {/* Reported */}
+                        <div className="bg-white border border-slate-200/90 rounded-xl p-2.5 sm:p-3">
+                          <span className="text-[10px] font-bold text-slate-400 block">Reported</span>
+                          <span className="text-sm sm:text-base font-black text-slate-900 block mt-0.5">
+                            ₹{inspectedCashRecord.cashReported.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+
+                        {/* Cash Counted */}
+                        <div className="bg-white border border-slate-200/90 rounded-xl p-2.5 sm:p-3">
+                          <span className="text-[10px] font-bold text-slate-500 block">Cash Counted</span>
+                          <div className="mt-0.5 border border-slate-300 rounded-lg px-2 py-1 bg-white flex items-center gap-1">
+                            <span className="text-xs font-bold text-slate-500">₹</span>
+                            <input
+                              type="text"
+                              value={cashCountedInput}
+                              onChange={(e) => setCashCountedInput(e.target.value)}
+                              className="w-full text-xs sm:text-sm font-black text-slate-900 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Shortfall */}
+                        <div className="bg-[#FEE2E2] border border-red-100 rounded-xl p-2.5 sm:p-3">
+                          <span className="text-[10px] font-bold text-red-600 block">Shortfall</span>
+                          <span className="text-sm sm:text-base font-black text-red-600 block mt-0.5">
+                            -₹{Math.abs(inspectedCashRecord.shortfall || 1000).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Discrepancy Notes / Verification Memo */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] sm:text-xs font-bold text-slate-600 block">
+                          Discrepancy Notes / Verification Memo <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={discrepancyMemoInput}
+                          onChange={(e) => setDiscrepancyMemoInput(e.target.value)}
+                          className="w-full bg-[#F8FAFC] border border-slate-200/90 rounded-xl p-3 text-xs text-slate-800 font-medium leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                        />
+                      </div>
+                    </div>
+
+                    {/* SECTION D: INVESTIGATION WORKFLOW */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                          SECTION D: INVESTIGATION WORKFLOW
+                        </span>
+                        <span className="bg-[#EFF6FF] text-[#2563EB] text-[10px] font-extrabold px-2 py-0.5 rounded border border-blue-200">
+                          {inspectedCashRecord.statusBadgeText}
+                        </span>
+                      </div>
+
+                      <div className="bg-[#F8FAFC] rounded-2xl p-3.5 border border-slate-200/80 space-y-3">
+                        <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-200/60">
+                          <span className="text-slate-500 font-medium">Depot Cashier:</span>
+                          <span className="font-extrabold text-slate-900">{inspectedCashRecord.cashierName}</span>
+                        </div>
+
+                        {/* Timeline */}
+                        <div className="space-y-2.5">
+                          {inspectedCashRecord.investigationSteps.map((step, idx) => (
+                            <div key={idx} className="flex items-start gap-2.5">
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 mt-1 ${
+                                  step.isFlagged ? 'bg-red-600' : 'bg-slate-500'
+                                }`}
+                              ></span>
+                              <div>
+                                <div
+                                  className={`text-xs font-bold leading-tight ${
+                                    step.isFlagged ? 'text-red-600' : 'text-slate-800'
+                                  }`}
+                                >
+                                  {step.title}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  {step.subtitle}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Depot Policy */}
+                        <div className="bg-white rounded-xl p-3 border border-slate-200/90 flex items-start gap-2.5 text-[11px]">
+                          <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          <p className="text-slate-600 font-medium leading-relaxed">
+                            <strong className="text-slate-800 font-bold">Depot Policy:</strong> Confirmed cash shortfall does not automatically deduct partner earnings without supervisory settlement sign-off.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Buttons */}
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Generating Handover PDF for ${inspectedCashRecord.reconciliationId}...`)}
+                        className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-extrabold text-xs px-3 py-2.5 rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      >
+                        <FileDown className="w-4 h-4 text-slate-600" />
+                        <span>Handover PDF</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Draft memo saved for ${inspectedCashRecord.reconciliationId}`)}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2.5 rounded-xl transition cursor-pointer whitespace-nowrap"
+                      >
+                        Save Draft
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Discrepancy confirmed & flagged for ${inspectedCashRecord.reconciliationId}`)}
+                        className="flex-1 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-extrabold text-xs py-2.5 px-3 rounded-xl shadow-xs transition text-center cursor-pointer whitespace-nowrap"
+                      >
+                        Confirm &amp; Flag Discrepancy
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Placeholders for Other Tabs */}
-          {(activeTab === 'Cash Reconciliation' || activeTab === 'Customer Ledger') && (
+          {activeTab === 'Customer Ledger' && (
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#BC0118] flex items-center justify-center mx-auto">
                 <FileText className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-black text-slate-900">{activeTab}</h3>
               <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
-                Comprehensive tracking module for {activeTab.toLowerCase()}. Access logs, ledger movements, and settlement entries.
+                Comprehensive tracking module for customer ledger entries, balance statements, and credit accounts.
               </p>
               <button
                 type="button"
-                onClick={() => setActiveTab('Payments')}
+                onClick={() => setActiveTab('Cash Reconciliation')}
                 className="mt-3 px-4 py-2 bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
               >
-                Back to Payments
+                Back to Cash Reconciliation
               </button>
             </div>
           )}
