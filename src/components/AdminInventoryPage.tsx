@@ -288,12 +288,13 @@ export default function AdminInventoryPage() {
   const [issueQty19, setIssueQty19] = useState(10);
   const [issueQty14, setIssueQty14] = useState(0);
 
-  // Record Empty Return Form State
-  const [returnPartner, setReturnPartner] = useState('Suresh Babu (DP-003)');
-  const [returnQty14, setReturnQty14] = useState(4);
-  const [returnQty19, setReturnQty19] = useState(0);
+  // Record Empty Return Form State (matching exact Figma design)
+  const [returnPartner, setReturnPartner] = useState(
+    'Suresh Babu (DP-003) · Expected Empties: 9 units'
+  );
+  const [returnQty, setReturnQty] = useState('9');
   const [inspectionRemarks, setInspectionRemarks] = useState(
-    'All sound condition, valves intact, no physical damage detected.'
+    'All seals checked; zero tare-weight valve leakages'
   );
   const [inspectionChecked, setInspectionChecked] = useState(true);
 
@@ -562,8 +563,8 @@ export default function AdminInventoryPage() {
   // Record Empty Return Submit
   const handleEmptyReturnSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const totalEmpties = returnQty14 + returnQty19;
-    if (totalEmpties === 0) {
+    const qtyNum = parseInt(returnQty, 10) || 0;
+    if (qtyNum === 0) {
       triggerToast('Please specify returned empty cylinder quantity.');
       return;
     }
@@ -574,8 +575,8 @@ export default function AdminInventoryPage() {
         if (p.name.includes(partnerName)) {
           return {
             ...p,
-            emptyDeposited: p.emptyDeposited + totalEmpties,
-            currentEmpty: Math.max(0, p.currentEmpty - totalEmpties),
+            emptyDeposited: p.emptyDeposited + qtyNum,
+            currentEmpty: Math.max(0, p.currentEmpty - qtyNum),
           };
         }
         return p;
@@ -585,12 +586,12 @@ export default function AdminInventoryPage() {
     const newRef = `#MV-20261016-${(auditRecords.length + 1).toString().padStart(2, '0')}`;
     setAuditRecords((prev) => [
       {
-        id: `a-${Date.now()}`,
+        id: `a-${prev.length + 1}`,
         ref: newRef,
         dateTime: 'Oct 16, Just Now',
         type: 'Empty Return',
         condition: 'EMPTY',
-        quantity: `+${totalEmpties} units`,
+        quantity: `+${qtyNum} units`,
         source: returnPartner,
         destination: 'Depot Yard Empties',
         recordedBy: 'Agency Admin',
@@ -599,7 +600,7 @@ export default function AdminInventoryPage() {
       ...prev,
     ]);
 
-    triggerToast(`Received ${totalEmpties} empty cylinders into depot from ${partnerName}.`);
+    triggerToast(`Empty cylinder receipt confirmed: ${qtyNum} units from ${partnerName}.`);
   };
 
   // Export CSV
@@ -1419,146 +1420,150 @@ export default function AdminInventoryPage() {
               </div>
             </div>
 
-            {/* Right: Record Empty Cylinder Return */}
-            <div className="lg:col-span-6 bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
-              <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                    <RotateCcw className="w-4 h-4 stroke-[2.2]" />
+            {/* Right: Record Empty Cylinder Return (Exact Figma Design) */}
+            <div className="lg:col-span-6 bg-white rounded-[24px] p-7 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div>
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-[#EEF2FB] flex items-center justify-center shrink-0">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#BC0118"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="17" rx="3" />
+                        <path d="M12 9v6" />
+                        <path d="m9 12 3 3 3-3" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-snug">
+                        Record Empty Cylinder<br />Return
+                      </h3>
+                      <p className="text-xs sm:text-[13px] text-slate-500 font-medium mt-1">
+                        Depot gate empty check-in
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">
-                      Record Empty Cylinder Return
-                    </h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Deposit empty cylinders to depot</p>
+
+                  <div className="bg-[#6EF796] text-slate-900 font-bold text-xs px-3.5 py-1.5 rounded-xl text-left leading-tight shrink-0 shadow-2xs">
+                    <div>Ledger Audit</div>
+                    <div>Inflow</div>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                  Depot Inward Gatepass
-                </span>
+
+                <div className="border-b border-slate-200/80 my-5" />
+
+                <form onSubmit={handleEmptyReturnSubmit} className="space-y-4">
+                  {/* Field 1: RETURNING DELIVERY PARTNER */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                      Returning Delivery Partner
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={returnPartner}
+                        onChange={(e) => setReturnPartner(e.target.value)}
+                        className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                      >
+                        <option value="Suresh Babu (DP-003) · Expected Empties: 9 units">
+                          Suresh Babu (DP-003) · Expected Empties: 9 units
+                        </option>
+                        <option value="Rajesh Kumar (DP-001) · Expected Empties: 14 units">
+                          Rajesh Kumar (DP-001) · Expected Empties: 14 units
+                        </option>
+                        <option value="Mohamed Irfan (DP-002) · Expected Empties: 8 units">
+                          Mohamed Irfan (DP-002) · Expected Empties: 8 units
+                        </option>
+                        <option value="Karthik Raja (DP-004) · Expected Empties: 4 units">
+                          Karthik Raja (DP-004) · Expected Empties: 4 units
+                        </option>
+                      </select>
+                      <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                    </div>
+                  </div>
+
+                  {/* Row 2: EXPECTED EMPTY CUSTODY & EMPTY RETURN QTY */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                        Expected Empty Custody
+                      </label>
+                      <div className="w-full bg-[#F1F4FA] rounded-2xl py-3.5 px-4 text-center text-slate-600 font-medium text-base sm:text-lg flex items-center justify-center">
+                        9 units
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                        Empty Return Qty
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={returnQty}
+                        onChange={(e) => setReturnQty(e.target.value)}
+                        className="w-full bg-[#F1F4FA] rounded-2xl py-3.5 px-4 text-center text-slate-900 font-extrabold text-xl focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Field 3: RECEIVER NOTES & DEFECT INSPECTION */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                      Receiver Notes &amp; Defect Inspection
+                    </label>
+                    <input
+                      type="text"
+                      value={inspectionRemarks}
+                      onChange={(e) => setInspectionRemarks(e.target.value)}
+                      placeholder="All seals checked; zero tare-weight valve leakages"
+                      className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 text-sm sm:text-base font-normal text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                    />
+                  </div>
+
+                  {/* Field 4: Physical verification checkbox banner */}
+                  <div
+                    onClick={() => setInspectionChecked(!inspectionChecked)}
+                    className="bg-[#F1F4FA] rounded-2xl p-4 flex items-start gap-3.5 cursor-pointer select-none"
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition ${
+                        inspectionChecked ? 'bg-[#BC0118]' : 'bg-white border border-slate-300'
+                      }`}
+                    >
+                      {inspectionChecked && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </div>
+                    <span className="text-xs sm:text-[13px] font-medium text-slate-700 leading-snug">
+                      Physically verified zero tare-weight valve defect &amp; safety cap locked
+                    </span>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    className="w-full bg-[#101828] hover:bg-slate-800 active:scale-98 text-white font-bold text-sm sm:text-base py-3.5 rounded-2xl shadow-xs transition flex items-center justify-center gap-2.5 cursor-pointer mt-2"
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-white stroke-[2.2]" />
+                    <span>Confirm Empty Receipt into Depot</span>
+                  </button>
+                </form>
               </div>
 
-              <form onSubmit={handleEmptyReturnSubmit} className="space-y-3.5">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">
-                    Returning Delivery Partner
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={returnPartner}
-                      onChange={(e) => setReturnPartner(e.target.value)}
-                      className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2.5 pr-8 text-xs font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
-                    >
-                      <option value="Suresh Babu (DP-003)">Suresh Babu (DP-003)</option>
-                      <option value="Rajesh Kumar (DP-001)">Rajesh Kumar (DP-001)</option>
-                      <option value="Mohamed Irfan (DP-002)">Mohamed Irfan (DP-002)</option>
-                      <option value="Karthik Raja (DP-004)">Karthik Raja (DP-004)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+              {/* Bottom footer */}
+              <div>
+                <div className="border-b border-slate-200/80 my-4" />
+                <div className="flex items-center justify-between text-xs sm:text-[13px] pt-0.5">
+                  <span className="text-slate-500 font-medium">Updates depot balance atomically</span>
+                  <span className="text-[#047857] font-bold">Ledger: Real-time</span>
                 </div>
-
-                {/* Realtime Custody Indicators */}
-                <div className="grid grid-cols-3 gap-2 bg-[#F8FAFC] border border-slate-200/90 rounded-xl p-3 text-center text-xs">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Empty in Van</span>
-                    <span className="font-black text-slate-900 block mt-0.5">4 units</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Total Collected</span>
-                    <span className="font-black text-slate-900 block mt-0.5">9</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Prev Deposited</span>
-                    <span className="font-black text-emerald-600 block mt-0.5">5 units</span>
-                  </div>
-                </div>
-
-                {/* Empty Quantities */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      14.2 kg Domestic
-                    </label>
-                    <div className="flex items-center bg-[#F1F4FA] rounded-xl px-2 py-1.5 justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setReturnQty14(Math.max(0, returnQty14 - 1))}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-xs font-extrabold text-slate-900">{returnQty14}</span>
-                      <button
-                        type="button"
-                        onClick={() => setReturnQty14(returnQty14 + 1)}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      19.5 kg Commercial
-                    </label>
-                    <div className="flex items-center bg-[#F1F4FA] rounded-xl px-2 py-1.5 justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setReturnQty19(Math.max(0, returnQty19 - 1))}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-xs font-extrabold text-slate-900">{returnQty19}</span>
-                      <button
-                        type="button"
-                        onClick={() => setReturnQty19(returnQty19 + 1)}
-                        className="text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Physical Inspection Status of Empties
-                  </label>
-                  <input
-                    type="text"
-                    value={inspectionRemarks}
-                    onChange={(e) => setInspectionRemarks(e.target.value)}
-                    className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                  />
-                </div>
-
-                <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={inspectionChecked}
-                    onChange={(e) => setInspectionChecked(e.target.checked)}
-                    className="mt-0.5 rounded text-red-600 focus:ring-red-500 cursor-pointer"
-                  />
-                  <span className="text-[11px] text-slate-600 font-medium leading-snug">
-                    All empty cylinder serial seals and tare weights match delivery partner collection dispatch record.
-                  </span>
-                </label>
-
-                <button
-                  type="submit"
-                  disabled={!inspectionChecked}
-                  className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 active:scale-98 text-white font-bold text-xs sm:text-sm py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Check className="w-4 h-4 stroke-[2.5]" />
-                  <span>Confirm Empty Receipt into Depot</span>
-                </button>
-                <p className="text-[10px] text-slate-400 font-medium text-center">
-                  * Instant depot stock reconciliation.
-                </p>
-              </form>
+              </div>
             </div>
           </div>
 
