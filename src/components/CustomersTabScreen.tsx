@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, Phone, MapPin, ChevronRight, X, Package } from 'lucide-react';
+import CustomerDetailScreen from './CustomerDetailScreen';
 import type { Delivery, DeliveryStats } from './DeliveryScreen';
 
 interface CustomersTabScreenProps {
@@ -31,6 +32,7 @@ export default function CustomersTabScreen({
   getInitials,
 }: CustomersTabScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCustomerForDetail, setSelectedCustomerForDetail] = useState<CustomerItem | null>(null);
 
   // Default mock customers matching Figma design
   const defaultCustomers: CustomerItem[] = useMemo(() => [
@@ -77,6 +79,17 @@ export default function CustomersTabScreen({
       cylinderType: '19kg Commercial',
       quantity: 2,
       amount: 4000,
+    },
+    {
+      id: 'cus-default-5',
+      code: 'CUS-00042',
+      name: 'Hotel Annapoorna',
+      phone: '+91 99432 11223',
+      address: '14/2 Bypass Road, Near Mattuthavani Junction, Madurai - 625007',
+      type: 'Commercial',
+      cylinderType: '19.5kg Commercial',
+      quantity: 6,
+      amount: 5550,
     },
   ], []);
 
@@ -161,6 +174,19 @@ export default function CustomersTabScreen({
       onStartDelivery(fallbackDelivery);
     }
   };
+
+  if (selectedCustomerForDetail) {
+    return (
+      <CustomerDetailScreen
+        customer={selectedCustomerForDetail}
+        onBack={() => setSelectedCustomerForDetail(null)}
+        onStartDelivery={(delivery) => {
+          setSelectedCustomerForDetail(null);
+          onStartDelivery(delivery);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
@@ -284,19 +310,29 @@ export default function CustomersTabScreen({
               >
                 {/* Top Row: Customer Name, Code & Red Initials Avatar */}
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h4 className="text-base font-extrabold text-slate-900 tracking-tight leading-tight truncate">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCustomerForDetail(cust)}
+                    className="min-w-0 text-left group cursor-pointer"
+                  >
+                    <h4 className="text-base font-extrabold text-slate-900 tracking-tight leading-tight truncate group-hover:text-[#E81B24] transition">
                       {cust.name}
                     </h4>
                     <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 bg-white border border-slate-200/80 mt-1">
                       {cust.code}
                     </span>
-                  </div>
+                  </button>
 
                   {/* Red Initials Circle Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-[#BC0118] text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCustomerForDetail(cust)}
+                    className="w-10 h-10 rounded-full bg-[#BC0118] hover:bg-red-700 active:scale-95 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs cursor-pointer transition"
+                    title="View Customer Details"
+                    aria-label={`View details for ${cust.name}`}
+                  >
                     {getInitials(cust.name)}
-                  </div>
+                  </button>
                 </div>
 
                 {/* Contact & Address Section */}
