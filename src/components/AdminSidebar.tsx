@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   LayoutGrid,
   Users,
@@ -33,10 +34,44 @@ export default function AdminSidebar({
   collapsed: propCollapsed,
   onToggleCollapse,
 }: AdminSidebarProps) {
-  const [internalActive, setInternalActive] = useState('Dashboard');
+  const pathname = usePathname();
+  const [internalActive, setInternalActive] = useState<string | null>(null);
   const [internalCollapsed, setInternalCollapsed] = useState(false);
 
-  const active = propActiveItem ?? internalActive;
+  // Automatically derive active navigation item directly from the URL pathname
+  const active = useMemo(() => {
+    if (pathname) {
+      if (pathname.startsWith('/admin/customers') || pathname.startsWith('/admin/customer')) {
+        return 'Customers';
+      }
+      if (pathname === '/admin' || pathname === '/admin/') {
+        return 'Dashboard';
+      }
+      if (pathname.startsWith('/admin/inventory')) {
+        return 'Inventory';
+      }
+      if (pathname.startsWith('/admin/delivery-partners')) {
+        return 'Delivery Partners';
+      }
+      if (pathname.startsWith('/admin/invoices')) {
+        return 'Invoices & Payments';
+      }
+      if (pathname.startsWith('/admin/settlements')) {
+        return 'Settlements';
+      }
+      if (pathname.startsWith('/admin/expenses')) {
+        return 'Expenses';
+      }
+      if (pathname.startsWith('/admin/reports')) {
+        return 'Reports';
+      }
+      if (pathname.startsWith('/admin/settings')) {
+        return 'Settings';
+      }
+    }
+    return propActiveItem ?? internalActive ?? 'Dashboard';
+  }, [pathname, propActiveItem, internalActive]);
+
   const isCollapsed = propCollapsed ?? internalCollapsed;
 
   const navItems = [

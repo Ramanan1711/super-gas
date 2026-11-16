@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [activeNav, setActiveNav] = useState('Dashboard');
   const [chart1Period, setChart1Period] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [chart2Period, setChart2Period] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [fuelClaimStatus, setFuelClaimStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
@@ -34,8 +33,6 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans antialiased">
       {/* 1. Left Sidebar */}
       <AdminSidebar
-        activeItem={activeNav}
-        onNavigate={setActiveNav}
         className="sticky top-0 h-screen z-30 border-r border-slate-200/90 rounded-none shrink-0"
       />
 

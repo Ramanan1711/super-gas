@@ -177,7 +177,6 @@ const authorizedDeliveryPartners = [
 ];
 
 export default function AdminCustomersPage() {
-  const [activeNav, setActiveNav] = useState('Customers');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [partnerFilter, setPartnerFilter] = useState('All');
@@ -379,8 +378,6 @@ export default function AdminCustomersPage() {
     <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans antialiased">
       {/* 1. Left Sidebar Navigation */}
       <AdminSidebar
-        activeItem={activeNav}
-        onNavigate={setActiveNav}
         className="sticky top-0 h-screen z-30 border-r border-slate-200/90 rounded-none shrink-0"
       />
 
