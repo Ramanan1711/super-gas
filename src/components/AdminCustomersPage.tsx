@@ -21,6 +21,10 @@ import {
   MoreVertical,
   X,
   Check,
+  Eye,
+  Pencil,
+  ArrowLeftRight,
+  Ban,
 } from 'lucide-react';
 
 interface CustomerRecord {
@@ -167,6 +171,89 @@ export default function AdminCustomersPage() {
   const [assigningCustomer, setAssigningCustomer] = useState<CustomerRecord | null>(null);
   const [selectedPartnerForAssign, setSelectedPartnerForAssign] = useState('Rajesh · DP- 001');
   const [customerList, setCustomerList] = useState<CustomerRecord[]>(initialCustomers);
+
+  // Action Popup & Interactive Modals State
+  const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
+  const [viewDetailsCustomer, setViewDetailsCustomer] = useState<CustomerRecord | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
+  const [viewLedgerCustomer, setViewLedgerCustomer] = useState<CustomerRecord | null>(null);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+
+  // Edit Customer Form State
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editCategory, setEditCategory] = useState<'Residential' | 'COMMERCIAL' | 'B2B'>('Residential');
+  const [editAddress, setEditAddress] = useState('');
+  const [editPartner, setEditPartner] = useState('');
+
+  const handleOpenEditModal = (cust: CustomerRecord) => {
+    setEditingCustomer(cust);
+    setEditName(cust.name);
+    setEditPhone(cust.phone);
+    setEditCategory(cust.badgeType || 'Residential');
+    setEditAddress(cust.address);
+    setEditPartner(
+      cust.deliveryPartner.isUnassigned
+        ? 'Leave unassign'
+        : `${cust.deliveryPartner.name} · ${cust.deliveryPartner.code}`
+    );
+  };
+
+  const handleSaveEditCustomer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCustomer) return;
+
+    setCustomerList((prev) =>
+      prev.map((c) => {
+        if (c.id === editingCustomer.id) {
+          const isUnassigned = editPartner === 'Leave unassign';
+          const [partnerName, partnerCode] = !isUnassigned
+            ? editPartner.split(' · ')
+            : ['Unassigned', ''];
+
+          return {
+            ...c,
+            name: editName,
+            phone: editPhone,
+            address: editAddress,
+            badge: editCategory === 'Residential' ? undefined : editCategory,
+            badgeType: editCategory === 'Residential' ? undefined : editCategory,
+            deliveryPartner: {
+              name: partnerName,
+              code: partnerCode,
+              isUnassigned,
+            },
+          };
+        }
+        return c;
+      })
+    );
+
+    setActionToast(`Customer details for ${editName} updated successfully.`);
+    setTimeout(() => setActionToast(null), 3000);
+    setEditingCustomer(null);
+  };
+
+  const handleToggleCustomerStatus = (customerId: string) => {
+    setCustomerList((prev) =>
+      prev.map((c) => {
+        if (c.id === customerId) {
+          const nextStatus = c.statusDot === 'green' ? 'grey' : 'green';
+          setActionToast(
+            nextStatus === 'grey'
+              ? `${c.name} has been deactivated.`
+              : `${c.name} has been activated.`
+          );
+          setTimeout(() => setActionToast(null), 3000);
+          return {
+            ...c,
+            statusDot: nextStatus,
+          };
+        }
+        return c;
+      })
+    );
+  };
 
   // Filtering logic
   const filteredCustomers = useMemo(() => {
@@ -506,7 +593,7 @@ export default function AdminCustomersPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredCustomers.map((cust) => (
+                    filteredCustomers.map((cust, index) => (
                       <tr key={cust.id} className="hover:bg-slate-50/80 transition group">
                         {/* 1. Customer Name & Code */}
                         <td className="py-4 pl-6">
@@ -628,8 +715,8 @@ export default function AdminCustomersPage() {
                           )}
                         </td>
 
-                        {/* 7. Actions Column */}
-                        <td className="py-4 text-center pr-6">
+                        {/* 7. Actions Column with Exact Action Pop up */}
+                        <td className="py-4 text-center pr-6 relative">
                           {cust.deliveryPartner.isUnassigned ? (
                             <button
                               type="button"
@@ -639,13 +726,121 @@ export default function AdminCustomersPage() {
                               Assign Now
                             </button>
                           ) : (
-                            <button
-                              type="button"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer inline-flex items-center justify-center"
-                              title="More options"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
+                            <div className="relative inline-block text-left">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveActionMenuId(
+                                    activeActionMenuId === cust.id ? null : cust.id
+                                  );
+                                }}
+                                className={`p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer inline-flex items-center justify-center ${
+                                  activeActionMenuId === cust.id ? 'bg-slate-100 text-slate-900' : ''
+                                }`}
+                                title="More options"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+
+                              {/* Exact Action Pop up dropdown */}
+                              {activeActionMenuId === cust.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setActiveActionMenuId(null)}
+                                  />
+
+                                  <div
+                                    className={`absolute right-0 z-50 w-[235px] bg-white rounded-[24px] shadow-[0_14px_45px_rgba(0,0,0,0.14)] border border-slate-100/90 p-3 space-y-0.5 text-left animate-in fade-in zoom-in-95 duration-100 ${
+                                      index >= Math.max(0, filteredCustomers.length - 2)
+                                        ? 'bottom-full mb-2'
+                                        : 'top-full mt-2'
+                                    }`}
+                                  >
+                                    {/* 1. View Details */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setViewDetailsCustomer(cust);
+                                        setActiveActionMenuId(null);
+                                      }}
+                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+                                    >
+                                      <Eye className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                                      <span className="text-[13.5px] font-medium text-slate-900">
+                                        View Details
+                                      </span>
+                                    </button>
+
+                                    {/* 2. Edit Customer */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleOpenEditModal(cust);
+                                        setActiveActionMenuId(null);
+                                      }}
+                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+                                    >
+                                      <Pencil className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                                      <span className="text-[13.5px] font-medium text-slate-900">
+                                        Edit Customer
+                                      </span>
+                                    </button>
+
+                                    {/* 3. Reassign Partner */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAssigningCustomer(cust);
+                                        setActiveActionMenuId(null);
+                                      }}
+                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+                                    >
+                                      <ArrowLeftRight className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                                      <span className="text-[13.5px] font-medium text-slate-900">
+                                        Reassign Partner
+                                      </span>
+                                    </button>
+
+                                    {/* 4. View Customer Ledger */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setViewLedgerCustomer(cust);
+                                        setActiveActionMenuId(null);
+                                      }}
+                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+                                    >
+                                      <FileText className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                                      <span className="text-[13.5px] font-medium text-slate-900">
+                                        View Customer Ledger
+                                      </span>
+                                    </button>
+
+                                    {/* Horizontal Divider */}
+                                    <div className="border-b border-slate-100 my-1.5 mx-1" />
+
+                                    {/* 5. Deactivate Customer */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleToggleCustomerStatus(cust.id);
+                                        setActiveActionMenuId(null);
+                                      }}
+                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-red-50/60 transition cursor-pointer text-left group"
+                                    >
+                                      <Ban className="w-5 h-5 text-[#E81B24] stroke-[1.8] shrink-0" />
+                                      <span className="text-[13.5px] font-medium text-[#E81B24]">
+                                        {cust.statusDot === 'green'
+                                          ? 'Deactivate Customer'
+                                          : 'Activate Customer'}
+                                      </span>
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -982,6 +1177,325 @@ export default function AdminCustomersPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* 1. View Customer Details Modal */}
+      {viewDetailsCustomer && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 text-[#BC0118] font-black text-sm flex items-center justify-center">
+                  {viewDetailsCustomer.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .substring(0, 2)}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-extrabold text-slate-900">
+                      {viewDetailsCustomer.name}
+                    </h3>
+                    {viewDetailsCustomer.badge && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                        {viewDetailsCustomer.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium">{viewDetailsCustomer.code}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewDetailsCustomer(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <span className="text-slate-400 font-semibold block text-[11px]">Phone Number</span>
+                  <span className="font-bold text-slate-800 text-sm block">{viewDetailsCustomer.phone}</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <span className="text-slate-400 font-semibold block text-[11px]">Outstanding Due</span>
+                  <span className="font-extrabold text-red-600 text-sm block">
+                    {viewDetailsCustomer.balanceText}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                <span className="text-slate-400 font-semibold block text-[11px]">Delivery Address & Route</span>
+                <span className="font-medium text-slate-700 block">{viewDetailsCustomer.address}</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                <span className="text-slate-400 font-semibold block text-[11px]">Assigned Delivery Partner</span>
+                <span className="font-bold text-slate-800 block">
+                  {viewDetailsCustomer.deliveryPartner.isUnassigned
+                    ? 'Unassigned'
+                    : `${viewDetailsCustomer.deliveryPartner.name} (${viewDetailsCustomer.deliveryPartner.code})`}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 px-6 bg-slate-50 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = viewDetailsCustomer;
+                  setViewDetailsCustomer(null);
+                  handleOpenEditModal(target);
+                }}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Edit Profile</span>
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = viewDetailsCustomer;
+                    setViewDetailsCustomer(null);
+                    setViewLedgerCustomer(target);
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  View Ledger
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewDetailsCustomer(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Edit Customer Modal */}
+      {editingCustomer && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">Edit Customer</h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  Update customer account details and route assignments
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingCustomer(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditCustomer} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-800 block mb-1">
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#F1F4FA] rounded-xl px-4 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) =>
+                      setEditCategory(e.target.value as 'Residential' | 'COMMERCIAL' | 'B2B')
+                    }
+                    className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  >
+                    <option value="Residential">Residential</option>
+                    <option value="COMMERCIAL">Commercial</option>
+                    <option value="B2B">B2B</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-800 block mb-1">
+                  Delivery Address & Landmark *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  className="w-full bg-[#F1F4FA] rounded-xl px-4 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-800 block mb-1">
+                  Assigned Partner
+                </label>
+                <select
+                  value={editPartner}
+                  onChange={(e) => setEditPartner(e.target.value)}
+                  className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                >
+                  <option value="Leave unassign">Leave unassign</option>
+                  <option value="Rajesh · DP- 001">Rajesh · DP- 001</option>
+                  <option value="Mohamed Irfan · DP-002">Mohamed Irfan · DP-002</option>
+                  <option value="Suresh · DP- 003">Suresh · DP- 003</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingCustomer(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#BC0118] hover:bg-red-800 transition cursor-pointer shadow-xs"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. View Customer Ledger Modal */}
+      {viewLedgerCustomer && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-extrabold text-slate-900">Customer Ledger</h3>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                    {viewLedgerCustomer.code}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  {viewLedgerCustomer.name} · {viewLedgerCustomer.phone}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewLedgerCustomer(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                  <span className="text-[11px] font-bold text-slate-400 block">Total Invoiced</span>
+                  <span className="text-sm font-black text-slate-900 block mt-0.5">₹24,000</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                  <span className="text-[11px] font-bold text-slate-400 block">Total Paid</span>
+                  <span className="text-sm font-black text-emerald-600 block mt-0.5">₹18,450</span>
+                </div>
+                <div className="bg-red-50/50 border border-red-100 rounded-xl p-3">
+                  <span className="text-[11px] font-bold text-red-500 block">Outstanding</span>
+                  <span className="text-sm font-black text-red-600 block mt-0.5">
+                    {viewLedgerCustomer.balanceText}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold text-slate-700 mb-2">Recent Invoices & Transactions</h4>
+                <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden text-xs">
+                  <div className="p-3 bg-slate-50 font-bold text-slate-500 grid grid-cols-4 text-[11px]">
+                    <span>Invoice #</span>
+                    <span>Date</span>
+                    <span className="text-right">Amount</span>
+                    <span className="text-right">Status</span>
+                  </div>
+                  <div className="p-3 grid grid-cols-4 items-center">
+                    <span className="font-bold text-slate-800">#INV-20261024</span>
+                    <span className="text-slate-500">24 Oct 2026</span>
+                    <span className="font-extrabold text-slate-900 text-right">
+                      {viewLedgerCustomer.balanceText}
+                    </span>
+                    <span className="text-right">
+                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                        {viewLedgerCustomer.balance > 0 ? 'Unpaid' : 'Settled'}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="p-3 grid grid-cols-4 items-center">
+                    <span className="font-bold text-slate-800">#INV-20261018</span>
+                    <span className="text-slate-500">18 Oct 2026</span>
+                    <span className="font-extrabold text-slate-900 text-right">₹7,200</span>
+                    <span className="text-right">
+                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        Paid
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 px-6 bg-slate-50 border-t border-slate-100">
+              <span className="text-[11px] text-slate-400 font-medium">
+                Showing last 30 days transactions
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewLedgerCustomer(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Toast Notification */}
+      {actionToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <Check className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
+          <span>{actionToast}</span>
         </div>
       )}
     </div>
