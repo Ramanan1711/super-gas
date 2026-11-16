@@ -519,67 +519,67 @@ export default function AdminDeliveryPartnersPage({
 
         {/* VIEW 1: Full Onboard New Delivery Partner View (Matching exact attached Figma design) */}
         {viewMode === 'add' ? (
-          <main className="p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto pb-28">
-            {/* Top Action Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className="flex items-center gap-1.5 text-sm font-bold text-slate-800 hover:text-slate-950 transition cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
-                  <span>Back to Delivery Partners</span>
-                </button>
+          <form onSubmit={handleCompleteOnboardPartner} className="flex-1 flex flex-col justify-between min-h-0">
+            <main className="p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto pb-8">
+              {/* Top Action Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className="flex items-center gap-1.5 text-sm font-bold text-slate-800 hover:text-slate-950 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+                    <span>Back to Delivery Partners</span>
+                  </button>
 
-                <span className="text-slate-300">·</span>
+                  <span className="text-slate-300">·</span>
 
-                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold text-xs">
-                  <CreditCard className="w-3.5 h-3.5 text-slate-500" />
-                  <span>ID: DP-006 (Auto-assigned)</span>
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold text-xs">
+                    <CreditCard className="w-3.5 h-3.5 text-slate-500" />
+                    <span>ID: DP-006 (Auto-assigned)</span>
+                  </div>
+
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    <span>Draft / Pending Verification</span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold text-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                  <span>Draft / Pending Verification</span>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCompleteOnboardPartner}
+                    className="px-5 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <UserCheck className="w-4 h-4 stroke-[2.2]" />
+                    <span>Onboard &amp; Authorize Partner</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCompleteOnboardPartner}
-                  className="px-5 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
-                >
-                  <UserCheck className="w-4 h-4 stroke-[2.2]" />
-                  <span>Onboard &amp; Authorize Partner</span>
-                </button>
+              {/* Banner Section */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs font-bold text-red-700 tracking-wider uppercase">
+                  <Truck className="w-4 h-4 text-red-600 stroke-[2.2]" />
+                  <span>FLEET LOGISTICS / DRIVER AUTHORIZATION MODULE</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  Onboard New Delivery Partner
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-4xl">
+                  Register a new field delivery executive, configure vehicle &amp; route beat, assign cylinder custody limits, and grant driver app terminal access for live dispatch cycles.
+                </p>
               </div>
-            </div>
 
-            {/* Banner Section */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-red-700 tracking-wider uppercase">
-                <Truck className="w-4 h-4 text-red-600 stroke-[2.2]" />
-                <span>FLEET LOGISTICS / DRIVER AUTHORIZATION MODULE</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                Onboard New Delivery Partner
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-4xl">
-                Register a new field delivery executive, configure vehicle &amp; route beat, assign cylinder custody limits, and grant driver app terminal access for live dispatch cycles.
-              </p>
-            </div>
-
-            {/* Main Form 2-Column Split */}
-            <form onSubmit={handleCompleteOnboardPartner}>
+              {/* Main Form 2-Column Split */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Left Side Cards (~30% width: cols 4) */}
                 <div className="lg:col-span-4 space-y-5">
@@ -1206,54 +1206,54 @@ export default function AdminDeliveryPartnersPage({
                   </div>
                 </div>
               </div>
+            </main>
 
-              {/* Bottom Sticky Footer */}
-              <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-4">
-                <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                      <Shield className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-extrabold text-slate-900 block">
-                        Onboarding initiated by Agency Admin
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-medium block">
-                        Session ID: REG-MDU-2026-0518 · Madurai Central Operations Desk
-                      </span>
-                    </div>
+            {/* Bottom Sticky Footer (Sticks within content pane to the right of sidebar, never overlapping it) */}
+            <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 sm:px-8 py-3.5 shadow-xs mt-auto">
+              <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                    <Shield className="w-4 h-4" />
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('list')}
-                      className="px-5 py-2.5 bg-transparent hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
-                    >
-                      Discard
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerToast('Draft saved successfully to agency registry.');
-                        setViewMode('list');
-                      }}
-                      className="px-5 py-2.5 bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
-                    >
-                      Save Draft
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
-                    >
-                      <Check className="w-4 h-4 stroke-[2.5]" />
-                      <span>Confirm Partner</span>
-                    </button>
+                  <div>
+                    <span className="text-xs font-extrabold text-slate-900 block">
+                      Onboarding initiated by Agency Admin
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium block">
+                      Session ID: REG-MDU-2026-0518 · Madurai Central Operations Desk
+                    </span>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className="px-5 py-2.5 bg-transparent hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerToast('Draft saved successfully to agency registry.');
+                      setViewMode('list');
+                    }}
+                    className="px-5 py-2.5 bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
+                  >
+                    Save Draft
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4 stroke-[2.5]" />
+                    <span>Confirm Partner</span>
+                  </button>
+                </div>
               </div>
-            </form>
-          </main>
+            </div>
+          </form>
         ) : (
           /* VIEW 2: Delivery Partners Directory & Table View */
           <main className="p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
