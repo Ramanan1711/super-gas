@@ -50,7 +50,10 @@ export default function AdminSidebar({
       if (pathname.startsWith('/admin/inventory')) {
         return 'Inventory';
       }
-      if (pathname.startsWith('/admin/delivery-partners')) {
+      if (
+        pathname.startsWith('/admin/delivery-partners') ||
+        pathname.startsWith('/admin/delivery-partner')
+      ) {
         return 'Delivery Partners';
       }
       if (pathname.startsWith('/admin/invoices')) {
@@ -78,7 +81,7 @@ export default function AdminSidebar({
     { name: 'Dashboard', icon: LayoutGrid, href: '/admin' },
     { name: 'Customers', icon: Users, href: '/admin/customers' },
     { name: 'Inventory', icon: Archive, href: '/admin/inventory' },
-    { name: 'Delivery Partners', icon: Truck, href: '/admin' },
+    { name: 'Delivery Partners', icon: Truck, href: '/admin/delivery-partners' },
     { name: 'Invoices & Payments', icon: ReceiptText, href: '/admin' },
     { name: 'Settlements', icon: CheckSquare, href: '/admin' },
     { name: 'Expenses', icon: FileText, href: '/admin' },
