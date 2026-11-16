@@ -77,7 +77,7 @@ export default function AdminSidebar({
   const navItems = [
     { name: 'Dashboard', icon: LayoutGrid, href: '/admin' },
     { name: 'Customers', icon: Users, href: '/admin/customers' },
-    { name: 'Inventory', icon: Archive, href: '/admin' },
+    { name: 'Inventory', icon: Archive, href: '/admin/inventory' },
     { name: 'Delivery Partners', icon: Truck, href: '/admin' },
     { name: 'Invoices & Payments', icon: ReceiptText, href: '/admin' },
     { name: 'Settlements', icon: CheckSquare, href: '/admin' },
