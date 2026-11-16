@@ -398,6 +398,94 @@ export default function AdminInventoryPage() {
     setShowStockMovementModal(false);
   };
 
+  // Record Cylinder Issue Modal State (matching exact attached design)
+  const [showRecordCylinderIssueModal, setShowRecordCylinderIssueModal] = useState(false);
+  const [modalSelectedPartner, setModalSelectedPartner] = useState('Rajesh Kumar (DP-001)');
+  const [gatePassNotes, setGatePassNotes] = useState('');
+
+  interface IssueCylinderItem {
+    id: string;
+    size: string;
+    quantity: string;
+  }
+
+  const [issueCylinderItems, setIssueCylinderItems] = useState<IssueCylinderItem[]>([
+    {
+      id: 'issue-1',
+      size: '14.2 Kg Domestic',
+      quantity: '10',
+    },
+  ]);
+
+  const handleAddIssueCylinderSize = () => {
+    setIssueCylinderItems((prev) => [
+      ...prev,
+      {
+        id: `issue-${prev.length + 1}`,
+        size: prev.length === 1 ? '19.2 Kg Commercial' : '14.2 Kg Domestic',
+        quantity: '10',
+      },
+    ]);
+    triggerToast('Added cylinder size row.');
+  };
+
+  const handleUpdateIssueCylinderItem = (
+    id: string,
+    field: keyof IssueCylinderItem,
+    val: string
+  ) => {
+    setIssueCylinderItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
+    );
+  };
+
+  const handleRemoveIssueCylinderItem = (id: string) => {
+    if (issueCylinderItems.length <= 1) return;
+    setIssueCylinderItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleCommitCylinderIssue = (e: React.FormEvent) => {
+    e.preventDefault();
+    const totalQty = issueCylinderItems.reduce(
+      (sum, item) => sum + (parseInt(item.quantity, 10) || 0),
+      0
+    );
+    const newRef = `#MV-20261016-${(auditRecords.length + 1).toString().padStart(2, '0')}`;
+
+    setAuditRecords((prev) => [
+      {
+        id: `a-${prev.length + 1}`,
+        ref: newRef,
+        dateTime: 'Oct 16, Just Now',
+        type: 'Issue to Partner',
+        condition: 'FILLED',
+        quantity: `${totalQty} units`,
+        source: 'Depot Bay A',
+        destination: modalSelectedPartner,
+        recordedBy: 'Agency Admin',
+        status: 'COMPLETED',
+      },
+      ...prev,
+    ]);
+
+    setMovements((prev) =>
+      prev.map((p) => {
+        if (modalSelectedPartner.includes(p.name) || modalSelectedPartner.includes(p.code)) {
+          return {
+            ...p,
+            filledIssued: p.filledIssued + totalQty,
+            currentFilled: p.currentFilled + totalQty,
+            lastDispatch: 'Just Now',
+          };
+        }
+        return p;
+      })
+    );
+
+    triggerToast(`Gate pass issued: ${totalQty} filled cylinders dispatched to ${modalSelectedPartner}`);
+    setShowRecordCylinderIssueModal(false);
+  };
+
   // Datasets state
   const [movements, setMovements] = useState<PartnerMovement[]>(initialMovements);
   const [stockItems] = useState<StockItem[]>(initialStockItems);
@@ -774,7 +862,7 @@ export default function AdminInventoryPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowStockMovementModal(true)}
+                  onClick={() => setShowRecordCylinderIssueModal(true)}
                   className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1938,6 +2026,177 @@ export default function AdminInventoryPage() {
                   className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-sm px-7 py-3 rounded-2xl shadow-xs transition cursor-pointer"
                 >
                   Commit Movement Entry
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Record Cylinder Issue (matching exact attached design - full flow) */}
+      {showRecordCylinderIssueModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] max-w-xl w-full shadow-2xl border border-slate-100 p-7 sm:p-8 space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
+            {/* Header: Title, Subtitle, Close X, Divider */}
+            <div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    Record Cylinder Issue
+                  </h3>
+                  <p className="text-xs sm:text-[13px] text-slate-500 font-medium mt-1">
+                    Gate pass issuance for filled cylinders
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowRecordCylinderIssueModal(false)}
+                  className="text-slate-900 hover:text-slate-600 p-1 cursor-pointer transition"
+                  title="Close"
+                >
+                  <X className="w-6 h-6 stroke-[1.8]" />
+                </button>
+              </div>
+              <div className="border-b border-slate-200/80 mt-4" />
+            </div>
+
+            <form onSubmit={handleCommitCylinderIssue} className="space-y-4">
+              {/* Field 1: SELECTED DELIVERY PARTNER */}
+              <div>
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                  Selected Delivery Partner
+                </label>
+                <div className="relative">
+                  <select
+                    value={modalSelectedPartner}
+                    onChange={(e) => setModalSelectedPartner(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                  >
+                    <option value="Rajesh Kumar (DP-001)">Rajesh Kumar (DP-001)</option>
+                    <option value="Mohamed Irfan (DP-002)">Mohamed Irfan (DP-002)</option>
+                    <option value="Suresh Babu (DP-003)">Suresh Babu (DP-003)</option>
+                    <option value="Karthik Raja (DP-004)">Karthik Raja (DP-004)</option>
+                    <option value="Vignesh V (DP-005)">Vignesh V (DP-005)</option>
+                  </select>
+                  <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                </div>
+              </div>
+
+              {/* Field 2: AVAILABLE AGENCY STOCK */}
+              <div>
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                  Available Agency Stock
+                </label>
+                <div className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 flex items-center justify-between">
+                  <span className="text-sm sm:text-base font-bold text-slate-900">
+                    180 Filled Cylinders
+                  </span>
+                  <div className="text-right">
+                    <span className="text-[10px] font-medium text-slate-500 block">
+                      Partner Limit Status
+                    </span>
+                    <span className="text-xs font-bold text-slate-900 block">
+                      Safe (&lt;30 cap)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Cylinder Issue Rows */}
+              <div className="space-y-4">
+                {issueCylinderItems.map((item) => (
+                  <div key={item.id} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                        Cylinder Size
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={item.size}
+                          onChange={(e) =>
+                            handleUpdateIssueCylinderItem(item.id, 'size', e.target.value)
+                          }
+                          className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 pr-10 text-sm sm:text-base font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                        >
+                          <option value="14.2 Kg Domestic">14.2 Kg Domestic</option>
+                          <option value="19.2 Kg Commercial">19.2 Kg Commercial</option>
+                          <option value="19.5 Kg Commercial">19.5 Kg Commercial</option>
+                          <option value="47.5 Kg Industrial">47.5 Kg Industrial</option>
+                          <option value="5 Kg Domestic">5 Kg Domestic</option>
+                        </select>
+                        <ChevronDown className="w-5 h-5 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                          Filled Issue Quantity
+                        </label>
+                        {issueCylinderItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveIssueCylinderItem(item.id)}
+                            className="text-[11px] font-semibold text-slate-400 hover:text-red-600 transition cursor-pointer"
+                            title="Remove size"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          handleUpdateIssueCylinderItem(item.id, 'quantity', e.target.value)
+                        }
+                        className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 text-sm sm:text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                        placeholder="10"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add Cylinder Size Button */}
+              <button
+                type="button"
+                onClick={handleAddIssueCylinderSize}
+                className="w-full bg-[#F1F4FA] hover:bg-slate-200 active:scale-98 text-slate-900 font-bold text-sm sm:text-base py-3.5 rounded-2xl flex items-center justify-center gap-2.5 transition cursor-pointer my-2"
+              >
+                <PlusCircle className="w-5 h-5 text-slate-900 stroke-[2]" />
+                <span>Add Cylinder Size</span>
+              </button>
+
+              {/* Field: GATE PASS DISSPATCH NOTES */}
+              <div>
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+                  Gate Pass Disspatch Notes
+                </label>
+                <input
+                  type="text"
+                  value={gatePassNotes}
+                  onChange={(e) => setGatePassNotes(e.target.value)}
+                  placeholder="eg. Morning second run:"
+                  className="w-full bg-[#F1F4FA] rounded-2xl px-5 py-3.5 text-sm sm:text-base font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                />
+              </div>
+
+              {/* Footer Actions: Cancel & Issue Cylinders & Print Pass */}
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowRecordCylinderIssueModal(false)}
+                  className="bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-sm px-7 py-3 rounded-2xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-sm px-7 py-3 rounded-2xl shadow-xs transition cursor-pointer"
+                >
+                  Issue Cylinders &amp; Print Pass
                 </button>
               </div>
             </form>
