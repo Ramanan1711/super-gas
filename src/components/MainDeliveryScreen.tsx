@@ -2,6 +2,7 @@
 
 import React from 'react';
 import BrandLogo from '@/components/BrandLogo';
+import CustomersTabScreen from './CustomersTabScreen';
 import {
   Phone,
   MapPin,
@@ -55,8 +56,17 @@ export default function MainDeliveryScreen({
 }: MainDeliveryScreenProps) {
   return (
     <>
-      {/* Top Header */}
-      <div className="shrink-0 bg-white px-5 pt-2 pb-3.5 border-b border-slate-100 z-10">
+      {activeBottomNav === 'CUSTOMERS' ? (
+        <CustomersTabScreen
+          deliveries={deliveries}
+          stats={stats}
+          onStartDelivery={onStartDelivery}
+          getInitials={getInitials}
+        />
+      ) : (
+        <>
+          {/* Top Header */}
+          <div className="shrink-0 bg-white px-5 pt-2 pb-3.5 border-b border-slate-100 z-10">
         {/* Top Brand Bar */}
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center">
@@ -368,6 +378,8 @@ export default function MainDeliveryScreen({
           </div>
         </div>
       </div>
+    </>
+  )}
 
       {/* Bottom App Navigation Bar (Matched exactly to Figma design) */}
       <div className="shrink-0 bg-white border-t border-slate-200/80 px-2 pt-2 pb-3 sm:pb-2 grid grid-cols-5 items-center text-xs z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
@@ -388,11 +400,7 @@ export default function MainDeliveryScreen({
         {/* Customers */}
         <button
           type="button"
-          onClick={() => {
-            setActiveBottomNav('CUSTOMERS');
-            const el = document.getElementById('customers-list-section');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
+          onClick={() => setActiveBottomNav('CUSTOMERS')}
           className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
             activeBottomNav === 'CUSTOMERS' ? 'text-[#ED222C]' : 'text-[#AFAFAF] hover:text-slate-600'
           }`}
