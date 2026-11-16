@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import DeliveryScreen, { DeliveryStats, Delivery } from '@/components/DeliveryScreen';
 
@@ -73,8 +74,17 @@ function DeliverySkeleton() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<DeliverySkeleton />}>
-      <DeliveryContainer />
-    </Suspense>
+    <div className="relative">
+      <Link
+        href="/admin"
+        className="fixed top-3 right-3 z-50 bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm flex items-center gap-1.5 transition cursor-pointer"
+      >
+        <span>Admin Dashboard</span>
+        <span>&rarr;</span>
+      </Link>
+      <Suspense fallback={<DeliverySkeleton />}>
+        <DeliveryContainer />
+      </Suspense>
+    </div>
   );
 }
