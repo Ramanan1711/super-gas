@@ -18,6 +18,7 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  MoreVertical,
   X,
   Check,
 } from 'lucide-react';
@@ -158,10 +159,13 @@ export default function AdminCustomersPage() {
   const [balanceFilter, setBalanceFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [assigningCustomer, setAssigningCustomer] = useState<CustomerRecord | null>(null);
+  const [selectedPartnerForAssign, setSelectedPartnerForAssign] = useState('Rajesh · DP- 001');
+  const [customerList, setCustomerList] = useState<CustomerRecord[]>(initialCustomers);
 
   // Filtering logic
   const filteredCustomers = useMemo(() => {
-    return initialCustomers.filter((c) => {
+    return customerList.filter((c) => {
       // Search text
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -201,7 +205,7 @@ export default function AdminCustomersPage() {
 
       return true;
     });
-  }, [searchQuery, statusFilter, partnerFilter, assignmentFilter, balanceFilter]);
+  }, [customerList, searchQuery, statusFilter, partnerFilter, assignmentFilter, balanceFilter]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
@@ -474,21 +478,25 @@ export default function AdminCustomersPage() {
           {/* Customers Table Card */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[1050px]">
                 <thead>
                   <tr className="border-b border-slate-200/80 text-[10px] font-bold uppercase text-slate-400 tracking-wider bg-slate-50/50">
-                    <th className="py-3.5 pl-6">Customer</th>
-                    <th className="py-3.5">Phone</th>
-                    <th className="py-3.5">Address</th>
-                    <th className="py-3.5">Assigned Delivery Partner</th>
-                    <th className="py-3.5 text-right">Outstanding Balance</th>
-                    <th className="py-3.5 pr-6 w-10"></th>
+                    <th className="py-3.5 pl-6 min-w-[160px]">Customer</th>
+                    <th className="py-3.5 min-w-[140px]">Phone</th>
+                    <th className="py-3.5 min-w-[160px]">Address</th>
+                    <th className="py-3.5 min-w-[210px]">Assigned Delivery Partner</th>
+                    <th className="py-3.5 text-right min-w-[140px]">
+                      <span className="block leading-tight">Outstanding</span>
+                      <span className="block leading-tight">Balance</span>
+                    </th>
+                    <th className="py-3.5 text-center min-w-[110px]">Status</th>
+                    <th className="py-3.5 text-center pr-6 min-w-[110px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredCustomers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                      <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
                         No customers match the current filter criteria.
                       </td>
                     </tr>
@@ -600,16 +608,40 @@ export default function AdminCustomersPage() {
                           )}
                         </td>
 
-                        {/* 6. Status Indicator Dot */}
-                        <td className="py-4 pr-6 text-right">
-                          <span
-                            className={`w-2.5 h-2.5 rounded-full inline-block ${
-                              cust.statusDot === 'green'
-                                ? 'bg-[#16A34A]'
-                                : 'bg-slate-300'
-                            }`}
-                            title={cust.statusDot === 'green' ? 'Active Account' : 'Inactive'}
-                          ></span>
+                        {/* 6. Status Column (Active / Inactive badge) */}
+                        <td className="py-4 text-center">
+                          {cust.statusDot === 'green' ? (
+                            <span className="inline-flex items-center gap-1.5 bg-[#DCFCE7] text-[#16A34A] text-xs font-bold px-3 py-1 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]"></span>
+                              <span>Active</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 bg-[#EEF2F6] text-[#64748B] text-xs font-bold px-3 py-1 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#94A3B8]"></span>
+                              <span>Inactive</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 7. Actions Column */}
+                        <td className="py-4 text-center pr-6">
+                          {cust.deliveryPartner.isUnassigned ? (
+                            <button
+                              type="button"
+                              onClick={() => setAssigningCustomer(cust)}
+                              className="bg-[#A61017] hover:bg-red-800 active:scale-95 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-2xs transition cursor-pointer"
+                            >
+                              Assign Now
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer inline-flex items-center justify-center"
+                              title="More options"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -758,6 +790,93 @@ export default function AdminCustomersPage() {
                 >
                   <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>Save Customer</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Assign Delivery Partner Modal */}
+      {assigningCustomer && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Assign Delivery Partner</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {assigningCustomer.name} ({assigningCustomer.code})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssigningCustomer(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setCustomerList((prev) =>
+                  prev.map((item) => {
+                    if (item.id === assigningCustomer.id) {
+                      const [name, code] = selectedPartnerForAssign.split(' · ');
+                      return {
+                        ...item,
+                        deliveryPartner: {
+                          name,
+                          code,
+                          isUnassigned: false,
+                        },
+                      };
+                    }
+                    return item;
+                  })
+                );
+                setAssigningCustomer(null);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Customer Address
+                </label>
+                <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  {assigningCustomer.address}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Select Delivery Partner
+                </label>
+                <select
+                  value={selectedPartnerForAssign}
+                  onChange={(e) => setSelectedPartnerForAssign(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                >
+                  <option value="Rajesh · DP- 001">Rajesh (DP- 001) — Anna Nagar route</option>
+                  <option value="Mohamed Irfan · DP-002">Mohamed Irfan (DP-002) — KK Nagar / Mattuthavani</option>
+                  <option value="Suresh · DP- 003">Suresh (DP- 003) — Tallakulam route</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAssigningCustomer(null)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#A61017] hover:bg-red-800 transition cursor-pointer shadow-sm flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Confirm Assignment</span>
                 </button>
               </div>
             </form>
