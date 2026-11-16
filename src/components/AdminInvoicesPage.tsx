@@ -3505,28 +3505,20 @@ export default function AdminInvoicesPage({
                     </div>
 
                     {/* Bottom Action Buttons */}
-                    <div className="flex items-center gap-2 pt-2">
+                    <div className="flex items-center gap-2.5 pt-2">
                       <button
                         type="button"
                         onClick={() => triggerToast(`Generating Handover PDF for ${inspectedCashRecord.reconciliationId}...`)}
-                        className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-extrabold text-xs px-3 py-2.5 rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                        className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-extrabold text-xs px-3.5 py-2.5 rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
                       >
-                        <FileDown className="w-4 h-4 text-slate-600" />
+                        <FileDown className="w-4 h-4 text-slate-600 shrink-0" />
                         <span>Handover PDF</span>
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => triggerToast(`Draft memo saved for ${inspectedCashRecord.reconciliationId}`)}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2.5 rounded-xl transition cursor-pointer whitespace-nowrap"
-                      >
-                        Save Draft
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={() => triggerToast(`Discrepancy confirmed & flagged for ${inspectedCashRecord.reconciliationId}`)}
-                        className="flex-1 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-extrabold text-xs py-2.5 px-3 rounded-xl shadow-xs transition text-center cursor-pointer whitespace-nowrap"
+                        className="flex-1 min-w-0 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-extrabold text-xs py-2.5 px-3 rounded-xl shadow-xs transition text-center cursor-pointer whitespace-nowrap"
                       >
                         Confirm &amp; Flag Discrepancy
                       </button>
