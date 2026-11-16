@@ -20,15 +20,27 @@ import {
   Printer,
   ExternalLink,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Zap,
   Sparkles,
   X,
   Plus,
+  Truck,
+  Phone,
+  MapPin,
+  FileText,
+  FileDown,
+  History,
+  BookOpen,
+  Hourglass,
+  Check,
 } from 'lucide-react';
 
 export interface InvoiceRecord {
   id: string;
   invoiceNo: string;
+  date: string;
   time: string;
   customerName: string;
   customerCode: string;
@@ -41,12 +53,220 @@ export interface InvoiceRecord {
   paidAmount: number;
   balanceDue: number;
   status: 'Paid' | 'Partially Paid' | 'Unpaid';
+  // Detailed fields for inspection flyout
+  phone?: string;
+  address?: string;
+  deliveryPass?: string;
+  unitRate?: string;
+  emptyCollected?: number;
+  allocationHistory?: Array<{
+    amount: number;
+    time: string;
+    note: string;
+    type: 'settled' | 'pending';
+  }>;
 }
 
-const initialInvoices: InvoiceRecord[] = [
+const detailedInvoicesList: InvoiceRecord[] = [
+  {
+    id: 'inv-101',
+    invoiceNo: 'INV-20261015-001',
+    date: '15 Oct 2026',
+    time: '15 Oct 2026, 09:15 AM',
+    customerName: 'Rajesh Kumar',
+    customerCode: 'CUS-00124',
+    category: 'Domestic',
+    deliveryPartnerName: 'DP-001 Rajesh',
+    deliveryPartnerCode: 'DP-001',
+    vehicle: 'Van 01',
+    cylinders: ['10x 14.2kg'],
+    invoiceAmount: 2200,
+    paidAmount: 2200,
+    balanceDue: 0,
+    status: 'Paid',
+    phone: '+91 98401 22340',
+    address: '12 North Masi St, Madurai',
+    deliveryPass: '#DEL-20261015-04',
+    unitRate: '10 @ ₹220.00 / cylinder refill',
+    emptyCollected: 10,
+    allocationHistory: [
+      {
+        amount: 2200,
+        time: '15 Oct, 09:30 AM',
+        note: 'Settled via Customer UPI (#PAY-8821). Full payment received at delivery.',
+        type: 'settled',
+      },
+    ],
+  },
+  {
+    id: 'inv-102',
+    invoiceNo: 'INV-20261015-002',
+    date: '15 Oct 2026',
+    time: '15 Oct 2026, 11:24 AM',
+    customerName: 'Mohammed Ali',
+    customerCode: 'CUS-00125',
+    category: 'Commercial',
+    deliveryPartnerName: 'DP-003 Suresh',
+    deliveryPartnerCode: 'DP-003',
+    vehicle: 'Truck 01',
+    cylinders: ['5x 19kg'],
+    invoiceAmount: 1200,
+    paidAmount: 500,
+    balanceDue: 700,
+    status: 'Partially Paid',
+    phone: '+91 98421 56789',
+    address: '14/2, KK Nagar 4th Street, Madurai',
+    deliveryPass: '#DEL-20261015-88',
+    unitRate: '5 @ ₹240.00 / cylinder refill',
+    emptyCollected: 5,
+    allocationHistory: [
+      {
+        amount: 500,
+        time: '15 Oct, 11:35 AM',
+        note: 'Settled via Customer UPI (#PAY-9921). Oldest pending invoice prioritized.',
+        type: 'settled',
+      },
+      {
+        amount: 700,
+        time: 'Due Next Cycle',
+        note: 'Assigned to next settlement batch for DP-003 Suresh Babu.',
+        type: 'pending',
+      },
+    ],
+  },
+  {
+    id: 'inv-103',
+    invoiceNo: 'INV-20261014-003',
+    date: '14 Oct 2026',
+    time: '14 Oct 2026, 16:20 PM',
+    customerName: 'Priya Stores',
+    customerCode: 'CUS-00126 · Commercial',
+    category: 'Commercial',
+    deliveryPartnerName: 'DP-001 Rajesh',
+    deliveryPartnerCode: 'DP-001',
+    vehicle: 'Van 01',
+    cylinders: ['8x 19kg'],
+    invoiceAmount: 1800,
+    paidAmount: 0,
+    balanceDue: 1800,
+    status: 'Unpaid',
+    phone: '+91 94432 10987',
+    address: '88 East Veli St, Simmakkal, Madurai',
+    deliveryPass: '#DEL-20261014-41',
+    unitRate: '8 @ ₹225.00 / cylinder refill',
+    emptyCollected: 8,
+    allocationHistory: [
+      {
+        amount: 1800,
+        time: 'Payment Overdue',
+        note: 'Awaiting cashier bank deposit confirmation.',
+        type: 'pending',
+      },
+    ],
+  },
+  {
+    id: 'inv-104',
+    invoiceNo: 'INV-20261014-004',
+    date: '14 Oct 2026',
+    time: '14 Oct 2026, 14:10 PM',
+    customerName: 'Lakshmi Agencies',
+    customerCode: 'CUS-00128 · Bulk',
+    category: 'Bulk Commercial',
+    deliveryPartnerName: 'DP-002 Mohamed',
+    deliveryPartnerCode: 'DP-002',
+    vehicle: 'Van 02',
+    cylinders: ['6x 19kg'],
+    invoiceAmount: 1400,
+    paidAmount: 1400,
+    balanceDue: 0,
+    status: 'Paid',
+    phone: '+91 97890 55412',
+    address: '42 South Gate Industrial Estate, Madurai',
+    deliveryPass: '#DEL-20261014-19',
+    unitRate: '6 @ ₹233.33 / cylinder refill',
+    emptyCollected: 6,
+    allocationHistory: [
+      {
+        amount: 1400,
+        time: '14 Oct, 14:40 PM',
+        note: 'Full settlement processed via Counter Cash Handover.',
+        type: 'settled',
+      },
+    ],
+  },
+  {
+    id: 'inv-105',
+    invoiceNo: 'INV-20261013-005',
+    date: '13 Oct 2026',
+    time: '13 Oct 2026, 12:45 PM',
+    customerName: 'Kumar Traders',
+    customerCode: 'CUS-00130',
+    category: 'Commercial',
+    deliveryPartnerName: 'DP-003 Suresh',
+    deliveryPartnerCode: 'DP-003',
+    vehicle: 'Truck 01',
+    cylinders: ['12x 14.2kg'],
+    invoiceAmount: 2700,
+    paidAmount: 1000,
+    balanceDue: 1700,
+    status: 'Partially Paid',
+    phone: '+91 98940 33441',
+    address: '56 Goods Shed Street, Madurai',
+    deliveryPass: '#DEL-20261013-72',
+    unitRate: '12 @ ₹225.00 / cylinder refill',
+    emptyCollected: 12,
+    allocationHistory: [
+      {
+        amount: 1000,
+        time: '13 Oct, 13:00 PM',
+        note: 'Partial cash handover to driver DP-003 Suresh Babu.',
+        type: 'settled',
+      },
+      {
+        amount: 1700,
+        time: 'Next Settlement Batch',
+        note: 'Invoice balance queued for follow-up.',
+        type: 'pending',
+      },
+    ],
+  },
+  {
+    id: 'inv-106',
+    invoiceNo: 'INV-20261013-006',
+    date: '13 Oct 2026',
+    time: '13 Oct 2026, 10:15 AM',
+    customerName: 'Sri Krishna Sweets',
+    customerCode: 'CUS-00088',
+    category: 'Commercial',
+    deliveryPartnerName: 'DP-002 Mohamed',
+    deliveryPartnerCode: 'DP-002',
+    vehicle: 'Van 02',
+    cylinders: ['4x 19kg'],
+    invoiceAmount: 3700,
+    paidAmount: 3700,
+    balanceDue: 0,
+    status: 'Paid',
+    phone: '+91 98401 54321',
+    address: '77 Town Hall Road, Madurai',
+    deliveryPass: '#DEL-20261013-11',
+    unitRate: '4 @ ₹925.00 / cylinder refill',
+    emptyCollected: 4,
+    allocationHistory: [
+      {
+        amount: 3700,
+        time: '13 Oct, 10:30 AM',
+        note: 'Full settlement via Automated FIFO pool.',
+        type: 'settled',
+      },
+    ],
+  },
+];
+
+const overviewInvoices: InvoiceRecord[] = [
   {
     id: 'inv-1',
     invoiceNo: 'INV-20261024-086',
+    date: '24 Oct 2026',
     time: 'Today, 14:15 PM',
     customerName: 'Rajesh Kumar',
     customerCode: 'CUS-00124',
@@ -63,6 +283,7 @@ const initialInvoices: InvoiceRecord[] = [
   {
     id: 'inv-2',
     invoiceNo: 'INV-20261024-085',
+    date: '24 Oct 2026',
     time: 'Today, 13:40 PM',
     customerName: 'Sri Krishna Sweets',
     customerCode: 'CUS-00366',
@@ -79,6 +300,7 @@ const initialInvoices: InvoiceRecord[] = [
   {
     id: 'inv-3',
     invoiceNo: 'INV-20261024-084',
+    date: '24 Oct 2026',
     time: 'Today, 12:10 PM',
     customerName: 'Hotel Annapoorna',
     customerCode: 'CUS-00542',
@@ -95,6 +317,7 @@ const initialInvoices: InvoiceRecord[] = [
   {
     id: 'inv-4',
     invoiceNo: 'INV-20261024-083',
+    date: '24 Oct 2026',
     time: 'Today, 11:20 AM',
     customerName: 'Priya Enterprises',
     customerCode: 'CUS-00830',
@@ -111,6 +334,7 @@ const initialInvoices: InvoiceRecord[] = [
   {
     id: 'inv-5',
     invoiceNo: 'INV-20261024-082',
+    date: '24 Oct 2026',
     time: 'Today, 10:45 AM',
     customerName: 'Suresh Babu (Res)',
     customerCode: 'CUS-00877',
@@ -126,32 +350,63 @@ const initialInvoices: InvoiceRecord[] = [
   },
 ];
 
-export default function AdminInvoicesPage() {
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Invoices' | 'Payments' | 'Cash Reconciliation' | 'Customer Ledger'>('Overview');
+interface AdminInvoicesPageProps {
+  initialTab?: 'Overview' | 'Invoices' | 'Payments' | 'Cash Reconciliation' | 'Customer Ledger';
+}
+
+export default function AdminInvoicesPage({
+  initialTab = 'Invoices',
+}: AdminInvoicesPageProps) {
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Invoices' | 'Payments' | 'Cash Reconciliation' | 'Customer Ledger'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
-  const [customerFilter, setCustomerFilter] = useState('All Customers');
-  const [partnerFilter, setPartnerFilter] = useState('All Delivery Partners');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [partnerFilter, setPartnerFilter] = useState('All Delivery Partners');
+  const [customerFilter, setCustomerFilter] = useState('All Customers');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Modals state
+  // Table Selection & Inspection
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(['inv-101']);
+  const [inspectedInvoice, setInspectedInvoice] = useState<InvoiceRecord | null>(detailedInvoicesList[1]); // Default to Mohammed Ali (INV-20261015-002) matching Figma!
+
+  // Modals
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
   const [showInvestigateModal, setShowInvestigateModal] = useState(false);
-  const [selectedInvoiceForView, setSelectedInvoiceForView] = useState<InvoiceRecord | null>(null);
 
-  // Record Payment form state
+  // Record Payment form
   const [paymentCustomer, setPaymentCustomer] = useState('Sri Krishna Sweets (CUS-00366)');
   const [paymentAmount, setPaymentAmount] = useState('4,000');
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Bank Transfer'>('Cash');
   const [paymentRef, setPaymentRef] = useState('PAY-558802');
+
+  // Create Invoice form
+  const [newCustomer, setNewCustomer] = useState('Mohammed Ali (CUS-00125)');
+  const [newCylinderType, setNewCylinderType] = useState('19kg Commercial');
+  const [newQuantity, setNewQuantity] = useState('5');
+  const [newRate, setNewRate] = useState('240');
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const toggleSelectInvoice = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedInvoiceIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedInvoiceIds.length === detailedInvoicesList.length) {
+      setSelectedInvoiceIds([]);
+    } else {
+      setSelectedInvoiceIds(detailedInvoicesList.map((i) => i.id));
+    }
+  };
+
   const filteredInvoices = useMemo(() => {
-    return initialInvoices.filter((inv) => {
+    return detailedInvoicesList.filter((inv) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const match =
@@ -161,19 +416,25 @@ export default function AdminInvoicesPage() {
           inv.deliveryPartnerName.toLowerCase().includes(q);
         if (!match) return false;
       }
-      if (statusFilter !== 'All' && inv.status !== statusFilter) {
-        return false;
+      if (statusFilter !== 'All' && statusFilter !== 'All Statuses') {
+        if (inv.status !== statusFilter) return false;
+      }
+      if (partnerFilter !== 'All Delivery Partners') {
+        if (!inv.deliveryPartnerName.toLowerCase().includes(partnerFilter.toLowerCase())) return false;
       }
       if (customerFilter !== 'All Customers') {
         if (customerFilter === 'Commercial' && !inv.category.includes('Commercial')) return false;
         if (customerFilter === 'Domestic' && inv.category !== 'Domestic') return false;
       }
-      if (partnerFilter !== 'All Delivery Partners') {
-        if (!inv.deliveryPartnerName.toLowerCase().includes(partnerFilter.toLowerCase())) return false;
-      }
       return true;
     });
-  }, [searchQuery, statusFilter, customerFilter, partnerFilter]);
+  }, [searchQuery, statusFilter, partnerFilter, customerFilter]);
+
+  const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowCreateInvoiceModal(false);
+    triggerToast(`Invoice for ${newCustomer} generated successfully!`);
+  };
 
   const handleRecordPaymentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,151 +499,65 @@ export default function AdminInvoicesPage() {
 
         {/* Page Content */}
         <main className="p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto pb-16">
-          {/* Title Row & Action Buttons */}
+          {/* Header Title Row */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  Invoices &amp; Payments
+                  {activeTab === 'Invoices' ? 'Invoices' : 'Invoices & Payments'}
                 </h1>
-                <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-                  Live Sync Active
-                </span>
+                {activeTab === 'Invoices' ? (
+                  <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
+                    86 Total
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                    Live Sync Active
+                  </span>
+                )}
               </div>
               <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-                Manage customer invoices, payment collections, outstanding balances, and customer advances with automated FIFO liquidation.
+                {activeTab === 'Invoices'
+                  ? 'View and manage customer invoices, payment status, and outstanding balances.'
+                  : 'Manage customer invoices, payment collections, outstanding balances, and customer advances with automated FIFO liquidation.'}
               </p>
             </div>
 
+            {/* Action Buttons */}
             <div className="flex items-center gap-3 shrink-0">
               <button
                 type="button"
-                onClick={() => triggerToast('Exporting billing & collection report...')}
+                onClick={() => triggerToast('Exporting invoices register...')}
                 className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
-                <span>Export Report</span>
+                <span>Export</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setShowRecordPaymentModal(true)}
-                className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4 stroke-[2.2]" />
-                <span>Record Payment</span>
-              </button>
+              {activeTab === 'Invoices' ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateInvoiceModal(true)}
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <span>Create Invoice</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowRecordPaymentModal(true)}
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4 stroke-[2.2]" />
+                  <span>Record Payment</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* 4 Metric KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {/* Card 1: Invoices Today */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    INVOICES TODAY
-                  </span>
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
-                    <Receipt className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-slate-900 mt-2">24</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">
-                  Invoices created today
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
-                <span className="text-slate-600 font-bold">Total: 48 Cylinders</span>
-                <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1 text-[11px]">
-                  <span>↑</span> +3 vs yesterday
-                </span>
-              </div>
-            </div>
-
-            {/* Card 2: Collected Today */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    COLLECTED TODAY
-                  </span>
-                  <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                    <Wallet className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-slate-900 mt-2">₹42,500</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">
-                  Payments received today
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-4 mt-4 border-t border-slate-100 text-[11px] font-bold">
-                <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">
-                  • ₹28,000 Cash
-                </span>
-                <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md">
-                  • ₹14,500 UPI
-                </span>
-              </div>
-            </div>
-
-            {/* Card 3: Outstanding Receivables */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    OUTSTANDING RECEIVABLES
-                  </span>
-                  <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-slate-900 mt-2">₹1,85,000</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">
-                  Pending across 42 accounts
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
-                <span className="text-slate-600 font-bold">16 Overdue</span>
-                <span className="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1 text-[11px]">
-                  <AlertTriangle className="w-3 h-3 text-red-600" />
-                  <span>₹58,200 &gt; 7 days</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Card 4: Customer Advances */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    CUSTOMER ADVANCES
-                  </span>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-[#10B981] mt-2">₹12,500</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">
-                  Available customer credit pool
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
-                <span className="text-slate-600 font-bold">Auto-FIFO Ready</span>
-                <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md text-[11px]">
-                  • 8 active credits
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
+          {/* Navigation Tabs Bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs sm:text-sm font-bold border-b border-slate-200/80">
             {(['Overview', 'Invoices', 'Payments', 'Cash Reconciliation', 'Customer Ledger'] as const).map(
               (tab) => {
@@ -405,719 +580,1237 @@ export default function AdminInvoicesPage() {
             )}
           </div>
 
-          {/* Automatic FIFO Payment Allocation Engine Banner */}
-          <div className="bg-[#F0F5FF] rounded-[24px] p-6 border border-blue-200/60 shadow-2xs space-y-5">
-            {/* Engine Header Row */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#BC0118] text-white flex items-center justify-center shrink-0 shadow-xs font-black">
-                  <Zap className="w-5 h-5 fill-white" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                      Automatic FIFO Payment Allocation Engine
-                    </h2>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">
-                      ACTIVE RULE
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed max-w-3xl">
-                    <strong className="text-slate-900">Rule Enforced:</strong> Incoming customer payments automatically liquidate oldest outstanding invoices chronologically before settling newer bills. Excess funds credit to Customer Advance ledger.
-                  </p>
-                </div>
-              </div>
-
-              <div className="shrink-0">
-                <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 text-xs font-bold px-3 py-1.5 rounded-full border border-red-100 shadow-2xs">
-                  <Sparkles className="w-3.5 h-3.5 text-red-600" />
-                  <span>Admin &amp; DP can override FIFO priority</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Real-time simulation sub-card */}
-            <div className="bg-white rounded-2xl p-5 border border-blue-100 shadow-2xs space-y-4">
-              {/* Simulation Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-black text-xs flex items-center justify-center shrink-0">
-                    SKS
+          {/* ========================================================= */}
+          {/* TAB 1: INVOICES TAB (Exact matching attached Figma image) */}
+          {/* ========================================================= */}
+          {activeTab === 'Invoices' && (
+            <div className="space-y-5">
+              {/* Summary Banner Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                    <Wallet className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold text-slate-900">Sri Krishna Sweets</span>
-                      <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                        CUS-00366
+                    <span className="text-xs font-bold text-slate-400 block">
+                      Total Outstanding Balance
+                    </span>
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                      ₹1,85,000.00
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs font-medium text-slate-500 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <span className="w-4 h-4 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-[10px]">
+                      !
+                    </span>
+                    <span>
+                      Pending across <strong className="text-slate-800">32</strong> active customer accounts
+                    </span>
+                  </div>
+                  <span className="text-slate-300 hidden sm:inline">|</span>
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Customer advances segregated via FIFO pool</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters & Search Bar */}
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
+                  {/* Search Box */}
+                  <div className="relative min-w-[240px] flex-1">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search invoice number, customer name or customer ID..."
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-9.5 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                    />
+                  </div>
+
+                  {/* Date Range Dropdown */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => triggerToast('Date range: Oct 01, 2026 - Oct 24, 2026')}
+                      className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 flex items-center justify-between gap-2 shadow-2xs cursor-pointer"
+                    >
+                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Oct 01, 2026 - Oct 24, 2026</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  </div>
+
+                  {/* Status Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All">All Statuses</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Partially Paid">Partially Paid</option>
+                      <option value="Unpaid">Unpaid</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Delivery Partner Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={partnerFilter}
+                      onChange={(e) => setPartnerFilter(e.target.value)}
+                      className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All Delivery Partners">All Delivery Partners</option>
+                      <option value="Rajesh">DP-001 Rajesh</option>
+                      <option value="Mohamed">DP-002 Mohamed</option>
+                      <option value="Suresh">DP-003 Suresh</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Customers Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={customerFilter}
+                      onChange={(e) => setCustomerFilter(e.target.value)}
+                      className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All Customers">All Customers</option>
+                      <option value="Commercial">Commercial Only</option>
+                      <option value="Domestic">Domestic Only</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Reset button & label */}
+                <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('All');
+                      setPartnerFilter('All Delivery Partners');
+                      setCustomerFilter('All Customers');
+                      triggerToast('Filters reset to default');
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                  <span className="text-xs font-extrabold text-slate-800">All Customers</span>
+                </div>
+              </div>
+
+              {/* Main Content Split: Left Table + Right Flyout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                {/* Left Table (Cols 7 or 8 when drawer is open) */}
+                <div className={`${inspectedInvoice ? 'lg:col-span-8' : 'lg:col-span-12'} bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all space-y-4`}>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#EDF2F9] text-slate-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                          <th className="py-3 px-3 w-8">
+                            <input
+                              type="checkbox"
+                              checked={selectedInvoiceIds.length === detailedInvoicesList.length}
+                              onChange={toggleSelectAll}
+                              className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                            />
+                          </th>
+                          <th className="py-3 px-3">Invoice Number</th>
+                          <th className="py-3 px-3">Date</th>
+                          <th className="py-3 px-3">Customer</th>
+                          <th className="py-3 px-3">Delivery Partner</th>
+                          <th className="py-3 px-3">Cylinders</th>
+                          <th className="py-3 px-3 text-right">Inv Amount</th>
+                          <th className="py-3 px-3 text-right">Paid</th>
+                          <th className="py-3 px-3 text-right">Balance Due</th>
+                          <th className="py-3 px-3 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                        {filteredInvoices.map((inv) => {
+                          const isInspected = inspectedInvoice?.id === inv.id;
+                          const isChecked = selectedInvoiceIds.includes(inv.id);
+
+                          return (
+                            <tr
+                              key={inv.id}
+                              onClick={() => setInspectedInvoice(inv)}
+                              className={`transition cursor-pointer ${
+                                isInspected
+                                  ? 'bg-red-50/40 hover:bg-red-50/60'
+                                  : 'hover:bg-slate-50/80'
+                              }`}
+                            >
+                              {/* Checkbox */}
+                              <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => toggleSelectInvoice(inv.id, e as unknown as React.MouseEvent)}
+                                  className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                />
+                              </td>
+
+                              {/* Invoice Number */}
+                              <td className="py-3.5 px-3">
+                                <span
+                                  className={`font-black ${
+                                    isInspected ? 'text-[#BC0118]' : 'text-slate-900'
+                                  }`}
+                                >
+                                  {inv.invoiceNo}
+                                </span>
+                              </td>
+
+                              {/* Date */}
+                              <td className="py-3.5 px-3 text-slate-600 font-semibold whitespace-nowrap">
+                                {inv.date}
+                              </td>
+
+                              {/* Customer */}
+                              <td className="py-3.5 px-3">
+                                <div className="font-extrabold text-slate-900 leading-tight">
+                                  {inv.customerName}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  {inv.customerCode}
+                                </div>
+                              </td>
+
+                              {/* Delivery Partner */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+                                  <Truck className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>{inv.deliveryPartnerName}</span>
+                                </div>
+                              </td>
+
+                              {/* Cylinders */}
+                              <td className="py-3.5 px-3">
+                                <div className="flex flex-wrap gap-1">
+                                  {inv.cylinders.map((cyl, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="bg-blue-50/90 text-blue-900 text-[11px] font-bold px-2 py-0.5 rounded-md border border-blue-100"
+                                    >
+                                      {cyl}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+
+                              {/* Inv Amount */}
+                              <td className="py-3.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
+                                ₹{inv.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </td>
+
+                              {/* Paid */}
+                              <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
+                                {inv.paidAmount > 0 ? (
+                                  <span className="text-emerald-700">
+                                    ₹{inv.paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-500 font-bold">₹0.00</span>
+                                )}
+                              </td>
+
+                              {/* Balance Due */}
+                              <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
+                                {inv.balanceDue > 0 ? (
+                                  <span className="text-[#BC0118]">
+                                    ₹{inv.balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400 font-bold">₹0.00</span>
+                                )}
+                              </td>
+
+                              {/* Status */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                {inv.status === 'Paid' && (
+                                  <span className="bg-emerald-50 text-emerald-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-emerald-100">
+                                    Paid
+                                  </span>
+                                )}
+                                {inv.status === 'Partially Paid' && (
+                                  <span className="bg-blue-50 text-blue-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-blue-100">
+                                    Partially Paid
+                                  </span>
+                                )}
+                                {inv.status === 'Unpaid' && (
+                                  <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-red-100">
+                                    Unpaid
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Footer */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs text-slate-500 font-medium">
+                    <div className="flex items-center gap-3">
+                      <span>
+                        Showing <strong className="text-slate-900">1 to 6</strong> of <strong className="text-slate-900">86</strong> invoices
                       </span>
-                      <span className="bg-red-50 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-100">
-                        Commercial
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 font-medium block">
-                      Simulated real-time automated breakdown of incoming lump-sum collection
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    RECEIVED PAYMENT
-                  </span>
-                  <span className="text-base sm:text-lg font-black text-[#BC0118]">
-                    ₹4,000
-                  </span>
-                  <span className="bg-slate-100 text-slate-600 text-[10px] font-extrabold px-2 py-0.5 rounded">
-                    PAY-558802
-                  </span>
-                </div>
-              </div>
-
-              {/* 4 Step Cards Progression */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                {/* Step 1: Oldest */}
-                <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      STEP 1: OLDEST
-                    </span>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                      Fully Paid
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-slate-900">INV-20261019-050</div>
-                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                      Date: Oct 19 · Bill: ₹1,500
-                    </div>
-                  </div>
-                  <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-600">Allocated</span>
-                    <span className="text-emerald-700 font-extrabold text-sm">₹1,500</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
-                    <span>Remaining pool</span>
-                    <span className="text-slate-700 font-extrabold">₹2,500</span>
-                  </div>
-                </div>
-
-                {/* Step 2: Intermediate */}
-                <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      STEP 2: INTERMEDIATE
-                    </span>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                      Fully Paid
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-slate-900">INV-20261021-065</div>
-                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                      Date: Oct 21 · Bill: ₹2,200
-                    </div>
-                  </div>
-                  <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-600">Allocated</span>
-                    <span className="text-emerald-700 font-extrabold text-sm">₹2,200</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
-                    <span>Remaining pool</span>
-                    <span className="text-slate-700 font-extrabold">₹300</span>
-                  </div>
-                </div>
-
-                {/* Step 3: Current */}
-                <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      STEP 3: CURRENT
-                    </span>
-                    <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-blue-700 fill-blue-700" />
-                      Partial
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-slate-900">INV-20261024-091</div>
-                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                      Date: Oct 24 · Bill: ₹1,100
-                    </div>
-                  </div>
-                  <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-600">Allocated</span>
-                    <span className="text-slate-900 font-extrabold text-sm">₹300</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
-                    <span className="text-red-600">Remaining Due</span>
-                    <span className="text-red-600 font-black">₹800</span>
-                  </div>
-                </div>
-
-                {/* Step 4: Excess */}
-                <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      STEP 4: EXCESS
-                    </span>
-                    <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded">
-                      Exhausted
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-slate-900">Customer Advance</div>
-                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                      No overpayment surplus
-                    </div>
-                  </div>
-                  <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-600">Credit Added</span>
-                    <span className="text-slate-900 font-extrabold text-sm">₹0</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
-                    <span>Advance Balance</span>
-                    <span className="text-slate-700 font-extrabold">₹0.00</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Invoices & Delivery Collections Table Section */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-5">
-            {/* Section Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  Invoices &amp; Delivery Collections
-                </h2>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  Comprehensive billing register with itemized cylinder volume and payment settlement status
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Date filter: Today (Oct 24, 2026)')}
-                  className="bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Today : Oct 24, 2026</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Filters: 3 active')}
-                  className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <Filter className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Filters (3 Active)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Search and Filters Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              {/* Search Input */}
-              <div className="md:col-span-5 relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by invoice #, customer name, CUS-ID..."
-                  className="w-full bg-[#F1F4FA] rounded-xl pl-9.5 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                />
-              </div>
-
-              {/* Customer Category Filter */}
-              <div className="md:col-span-3">
-                <div className="relative">
-                  <select
-                    value={customerFilter}
-                    onChange={(e) => setCustomerFilter(e.target.value)}
-                    className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer pr-8"
-                  >
-                    <option value="All Customers">All Customers (Domestic &amp; Commercial)</option>
-                    <option value="Commercial">Commercial Only</option>
-                    <option value="Domestic">Domestic Only</option>
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Delivery Partner Filter */}
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <select
-                    value={partnerFilter}
-                    onChange={(e) => setPartnerFilter(e.target.value)}
-                    className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer pr-8"
-                  >
-                    <option value="All Delivery Partners">All Delivery Partners</option>
-                    <option value="Rajesh Kumar">Rajesh Kumar (DP-001)</option>
-                    <option value="Mohamed Irfan">Mohamed Irfan (DP-002)</option>
-                    <option value="Suresh Babu">Suresh Babu (DP-003)</option>
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer pr-8"
-                  >
-                    <option value="All">Status: All</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Partially Paid">Partially Paid</option>
-                    <option value="Unpaid">Unpaid</option>
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200/80">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-[#EDF2F9] text-slate-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
-                    <th className="py-3 px-4">INVOICE DETAILS</th>
-                    <th className="py-3 px-4">CUSTOMER &amp; CATEGORY</th>
-                    <th className="py-3 px-4">DELIVERY PARTNER</th>
-                    <th className="py-3 px-4">CYLINDERS</th>
-                    <th className="py-3 px-4">INVOICE AMT</th>
-                    <th className="py-3 px-4">PAID</th>
-                    <th className="py-3 px-4">BALANCE DUE</th>
-                    <th className="py-3 px-4">PAYMENT STATUS</th>
-                    <th className="py-3 px-4 text-center">ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                  {filteredInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50/70 transition">
-                      {/* Invoice Details */}
-                      <td className="py-3 px-4">
-                        <div className="font-extrabold text-slate-900">{inv.invoiceNo}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">{inv.time}</div>
-                      </td>
-
-                      {/* Customer & Category */}
-                      <td className="py-3 px-4">
-                        <div className="font-extrabold text-slate-900">{inv.customerName}</div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] text-slate-400">{inv.customerCode}</span>
-                          <span
-                            className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
-                              inv.category === 'Commercial' || inv.category === 'Bulk Commercial'
-                                ? 'bg-red-50 text-red-700 border border-red-100'
-                                : 'bg-blue-50 text-blue-700'
-                            }`}
-                          >
-                            {inv.category}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Delivery Partner */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{inv.deliveryPartnerName}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {inv.deliveryPartnerCode} · {inv.vehicle}
-                        </div>
-                      </td>
-
-                      {/* Cylinders */}
-                      <td className="py-3 px-4">
-                        {inv.cylinders.map((cyl, idx) => (
-                          <div key={idx} className="text-slate-700 font-medium text-xs leading-snug">
-                            {cyl}
-                          </div>
-                        ))}
-                      </td>
-
-                      {/* Invoice Amt */}
-                      <td className="py-3 px-4 font-black text-slate-900">
-                        ₹{inv.invoiceAmount.toLocaleString()}
-                      </td>
-
-                      {/* Paid */}
-                      <td className="py-3 px-4 font-black text-emerald-700">
-                        ₹{inv.paidAmount.toLocaleString()}
-                      </td>
-
-                      {/* Balance Due */}
-                      <td className="py-3 px-4">
-                        {inv.balanceDue > 0 ? (
-                          <span className="font-black text-red-600">
-                            ₹{inv.balanceDue.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 font-bold">₹0</span>
-                        )}
-                      </td>
-
-                      {/* Payment Status */}
-                      <td className="py-3 px-4">
-                        {inv.status === 'Paid' && (
-                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-extrabold text-[11px] px-2.5 py-1 rounded-full border border-emerald-100">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            Paid
-                          </span>
-                        )}
-                        {inv.status === 'Partially Paid' && (
-                          <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 font-extrabold text-[11px] px-2.5 py-1 rounded-full border border-blue-100">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                            Partially Paid
-                          </span>
-                        )}
-                        {inv.status === 'Unpaid' && (
-                          <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 font-extrabold text-[11px] px-2.5 py-1 rounded-full border border-red-100">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                            Unpaid
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-center">
-                        <div className="inline-flex items-center gap-2 text-slate-500">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedInvoiceForView(inv)}
-                            className="p-1 hover:text-slate-900 hover:bg-slate-100 rounded transition cursor-pointer"
-                            title="View Invoice"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => triggerToast(`Printing ${inv.invoiceNo}...`)}
-                            className="p-1 hover:text-slate-900 hover:bg-slate-100 rounded transition cursor-pointer"
-                            title="Print / Download Receipt"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => triggerToast(`Opening details for ${inv.customerName}`)}
-                            className="p-1 hover:text-slate-900 hover:bg-slate-100 rounded transition cursor-pointer"
-                            title="External Customer Record"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Table Pagination Footer */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs text-slate-500 font-medium">
-              <div>
-                Showing <strong className="text-slate-900">1 to 5</strong> of <strong className="text-slate-900">24</strong> invoices today (Total value: ₹34,400)
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Page 1 active')}
-                  className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold hover:bg-slate-50 cursor-pointer"
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  className="w-7 h-7 bg-[#BC0118] text-white rounded-lg font-black flex items-center justify-center cursor-pointer shadow-2xs"
-                >
-                  1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Navigating to page 2')}
-                  className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
-                >
-                  2
-                </button>
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Navigating to page 3')}
-                  className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
-                >
-                  3
-                </button>
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Navigating to next page')}
-                  className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold hover:bg-slate-50 cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Split: Left Box & Right Boxes */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Box: Partner Cash Reconciliation (Cols 7) */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-4">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                    Partner Cash Reconciliation
-                  </h2>
-                  <span className="bg-slate-100 text-slate-600 font-extrabold text-[10px] px-2 py-0.5 rounded-full">
-                    Depot Shift-End
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Reconciliation status refreshed')}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-                  title="Refresh"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-xs text-slate-400 font-medium">
-                Verify all physical cash handovers by delivery partners at depot check-in independent of customer invoice allocation
-              </p>
-
-              {/* 3 Partner Rows */}
-              <div className="space-y-3 pt-1">
-                {/* Partner 1: Rajesh Kumar */}
-                <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 font-black text-xs flex items-center justify-center shrink-0">
-                      DP1
-                    </div>
-                    <div>
-                      <div className="font-black text-slate-900 text-sm">Rajesh Kumar</div>
-                      <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        ID: DP-001 · 12 Cash Deliveries
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-slate-400">Rows per page:</span>
+                        <span className="bg-slate-100 font-extrabold text-slate-800 px-2 py-0.5 rounded-md">
+                          10
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Reported</div>
-                      <div className="font-extrabold text-slate-800">₹16,500</div>
-                    </div>
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Counted</div>
-                      <div className="font-extrabold text-slate-900">₹16,500</div>
-                    </div>
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Diff</div>
-                      <div className="font-extrabold text-emerald-700">₹0</div>
-                    </div>
-                    <div className="shrink-0">
-                      <span className="bg-emerald-100 text-emerald-800 font-extrabold text-xs px-3 py-1 rounded-lg flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                        Verified
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Partner 2: Suresh Babu */}
-                <div className="bg-[#FFF8F8] rounded-2xl p-4 border border-red-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-red-100 text-red-800 font-black text-xs flex items-center justify-center shrink-0">
-                      DP3
-                    </div>
-                    <div>
-                      <div className="font-black text-slate-900 text-sm">Suresh Babu</div>
-                      <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        ID: DP-003 · 14 Cash Deliveries
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3.5 text-xs">
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Reported</div>
-                      <div className="font-extrabold text-slate-800">₹18,500</div>
-                    </div>
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Counted</div>
-                      <div className="font-extrabold text-slate-900">₹16,500</div>
-                    </div>
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Diff</div>
-                      <div className="font-black text-red-600">-₹2,000</div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="bg-red-50 text-red-700 font-extrabold text-xs px-2.5 py-1 rounded-lg border border-red-200 flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                        Discrepancy
-                      </span>
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => setShowInvestigateModal(true)}
-                        className="bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs px-3 py-1 rounded-lg transition cursor-pointer shadow-2xs"
+                        onClick={() => triggerToast('Page 1 active')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
                       >
-                        Investigate
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="w-7 h-7 bg-[#BC0118] text-white rounded-lg font-black flex items-center justify-center cursor-pointer shadow-2xs"
+                      >
+                        1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to page 2')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        2
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to page 3')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        3
+                      </button>
+                      <span className="px-1 text-slate-400">..</span>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to page 9')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        9
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to next page')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Partner 3: Mohamed Irfan */}
-                <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 font-black text-xs flex items-center justify-center shrink-0">
-                      DP2
+                {/* Right Flyout / Inspection Card (Cols 4) */}
+                {inspectedInvoice && (
+                  <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4 animate-in fade-in duration-150">
+                    {/* Top Title & Close Button */}
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                            {inspectedInvoice.invoiceNo}
+                          </h3>
+                          <span className="bg-blue-50 text-blue-700 font-extrabold text-[10px] px-2 py-0.5 rounded-full border border-blue-100">
+                            {inspectedInvoice.status}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                          Created on {inspectedInvoice.time}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setInspectedInvoice(null)}
+                        className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                        title="Close Inspector"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Section 1: Customer Information */}
+                    <div className="space-y-2.5">
+                      <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        CUSTOMER INFORMATION
+                      </div>
+                      <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/70 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-black text-sm text-slate-900">
+                            {inspectedInvoice.customerName}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => triggerToast(`Opening ledger for ${inspectedInvoice.customerName}`)}
+                            className="text-[11px] font-bold text-[#BC0118] hover:underline flex items-center gap-0.5 cursor-pointer"
+                          >
+                            <span>Ledger</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-medium">
+                          {inspectedInvoice.customerCode} · Commercial Catering
+                        </div>
+                        <div className="space-y-1 pt-1 text-xs text-slate-600 font-medium">
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            <span>{inspectedInvoice.phone ?? '+91 98421 56789'}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <span>{inspectedInvoice.address ?? '14/2, KK Nagar 4th Street, Madurai'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Two Sub-cards: Assigned Partner & Delivery Pass */}
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="bg-[#F8FAFC] rounded-xl p-2.5 border border-slate-200/70">
+                          <span className="text-[10px] text-slate-400 font-bold block">Assigned Partner</span>
+                          <span className="text-xs font-black text-slate-900 block mt-0.5">
+                            {inspectedInvoice.deliveryPartnerName === 'DP-003 Suresh'
+                              ? 'Suresh Babu (DP-003)'
+                              : inspectedInvoice.deliveryPartnerName}
+                          </span>
+                        </div>
+                        <div className="bg-[#F8FAFC] rounded-xl p-2.5 border border-slate-200/70">
+                          <span className="text-[10px] text-slate-400 font-bold block">Delivery Pass</span>
+                          <span className="text-xs font-black text-slate-900 block mt-0.5">
+                            {inspectedInvoice.deliveryPass ?? '#DEL-20261015-88'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Cylinder Dispatch Breakdown */}
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        CYLINDER DISPATCH BREAKDOWN
+                      </div>
+                      <div className="bg-[#F8FAFC] rounded-xl p-3 border border-slate-200/70 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-black text-slate-900">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#BC0118]"></span>
+                            <span>{inspectedInvoice.cylinders[0] ?? '5x 19kg'} Commercial LPG</span>
+                          </div>
+                          <span>₹{inspectedInvoice.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                          <span>{inspectedInvoice.unitRate ?? 'Unit Rate: 5 @ ₹240.00 / cylinder refill'}</span>
+                          <span>Tax: ₹0.00 (Exempt)</span>
+                        </div>
+                        <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-2 flex items-center gap-1.5 text-xs font-bold text-emerald-800 mt-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{inspectedInvoice.emptyCollected ?? 5} Empty Cylinders Collected &amp; Logged</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Payment Summary */}
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        PAYMENT SUMMARY
+                      </div>
+                      <div className="bg-[#F8FAFC] rounded-xl p-3 border border-slate-200/70 space-y-1.5 text-xs font-bold">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span>Gross Invoice Amount:</span>
+                          <span className="text-slate-900 font-black">
+                            ₹{inspectedInvoice.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span>Total Amount Paid:</span>
+                          <span className="text-emerald-700 font-black">
+                            - ₹{inspectedInvoice.paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200">
+                          <span className="text-slate-900 font-black">Outstanding Balance:</span>
+                          <span className="text-base font-black text-[#BC0118]">
+                            ₹{inspectedInvoice.balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 4: FIFO Allocation History */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                          FIFO ALLOCATION HISTORY
+                        </span>
+                        <span className="text-[10px] font-extrabold text-[#BC0118]">
+                          Automated Engine
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {/* Event 1: Settled */}
+                        <div className="bg-[#F0FDF4] rounded-xl p-2.5 border border-emerald-200/80 space-y-1">
+                          <div className="flex items-center justify-between text-xs font-extrabold">
+                            <span className="flex items-center gap-1.5 text-emerald-800">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              Auto-allocated ₹500.00
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">15 Oct, 11:35 AM</span>
+                          </div>
+                          <p className="text-[10px] text-slate-600 font-medium pl-5 leading-tight">
+                            Settled via Customer UPI (#PAY-9921). Oldest pending invoice prioritized.
+                          </p>
+                        </div>
+
+                        {/* Event 2: Pending */}
+                        <div className="bg-[#F8FAFC] rounded-xl p-2.5 border border-slate-200 space-y-1">
+                          <div className="flex items-center justify-between text-xs font-extrabold">
+                            <span className="flex items-center gap-1.5 text-slate-700">
+                              <Hourglass className="w-3.5 h-3.5 text-slate-500" />
+                              ₹700.00 Awaiting Collection
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">Due Next Cycle</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium pl-5 leading-tight">
+                            Assigned to next settlement batch for DP-003 Suresh Babu.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="space-y-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Downloading PDF for ${inspectedInvoice.invoiceNo}...`)}
+                        className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-extrabold text-xs py-2.5 rounded-xl shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <FileDown className="w-4 h-4 text-slate-600" />
+                        <span>Download PDF Invoice</span>
+                      </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => triggerToast(`Navigating to customer ledger for ${inspectedInvoice.customerName}`)}
+                          className="bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-slate-600" />
+                          <span>Customer Ledger</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => triggerToast(`Opening payment history for ${inspectedInvoice.customerName}`)}
+                          className="bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <History className="w-3.5 h-3.5 text-slate-600" />
+                          <span>Payment History</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 2: OVERVIEW TAB (From previous session)                */}
+          {/* ========================================================= */}
+          {activeTab === 'Overview' && (
+            <div className="space-y-6">
+              {/* 4 Metric KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                        INVOICES TODAY
+                      </span>
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                        <Receipt className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-black text-slate-900 mt-2">24</div>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      Invoices created today
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
+                    <span className="text-slate-600 font-bold">Total: 48 Cylinders</span>
+                    <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1 text-[11px]">
+                      <span>↑</span> +3 vs yesterday
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                        COLLECTED TODAY
+                      </span>
+                      <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                        <Wallet className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-black text-slate-900 mt-2">₹42,500</div>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      Payments received today
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-4 mt-4 border-t border-slate-100 text-[11px] font-bold">
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">• ₹28,000 Cash</span>
+                    <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md">• ₹14,500 UPI</span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                        OUTSTANDING RECEIVABLES
+                      </span>
+                      <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-black text-slate-900 mt-2">₹1,85,000</div>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      Pending across 42 accounts
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
+                    <span className="text-slate-600 font-bold">16 Overdue</span>
+                    <span className="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1 text-[11px]">
+                      <AlertTriangle className="w-3 h-3 text-red-600" />
+                      <span>₹58,200 &gt; 7 days</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                        CUSTOMER ADVANCES
+                      </span>
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <CreditCard className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-black text-[#10B981] mt-2">₹12,500</div>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      Available customer credit pool
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
+                    <span className="text-slate-600 font-bold">Auto-FIFO Ready</span>
+                    <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md text-[11px]">
+                      • 8 active credits
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* FIFO Allocation Engine Banner */}
+              <div className="bg-[#F0F5FF] rounded-[24px] p-6 border border-blue-200/60 shadow-2xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#BC0118] text-white flex items-center justify-center shrink-0 shadow-xs font-black">
+                      <Zap className="w-5 h-5 fill-white" />
                     </div>
                     <div>
-                      <div className="font-black text-slate-900 text-sm">Mohamed Irfan</div>
-                      <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        ID: DP-002 · In Route
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                          Automatic FIFO Payment Allocation Engine
+                        </h2>
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">
+                          ACTIVE RULE
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed max-w-3xl">
+                        <strong className="text-slate-900">Rule Enforced:</strong> Incoming customer payments automatically liquidate oldest outstanding invoices chronologically before settling newer bills. Excess funds credit to Customer Advance ledger.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0">
+                    <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 text-xs font-bold px-3 py-1.5 rounded-full border border-red-100 shadow-2xs">
+                      <Sparkles className="w-3.5 h-3.5 text-red-600" />
+                      <span>Admin &amp; DP can override FIFO priority</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-blue-100 shadow-2xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-black text-xs flex items-center justify-center shrink-0">
+                        SKS
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-extrabold text-slate-900">Sri Krishna Sweets</span>
+                          <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            CUS-00366
+                          </span>
+                          <span className="bg-red-50 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-100">
+                            Commercial
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium block">
+                          Simulated real-time automated breakdown of incoming lump-sum collection
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        RECEIVED PAYMENT
+                      </span>
+                      <span className="text-base sm:text-lg font-black text-[#BC0118]">
+                        ₹4,000
+                      </span>
+                      <span className="bg-slate-100 text-slate-600 text-[10px] font-extrabold px-2 py-0.5 rounded">
+                        PAY-558802
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                          STEP 1: OLDEST
+                        </span>
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                          Fully Paid
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-900">INV-20261019-050</div>
+                        <div className="text-[11px] text-slate-400 font-medium mt-0.5">Date: Oct 19 · Bill: ₹1,500</div>
+                      </div>
+                      <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-600">Allocated</span>
+                        <span className="text-emerald-700 font-extrabold text-sm">₹1,500</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
+                        <span>Remaining pool</span>
+                        <span className="text-slate-700 font-extrabold">₹2,500</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                          STEP 2: INTERMEDIATE
+                        </span>
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                          Fully Paid
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-900">INV-20261021-065</div>
+                        <div className="text-[11px] text-slate-400 font-medium mt-0.5">Date: Oct 21 · Bill: ₹2,200</div>
+                      </div>
+                      <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-600">Allocated</span>
+                        <span className="text-emerald-700 font-extrabold text-sm">₹2,200</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
+                        <span>Remaining pool</span>
+                        <span className="text-slate-700 font-extrabold">₹300</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                          STEP 3: CURRENT
+                        </span>
+                        <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                          <Zap className="w-3 h-3 text-blue-700 fill-blue-700" />
+                          Partial
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-900">INV-20261024-091</div>
+                        <div className="text-[11px] text-slate-400 font-medium mt-0.5">Date: Oct 24 · Bill: ₹1,100</div>
+                      </div>
+                      <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-600">Allocated</span>
+                        <span className="text-slate-900 font-extrabold text-sm">₹300</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
+                        <span className="text-red-600">Remaining Due</span>
+                        <span className="text-red-600 font-black">₹800</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                          STEP 4: EXCESS
+                        </span>
+                        <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded">
+                          Exhausted
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-900">Customer Advance</div>
+                        <div className="text-[11px] text-slate-400 font-medium mt-0.5">No overpayment surplus</div>
+                      </div>
+                      <div className="bg-[#EBF2FF] rounded-lg p-2.5 flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-600">Credit Added</span>
+                        <span className="text-slate-900 font-extrabold text-sm">₹0</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
+                        <span>Advance Balance</span>
+                        <span className="text-slate-700 font-extrabold">₹0.00</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Overview Invoices Table Section */}
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                      Invoices &amp; Delivery Collections
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      Comprehensive billing register with itemized cylinder volume and payment settlement status
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => triggerToast('Date filter: Today (Oct 24, 2026)')}
+                      className="bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Today : Oct 24, 2026</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerToast('Filters: 3 active')}
+                      className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <Filter className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Filters (3 Active)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-[#EDF2F9] text-slate-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                        <th className="py-3 px-4">INVOICE DETAILS</th>
+                        <th className="py-3 px-4">CUSTOMER &amp; CATEGORY</th>
+                        <th className="py-3 px-4">DELIVERY PARTNER</th>
+                        <th className="py-3 px-4">CYLINDERS</th>
+                        <th className="py-3 px-4">INVOICE AMT</th>
+                        <th className="py-3 px-4">PAID</th>
+                        <th className="py-3 px-4">BALANCE DUE</th>
+                        <th className="py-3 px-4">PAYMENT STATUS</th>
+                        <th className="py-3 px-4 text-center">ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                      {overviewInvoices.map((inv) => (
+                        <tr key={inv.id} className="hover:bg-slate-50/70 transition">
+                          <td className="py-3 px-4">
+                            <div className="font-extrabold text-slate-900">{inv.invoiceNo}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">{inv.time}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-extrabold text-slate-900">{inv.customerName}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[11px] text-slate-400">{inv.customerCode}</span>
+                              <span
+                                className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
+                                  inv.category === 'Commercial' || inv.category === 'Bulk Commercial'
+                                    ? 'bg-red-50 text-red-700 border border-red-100'
+                                    : 'bg-blue-50 text-blue-700'
+                                }`}
+                              >
+                                {inv.category}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-slate-900">{inv.deliveryPartnerName}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              {inv.deliveryPartnerCode} · {inv.vehicle}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {inv.cylinders.map((cyl, idx) => (
+                              <div key={idx} className="text-slate-700 font-medium text-xs leading-snug">
+                                {cyl}
+                              </div>
+                            ))}
+                          </td>
+                          <td className="py-3 px-4 font-black text-slate-900">₹{inv.invoiceAmount.toLocaleString()}</td>
+                          <td className="py-3 px-4 font-black text-emerald-700">₹{inv.paidAmount.toLocaleString()}</td>
+                          <td className="py-3 px-4">
+                            {inv.balanceDue > 0 ? (
+                              <span className="font-black text-red-600">₹{inv.balanceDue.toLocaleString()}</span>
+                            ) : (
+                              <span className="text-slate-400 font-bold">₹0</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            {inv.status === 'Paid' && (
+                              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-extrabold text-[11px] px-2.5 py-1 rounded-full border border-emerald-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                Paid
+                              </span>
+                            )}
+                            {inv.status === 'Partially Paid' && (
+                              <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 font-extrabold text-[11px] px-2.5 py-1 rounded-full border border-blue-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                Partially Paid
+                              </span>
+                            )}
+                            {inv.status === 'Unpaid' && (
+                              <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 font-extrabold text-[11px] px-2.5 py-1 rounded-full border border-red-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                Unpaid
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="inline-flex items-center gap-2 text-slate-500">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('Invoices');
+                                  setInspectedInvoice(inv);
+                                }}
+                                className="p-1 hover:text-slate-900 hover:bg-slate-100 rounded transition cursor-pointer"
+                                title="Inspect Invoice"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => triggerToast(`Printing ${inv.invoiceNo}...`)}
+                                className="p-1 hover:text-slate-900 hover:bg-slate-100 rounded transition cursor-pointer"
+                                title="Print / Download Receipt"
+                              >
+                                <Printer className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Bottom Split: Left Box & Right Boxes */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                        Partner Cash Reconciliation
+                      </h2>
+                      <span className="bg-slate-100 text-slate-600 font-extrabold text-[10px] px-2 py-0.5 rounded-full">
+                        Depot Shift-End
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => triggerToast('Reconciliation status refreshed')}
+                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 pt-1">
+                    <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 font-black text-xs flex items-center justify-center shrink-0">
+                          DP1
+                        </div>
+                        <div>
+                          <div className="font-black text-slate-900 text-sm">Rajesh Kumar</div>
+                          <div className="text-[11px] text-slate-400 font-medium mt-0.5">ID: DP-001 · 12 Cash Deliveries</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className="text-center sm:text-right">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Reported</div>
+                          <div className="font-extrabold text-slate-800">₹16,500</div>
+                        </div>
+                        <div className="text-center sm:text-right">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Counted</div>
+                          <div className="font-extrabold text-slate-900">₹16,500</div>
+                        </div>
+                        <div className="text-center sm:text-right">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Diff</div>
+                          <div className="font-extrabold text-emerald-700">₹0</div>
+                        </div>
+                        <span className="bg-emerald-100 text-emerald-800 font-extrabold text-xs px-3 py-1 rounded-lg flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                          Verified
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#FFF8F8] rounded-2xl p-4 border border-red-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-red-100 text-red-800 font-black text-xs flex items-center justify-center shrink-0">
+                          DP3
+                        </div>
+                        <div>
+                          <div className="font-black text-slate-900 text-sm">Suresh Babu</div>
+                          <div className="text-[11px] text-slate-400 font-medium mt-0.5">ID: DP-003 · 14 Cash Deliveries</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3.5 text-xs">
+                        <div className="text-center sm:text-right">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Reported</div>
+                          <div className="font-extrabold text-slate-800">₹18,500</div>
+                        </div>
+                        <div className="text-center sm:text-right">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Counted</div>
+                          <div className="font-extrabold text-slate-900">₹16,500</div>
+                        </div>
+                        <div className="text-center sm:text-right">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Diff</div>
+                          <div className="font-black text-red-600">-₹2,000</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setShowInvestigateModal(true)}
+                            className="bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs px-3 py-1 rounded-lg transition cursor-pointer shadow-2xs"
+                          >
+                            Investigate
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-5 space-y-5">
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-extrabold text-slate-900">Payment Methods Today</h3>
+                      <span className="text-xs font-black text-[#BC0118]">Total: ₹42,500</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-700">Cash Collections (66%)</span>
+                        <span className="text-slate-900 font-black">₹28,000</span>
+                      </div>
+                      <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden flex">
+                        <div className="h-full bg-slate-800" style={{ width: '66%' }}></div>
+                        <div className="h-full bg-[#E81B24]" style={{ width: '34%' }}></div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs font-bold pt-1">
+                        <span className="text-slate-700">UPI / Digital QR (34%)</span>
+                        <span className="text-slate-900 font-black">₹14,500</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Reported</div>
-                      <div className="font-extrabold text-slate-800">₹12,000</div>
-                    </div>
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Counted</div>
-                      <div className="text-slate-400 font-bold">Awaiting Depot</div>
-                    </div>
-                    <div className="text-center sm:text-right">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Diff</div>
-                      <div className="text-slate-400 font-bold">--</div>
-                    </div>
-                    <div className="shrink-0">
-                      <span className="bg-slate-100 text-slate-500 font-extrabold text-xs px-3 py-1 rounded-lg flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" />
-                        Awaiting Check-in
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-extrabold text-slate-900">Customer Advances Pool</h3>
+                        <p className="text-[11px] text-slate-400 font-medium">₹12,500 available across 8 accounts</p>
+                      </div>
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md">
+                        Auto-Apply
                       </span>
                     </div>
+                    <div className="space-y-2.5 divide-y divide-slate-100 pt-1">
+                      <div className="flex items-center justify-between pt-1">
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">Priya Enterprises</div>
+                          <div className="text-[10px] text-slate-400 font-medium">CUS-00128 · Advance Deposit</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-black text-emerald-600">₹4,200</div>
+                          <div className="text-[10px] text-slate-400 font-medium">Next bill priority</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2">
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">Madurai Mess</div>
+                          <div className="text-[10px] text-slate-400 font-medium">CUS-00234 · Overpayment</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-black text-emerald-600">₹3,500</div>
+                          <div className="text-[10px] text-slate-400 font-medium">Next bill priority</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Right Column: 2 Stacked Cards (Cols 5) */}
-            <div className="lg:col-span-5 space-y-5">
-              {/* Card 1: Payment Methods Today */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-extrabold text-slate-900">Payment Methods Today</h3>
-                  <span className="text-xs font-black text-[#BC0118]">Total: ₹42,500</span>
-                </div>
-
-                <div className="space-y-3">
-                  {/* Row 1: Cash Collections */}
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-sm bg-slate-800"></span>
-                      <span className="text-slate-700">Cash Collections (66%)</span>
-                    </div>
-                    <span className="text-slate-900 font-black">₹28,000</span>
-                  </div>
-
-                  {/* Dual Segment Progress Bar */}
-                  <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden flex">
-                    <div className="h-full bg-slate-800" style={{ width: '66%' }}></div>
-                    <div className="h-full bg-[#E81B24]" style={{ width: '34%' }}></div>
-                  </div>
-
-                  {/* Row 2: UPI / Digital QR */}
-                  <div className="flex items-center justify-between text-xs font-bold pt-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-sm bg-[#E81B24]"></span>
-                      <span className="text-slate-700">UPI / Digital QR (34%)</span>
-                    </div>
-                    <span className="text-slate-900 font-black">₹14,500</span>
-                  </div>
-                </div>
+          {/* Placeholders for Other Tabs */}
+          {(activeTab === 'Payments' || activeTab === 'Cash Reconciliation' || activeTab === 'Customer Ledger') && (
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#BC0118] flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6" />
               </div>
-
-              {/* Card 2: Customer Advances Pool */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">Customer Advances Pool</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">
-                      ₹12,500 available across 8 accounts
-                    </p>
-                  </div>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md">
-                    Auto-Apply
-                  </span>
-                </div>
-
-                {/* List of advances */}
-                <div className="space-y-2.5 divide-y divide-slate-100 pt-1">
-                  {/* Item 1 */}
-                  <div className="flex items-center justify-between pt-1">
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">Priya Enterprises</div>
-                      <div className="text-[10px] text-slate-400 font-medium">CUS-00128 · Advance Deposit</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-black text-emerald-600">₹4,200</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Next bill priority</div>
-                    </div>
-                  </div>
-
-                  {/* Item 2 */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">Madurai Mess</div>
-                      <div className="text-[10px] text-slate-400 font-medium">CUS-00234 · Overpayment</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-black text-emerald-600">₹3,500</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Next bill priority</div>
-                    </div>
-                  </div>
-
-                  {/* Item 3 */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">City Cafe &amp; Bakery</div>
-                      <div className="text-[10px] text-slate-400 font-medium">CUS-00411 · Pre-paid Balance</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-black text-emerald-600">₹2,800</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Next bill priority</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Link */}
-                <div className="pt-2 text-center border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => triggerToast('Viewing all 8 advance customer accounts')}
-                    className="text-xs font-bold text-slate-700 hover:text-slate-900 transition cursor-pointer"
-                  >
-                    View All 8 Advance Accounts &gt;
-                  </button>
-                </div>
-              </div>
+              <h3 className="text-lg font-black text-slate-900">{activeTab}</h3>
+              <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+                Comprehensive tracking module for {activeTab.toLowerCase()}. Access logs, ledger movements, and settlement entries.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('Invoices')}
+                className="mt-3 px-4 py-2 bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+              >
+                Back to Invoices
+              </button>
             </div>
-          </div>
+          )}
         </main>
       </div>
 
-      {/* MODAL 1: Record Payment Modal */}
+      {/* MODAL: Create Invoice Modal */}
+      {showCreateInvoiceModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Create New Invoice</h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Issue cylinder refill invoice and assign dispatch pass
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateInvoiceModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateInvoiceSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-800 block mb-1">Select Customer *</label>
+                <select
+                  value={newCustomer}
+                  onChange={(e) => setNewCustomer(e.target.value)}
+                  className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                >
+                  <option value="Mohammed Ali (CUS-00125)">Mohammed Ali (CUS-00125) · Commercial Catering</option>
+                  <option value="Rajesh Kumar (CUS-00124)">Rajesh Kumar (CUS-00124) · Domestic</option>
+                  <option value="Priya Stores (CUS-00126)">Priya Stores (CUS-00126) · Commercial</option>
+                  <option value="Lakshmi Agencies (CUS-00128)">Lakshmi Agencies (CUS-00128) · Bulk</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">Cylinder Size *</label>
+                  <select
+                    value={newCylinderType}
+                    onChange={(e) => setNewCylinderType(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  >
+                    <option value="19kg Commercial">19kg Commercial LPG</option>
+                    <option value="14.2kg Domestic">14.2kg Domestic LPG</option>
+                    <option value="47.5kg Industrial">47.5kg Industrial LPG</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">Quantity *</label>
+                  <input
+                    type="number"
+                    value={newQuantity}
+                    onChange={(e) => setNewQuantity(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">Unit Rate (₹) *</label>
+                  <input
+                    type="number"
+                    value={newRate}
+                    onChange={(e) => setNewRate(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">Total Bill</label>
+                  <div className="w-full bg-[#EDF4FF] rounded-xl px-4 py-3 text-xs font-black text-slate-900 border border-blue-200">
+                    ₹{(Number(newQuantity) * Number(newRate)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateInvoiceModal(false)}
+                  className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4 stroke-[2.5]" />
+                  <span>Generate Invoice</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Record Payment Modal */}
       {showRecordPaymentModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-200">
@@ -1146,9 +1839,9 @@ export default function AdminInvoicesPage() {
                   className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 >
                   <option value="Sri Krishna Sweets (CUS-00366)">Sri Krishna Sweets (CUS-00366) · ₹4,800 total due</option>
+                  <option value="Mohammed Ali (CUS-00125)">Mohammed Ali (CUS-00125) · ₹700 total due</option>
                   <option value="Hotel Annapoorna (CUS-00542)">Hotel Annapoorna (CUS-00542) · ₹5,580 total due</option>
-                  <option value="Priya Enterprises (CUS-00830)">Priya Enterprises (CUS-00830) · ₹750 total due</option>
-                  <option value="Rajesh Kumar (CUS-00124)">Rajesh Kumar (CUS-00124) · ₹200 total due</option>
+                  <option value="Priya Stores (CUS-00126)">Priya Stores (CUS-00126) · ₹1,800 total due</option>
                 </select>
               </div>
 
@@ -1189,31 +1882,6 @@ export default function AdminInvoicesPage() {
                 />
               </div>
 
-              {/* FIFO Allocation Preview Box */}
-              <div className="bg-[#EDF4FF] rounded-2xl p-4 border border-blue-200/70 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-blue-900">
-                  <span className="flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
-                    FIFO Auto-Liquidation Plan
-                  </span>
-                  <span>₹{paymentAmount} to Allocate</span>
-                </div>
-                <div className="text-[11px] text-slate-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>1. INV-20261019-050 (Oct 19)</span>
-                    <span className="font-bold text-emerald-700">₹1,500 (Cleared)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>2. INV-20261021-065 (Oct 21)</span>
-                    <span className="font-bold text-emerald-700">₹2,200 (Cleared)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>3. INV-20261024-091 (Oct 24)</span>
-                    <span className="font-bold text-blue-700">₹300 (Partial, ₹800 left)</span>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -1235,7 +1903,7 @@ export default function AdminInvoicesPage() {
         </div>
       )}
 
-      {/* MODAL 2: Investigate Cash Discrepancy Modal */}
+      {/* MODAL: Investigate Cash Discrepancy Modal */}
       {showInvestigateModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-200">
@@ -1274,20 +1942,6 @@ export default function AdminInvoicesPage() {
                 </div>
               </div>
 
-              <div className="text-xs text-slate-600 space-y-1.5">
-                <div className="font-bold text-slate-800">Possible Contributing Orders:</div>
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 space-y-1 text-[11px]">
-                  <div className="flex justify-between">
-                    <span>• Hotel Annapoorna (CUS-00542)</span>
-                    <span className="font-semibold text-slate-700">₹5,580 (Marked Unpaid / Pending)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>• Sri Krishna Sweets (CUS-00366)</span>
-                    <span className="font-semibold text-slate-700">₹3,700 (Received via UPI)</span>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex items-center justify-end gap-2.5 pt-2">
                 <button
                   type="button"
@@ -1310,79 +1964,6 @@ export default function AdminInvoicesPage() {
                   Log Variance Flag
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: View Invoice Details Modal */}
-      {selectedInvoiceForView && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-black text-slate-900">{selectedInvoiceForView.invoiceNo}</h3>
-                <p className="text-xs text-slate-400 font-medium">{selectedInvoiceForView.time}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedInvoiceForView(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 font-medium">Customer:</span>
-                <span className="font-extrabold text-slate-900">
-                  {selectedInvoiceForView.customerName} ({selectedInvoiceForView.customerCode})
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 font-medium">Delivery Partner:</span>
-                <span className="font-bold text-slate-800">
-                  {selectedInvoiceForView.deliveryPartnerName} {selectedInvoiceForView.vehicle}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 font-medium">Cylinders:</span>
-                <span className="font-bold text-slate-800">{selectedInvoiceForView.cylinders.join(', ')}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 font-medium">Invoice Amount:</span>
-                <span className="font-black text-slate-900">₹{selectedInvoiceForView.invoiceAmount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 font-medium">Paid Amount:</span>
-                <span className="font-black text-emerald-700">₹{selectedInvoiceForView.paidAmount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500 font-medium">Balance Due:</span>
-                <span className="font-black text-red-600">₹{selectedInvoiceForView.balanceDue.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setSelectedInvoiceForView(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  triggerToast(`Printed ${selectedInvoiceForView.invoiceNo}`);
-                  setSelectedInvoiceForView(null);
-                }}
-                className="px-4 py-2 bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print Invoice</span>
-              </button>
             </div>
           </div>
         </div>
