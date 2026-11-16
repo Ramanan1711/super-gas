@@ -159,6 +159,11 @@ export default function AdminCustomersPage() {
   const [balanceFilter, setBalanceFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [newCustomerCategory, setNewCustomerCategory] = useState('Residential');
+  const [newCustomerAddress, setNewCustomerAddress] = useState('');
+  const [newCustomerPartner, setNewCustomerPartner] = useState('Leave unassign');
   const [assigningCustomer, setAssigningCustomer] = useState<CustomerRecord | null>(null);
   const [selectedPartnerForAssign, setSelectedPartnerForAssign] = useState('Rajesh · DP- 001');
   const [customerList, setCustomerList] = useState<CustomerRecord[]>(initialCustomers);
@@ -718,78 +723,174 @@ export default function AdminCustomersPage() {
         </main>
       </div>
 
-      {/* Add Customer Modal */}
+      {/* Add New Customer Modal (Matched exactly to attached design) */}
       {showAddCustomerModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-extrabold text-slate-900">Add New Customer</h3>
-              <button
-                type="button"
-                onClick={() => setShowAddCustomerModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setShowAddCustomerModal(false);
-              }}
-              className="space-y-3"
-            >
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Customer Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Senthil Bhavan"
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="+91 98765 43210"
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Delivery Address
-                </label>
-                <textarea
-                  placeholder="Street name, landmark, Madurai"
-                  rows={2}
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-[490px] w-full shadow-2xl space-y-4 border border-slate-100">
+            {/* Header: Title, Subtitle & Close */}
+            <div className="space-y-1">
+              <div className="flex items-start justify-between">
+                <h3 className="text-xl sm:text-[22px] font-extrabold text-slate-900 tracking-tight leading-tight">
+                  Add New Customer
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowAddCustomerModal(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  className="text-slate-700 hover:text-slate-950 p-1 -mr-1 -mt-1 cursor-pointer transition"
+                  aria-label="Close dialog"
+                >
+                  <X className="w-5 h-5 stroke-[1.8]" />
+                </button>
+              </div>
+              <p className="text-xs sm:text-[13px] text-slate-500 font-normal">
+                Register customer account for regular gas cylinder supply
+              </p>
+              <div className="border-b border-slate-200/70 pt-2"></div>
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const newCode = `CUS-${String(customerList.length + 124).padStart(5, '0')}`;
+                const isUnassigned = newCustomerPartner === 'Leave unassign';
+                const [partnerName, partnerCode] = isUnassigned
+                  ? ['Unassigned - Action Required', '']
+                  : newCustomerPartner.split(' · ');
+
+                const newCust: CustomerRecord = {
+                  id: String(Date.now()),
+                  name: newCustomerName,
+                  code: newCode,
+                  badge: newCustomerCategory !== 'Residential' ? newCustomerCategory : undefined,
+                  badgeType: newCustomerCategory === 'B2B' ? 'B2B' : 'COMMERCIAL',
+                  phone: newCustomerPhone,
+                  address: newCustomerAddress,
+                  deliveryPartner: {
+                    name: partnerName,
+                    code: partnerCode || '',
+                    isUnassigned,
+                  },
+                  balance: 0,
+                  balanceText: 'Settled (₹0)',
+                  isSettled: true,
+                  statusDot: 'green',
+                };
+
+                setCustomerList((prev) => [newCust, ...prev]);
+                setNewCustomerName('');
+                setNewCustomerPhone('');
+                setNewCustomerCategory('Residential');
+                setNewCustomerAddress('');
+                setNewCustomerPartner('Leave unassign');
+                setShowAddCustomerModal(false);
+              }}
+              className="space-y-4 pt-1"
+            >
+              {/* Field 1: Customer Name * */}
+              <div>
+                <label className="text-xs sm:text-[13px] font-bold text-slate-900 mb-1.5 block">
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value)}
+                  placeholder="eg. Ramesh"
+                  required
+                  className="w-full bg-[#F1F4FA] border-0 rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-[#9AA2B1] focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                />
+              </div>
+
+              {/* 2-Column Row: Phone Number * & Category * */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Field 2: Phone Number * */}
+                <div>
+                  <label className="text-xs sm:text-[13px] font-bold text-slate-900 mb-1.5 block">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    placeholder="eg. 1234567890"
+                    required
+                    className="w-full bg-[#F1F4FA] border-0 rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-[#9AA2B1] focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+
+                {/* Field 3: Category * */}
+                <div>
+                  <label className="text-xs sm:text-[13px] font-bold text-slate-900 mb-1.5 block">
+                    Category *
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={newCustomerCategory}
+                      onChange={(e) => setNewCustomerCategory(e.target.value)}
+                      className="appearance-none w-full bg-[#F1F4FA] border-0 rounded-xl px-4 py-3 pr-9 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                    >
+                      <option value="Residential">Residential</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="B2B">B2B</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Field 4: Delivery Address & Landmark * */}
+              <div>
+                <label className="text-xs sm:text-[13px] font-bold text-slate-900 mb-1.5 block">
+                  Delivery Address & Landmark *
+                </label>
+                <textarea
+                  value={newCustomerAddress}
+                  onChange={(e) => setNewCustomerAddress(e.target.value)}
+                  placeholder="Full address with street name and pincode"
+                  rows={4}
+                  required
+                  className="w-full bg-[#F1F4FA] border-0 rounded-xl p-4 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-[#9AA2B1] focus:outline-none focus:ring-2 focus:ring-red-500/20 resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Field 5: Assign Partner (Optional) */}
+              <div>
+                <label className="text-xs sm:text-[13px] font-bold text-slate-900 mb-1.5 block">
+                  Assign Partner (Optional)
+                </label>
+                <div className="relative">
+                  <select
+                    value={newCustomerPartner}
+                    onChange={(e) => setNewCustomerPartner(e.target.value)}
+                    className="appearance-none w-full bg-[#F1F4FA] border-0 rounded-xl px-4 py-3 pr-9 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                  >
+                    <option value="Leave unassign">Leave unassign</option>
+                    <option value="Rajesh · DP- 001">Rajesh · DP- 001</option>
+                    <option value="Mohamed Irfan · DP-002">Mohamed Irfan · DP-002</option>
+                    <option value="Suresh · DP- 003">Suresh · DP- 003</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                </div>
+              </div>
+
+              {/* Bottom Divider */}
+              <div className="border-b border-slate-200/70 pt-1"></div>
+
+              {/* Footer Buttons: Cancel & Save Customer */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCustomerModal(false)}
+                  className="bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#E81B24] hover:bg-red-700 transition cursor-pointer shadow-sm flex items-center gap-1.5"
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-xs transition cursor-pointer"
                 >
-                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Save Customer</span>
+                  Save Customer
                 </button>
               </div>
             </form>
