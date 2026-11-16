@@ -41,7 +41,7 @@ export default function AdminSidebar({
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutGrid, href: '/admin' },
-    { name: 'Customers', icon: Users, href: '/admin' },
+    { name: 'Customers', icon: Users, href: '/admin/customers' },
     { name: 'Inventory', icon: Archive, href: '/admin' },
     { name: 'Delivery Partners', icon: Truck, href: '/admin' },
     { name: 'Invoices & Payments', icon: ReceiptText, href: '/admin' },
@@ -132,9 +132,9 @@ export default function AdminSidebar({
 
             if (isCollapsed) {
               return (
-                <button
+                <Link
                   key={item.name}
-                  type="button"
+                  href={item.href}
                   onClick={() => handleClick(item.name)}
                   title={item.name}
                   className={`w-11 h-11 mx-auto flex items-center justify-center rounded-xl transition cursor-pointer ${
@@ -148,14 +148,14 @@ export default function AdminSidebar({
                       isActive ? 'text-[#BC0118] stroke-[2.2]' : 'text-[#826A6A] stroke-[1.8]'
                     }`}
                   />
-                </button>
+                </Link>
               );
             }
 
             return (
-              <button
+              <Link
                 key={item.name}
-                type="button"
+                href={item.href}
                 onClick={() => handleClick(item.name)}
                 className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm transition cursor-pointer text-left ${
                   isActive
@@ -169,7 +169,7 @@ export default function AdminSidebar({
                   }`}
                 />
                 <span className="leading-none">{item.name}</span>
-              </button>
+              </Link>
             );
           })}
         </nav>
