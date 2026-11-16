@@ -35,6 +35,10 @@ import {
   BookOpen,
   Hourglass,
   Check,
+  QrCode,
+  Banknote,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-react';
 
 export interface InvoiceRecord {
@@ -53,7 +57,6 @@ export interface InvoiceRecord {
   paidAmount: number;
   balanceDue: number;
   status: 'Paid' | 'Partially Paid' | 'Unpaid';
-  // Detailed fields for inspection flyout
   phone?: string;
   address?: string;
   deliveryPass?: string;
@@ -65,6 +68,35 @@ export interface InvoiceRecord {
     note: string;
     type: 'settled' | 'pending';
   }>;
+}
+
+export interface PaymentRecord {
+  id: string;
+  paymentRef: string;
+  date: string;
+  time: string;
+  customerName: string;
+  customerCode: string;
+  relatedInvoicesText: string;
+  isSpecialRelated?: boolean;
+  deliveryPartner: string;
+  receivedAmount: number;
+  method: 'Cash' | 'UPI';
+  allocatedAmount: number;
+  advanceAmount: number;
+  verification: 'Verified' | 'Pending Verif.' | 'Not Applicable';
+  phone?: string;
+  route?: string;
+  cashDepotVerified?: boolean;
+  fifoSteps?: Array<{
+    title: string;
+    invoiceNo: string;
+    amount: number;
+    statusBadge: 'Paid' | 'Credited';
+    note: string;
+    isSurplus?: boolean;
+  }>;
+  auditTrail?: string[];
 }
 
 const detailedInvoicesList: InvoiceRecord[] = [
@@ -262,6 +294,238 @@ const detailedInvoicesList: InvoiceRecord[] = [
   },
 ];
 
+const initialPaymentsList: PaymentRecord[] = [
+  {
+    id: 'pay-001',
+    paymentRef: 'PAY-20261015-001',
+    date: '15 Oct 2026',
+    time: '15 Oct 2026, 10:30 AM',
+    customerName: 'Rajesh Kumar',
+    customerCode: 'CUS-00124',
+    relatedInvoicesText: 'INV-20261015-001',
+    deliveryPartner: 'DP-001 Rajesh',
+    receivedAmount: 2200,
+    method: 'Cash',
+    allocatedAmount: 2200,
+    advanceAmount: 0,
+    verification: 'Pending Verif.',
+    phone: '+91 98401 22340',
+    route: 'West Veli St, Madurai',
+    cashDepotVerified: false,
+    fifoSteps: [
+      {
+        title: 'Step 1 · Oldest Invoice',
+        invoiceNo: 'INV-20261015-001 (15 Oct 2026)',
+        amount: 2200,
+        statusBadge: 'Paid',
+        note: 'Cleared full invoice balance; zero pending balance remaining.',
+      },
+    ],
+    auditTrail: [
+      'Field Collection: Handed over in cash to Rajesh at 10:30 AM via Driver App #SG-M01.',
+      'FIFO Allocation: Automated clearance executed in real time by the Super Gas Core Billing engine.',
+      'Depot Physical Audit: Awaiting physical counter cash verification at HQ Depot.',
+    ],
+  },
+  {
+    id: 'pay-002',
+    paymentRef: 'PAY-20261015-002',
+    date: '15 Oct 2026',
+    time: '15 Oct 2026, 11:15 AM',
+    customerName: 'Mohammed Ali',
+    customerCode: 'CUS-00125',
+    relatedInvoicesText: '2 Invoices Settled',
+    deliveryPartner: 'DP-003 Suresh',
+    receivedAmount: 1200,
+    method: 'UPI',
+    allocatedAmount: 1200,
+    advanceAmount: 0,
+    verification: 'Not Applicable',
+    phone: '+91 98421 56789',
+    route: 'KK Nagar 4th St, Madurai',
+    cashDepotVerified: false,
+    fifoSteps: [
+      {
+        title: 'Step 1 · Oldest Invoice',
+        invoiceNo: 'INV-20261012-044 (12 Oct 2026)',
+        amount: 500,
+        statusBadge: 'Paid',
+        note: 'Cleared historical balance in chronological priority.',
+      },
+      {
+        title: 'Step 2 · Subsequent Invoice',
+        invoiceNo: 'INV-20261015-002 (15 Oct 2026)',
+        amount: 700,
+        statusBadge: 'Paid',
+        note: 'Settled delivery bill upon gate handover.',
+      },
+    ],
+    auditTrail: [
+      'Digital Gateway: Received via BharatPe / UPI Terminal Ref #BH-98213.',
+      'FIFO Allocation: Automated clearance executed in real time by Super Gas Core.',
+      'Bank Reconciliation: Verified against HDFC Current Account statement.',
+    ],
+  },
+  {
+    id: 'pay-003',
+    paymentRef: 'PAY-20261015-003',
+    date: '15 Oct 2026',
+    time: '15 Oct 2026, 12:05 PM',
+    customerName: 'Priya Stores',
+    customerCode: 'CUS-00126 · Retail',
+    relatedInvoicesText: '2 Cleared + Advance',
+    isSpecialRelated: true,
+    deliveryPartner: 'DP-002 Mohamed',
+    receivedAmount: 3000,
+    method: 'Cash',
+    allocatedAmount: 2500,
+    advanceAmount: 500,
+    verification: 'Verified',
+    phone: '+91 98945 12345',
+    route: 'Bypass Rd, Madurai',
+    cashDepotVerified: true,
+    fifoSteps: [
+      {
+        title: 'Step 1 · Oldest Invoice',
+        invoiceNo: 'INV-20261010-078 (10 Oct 2026)',
+        amount: 1500,
+        statusBadge: 'Paid',
+        note: 'Cleared full outstanding invoice balance in sequence.',
+      },
+      {
+        title: 'Step 2 · Subsequent Invoice',
+        invoiceNo: 'INV-20261012-081 (12 Oct 2026)',
+        amount: 1000,
+        statusBadge: 'Paid',
+        note: 'Cleared full invoice balance; zero pending balance remaining.',
+      },
+      {
+        title: 'Step 3 · Surplus Customer Advance',
+        invoiceNo: 'Customer Advance Pool (#ADV-20261015-09)',
+        amount: 500,
+        statusBadge: 'Credited',
+        note: 'All past invoices are satisfied. Excess funds retained as pre-payment credit.',
+        isSurplus: true,
+      },
+    ],
+    auditTrail: [
+      'Field Collection: Handed over in cash to Mohamed Irfan at 12:05 PM via Driver App #SG-M04.',
+      'FIFO Allocation: Automated clearance executed in real time by the Super Gas Core Billing engine.',
+      'Depot Physical Audit: Cash physically deposited and verified at HQ Depot at 05:30 PM by Admin S. Raman.',
+    ],
+  },
+  {
+    id: 'pay-004',
+    paymentRef: 'PAY-20261014-004',
+    date: '14 Oct 2026',
+    time: '14 Oct 2026, 04:20 PM',
+    customerName: 'Lakshmi Agencies',
+    customerCode: 'CUS-00128',
+    relatedInvoicesText: 'INV-20261014-004',
+    deliveryPartner: 'DP-001 Rajesh',
+    receivedAmount: 1400,
+    method: 'UPI',
+    allocatedAmount: 1400,
+    advanceAmount: 0,
+    verification: 'Not Applicable',
+    phone: '+91 97890 55412',
+    route: 'South Gate Industrial, Madurai',
+    cashDepotVerified: false,
+    fifoSteps: [
+      {
+        title: 'Step 1 · Oldest Invoice',
+        invoiceNo: 'INV-20261014-004 (14 Oct 2026)',
+        amount: 1400,
+        statusBadge: 'Paid',
+        note: 'Cleared complete dispatch order total.',
+      },
+    ],
+    auditTrail: [
+      'Digital Collection: Customer scanned QR on delivery confirmation receipt.',
+      'FIFO Allocation: Automated clearance executed in real time by Super Gas Core.',
+      'Bank Reconciliation: Verified and tagged to HDFC Settlement ledger.',
+    ],
+  },
+  {
+    id: 'pay-005',
+    paymentRef: 'PAY-20261014-005',
+    date: '14 Oct 2026',
+    time: '14 Oct 2026, 02:10 PM',
+    customerName: 'Hotel Annapoorna',
+    customerCode: 'CUS-00542 · Commercial',
+    relatedInvoicesText: 'INV-20261011-065',
+    deliveryPartner: 'DP-003 Suresh',
+    receivedAmount: 4500,
+    method: 'Cash',
+    allocatedAmount: 4500,
+    advanceAmount: 0,
+    verification: 'Verified',
+    phone: '+91 94432 98765',
+    route: 'Simmakkal Route, Madurai',
+    cashDepotVerified: true,
+    fifoSteps: [
+      {
+        title: 'Step 1 · Oldest Invoice',
+        invoiceNo: 'INV-20261011-065 (11 Oct 2026)',
+        amount: 4500,
+        statusBadge: 'Paid',
+        note: 'High-volume commercial dispatch invoice cleared.',
+      },
+    ],
+    auditTrail: [
+      'Field Collection: Bulk cash handover logged by DP-003 Suresh Babu.',
+      'FIFO Allocation: Real-time invoice liquidation completed.',
+      'Depot Physical Audit: Physical cash verified and sealed in depot night vault.',
+    ],
+  },
+  {
+    id: 'pay-006',
+    paymentRef: 'PAY-20261013-006',
+    date: '13 Oct 2026',
+    time: '13 Oct 2026, 05:45 PM',
+    customerName: 'Sri Krishna Sweets',
+    customerCode: 'CUS-00088',
+    relatedInvoicesText: '3 Invoices Settled',
+    deliveryPartner: 'DP-002 Mohamed',
+    receivedAmount: 4000,
+    method: 'UPI',
+    allocatedAmount: 4000,
+    advanceAmount: 0,
+    verification: 'Not Applicable',
+    phone: '+91 98401 54321',
+    route: 'Town Hall Road, Madurai',
+    cashDepotVerified: false,
+    fifoSteps: [
+      {
+        title: 'Step 1 · Oldest Invoice',
+        invoiceNo: 'INV-20261009-021 (09 Oct 2026)',
+        amount: 1500,
+        statusBadge: 'Paid',
+        note: 'Prioritized oldest outstanding invoice balance.',
+      },
+      {
+        title: 'Step 2 · Intermediate Invoice',
+        invoiceNo: 'INV-20261011-039 (11 Oct 2026)',
+        amount: 2200,
+        statusBadge: 'Paid',
+        note: 'Full invoice cleared.',
+      },
+      {
+        title: 'Step 3 · Current Invoice',
+        invoiceNo: 'INV-20261013-006 (13 Oct 2026)',
+        amount: 300,
+        statusBadge: 'Paid',
+        note: 'Partial invoice balance settled.',
+      },
+    ],
+    auditTrail: [
+      'Digital Gateway: Instant UPI clearance ref #UPI-880291.',
+      'FIFO Allocation: Real-time automated liquidation executed.',
+      'Depot Audit: Ledger confirmed atomically.',
+    ],
+  },
+];
+
 const overviewInvoices: InvoiceRecord[] = [
   {
     id: 'inv-1',
@@ -355,7 +619,7 @@ interface AdminInvoicesPageProps {
 }
 
 export default function AdminInvoicesPage({
-  initialTab = 'Invoices',
+  initialTab = 'Payments',
 }: AdminInvoicesPageProps) {
   const [activeTab, setActiveTab] = useState<'Overview' | 'Invoices' | 'Payments' | 'Cash Reconciliation' | 'Customer Ledger'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
@@ -364,9 +628,17 @@ export default function AdminInvoicesPage({
   const [customerFilter, setCustomerFilter] = useState('All Customers');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Table Selection & Inspection
+  // Invoices Tab Table Selection & Inspection
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(['inv-101']);
-  const [inspectedInvoice, setInspectedInvoice] = useState<InvoiceRecord | null>(detailedInvoicesList[1]); // Default to Mohammed Ali (INV-20261015-002) matching Figma!
+  const [inspectedInvoice, setInspectedInvoice] = useState<InvoiceRecord | null>(detailedInvoicesList[1]); // Default to Mohammed Ali (INV-20261015-002)
+
+  // Payments Tab State
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>(['pay-003']); // Default checked on Priya Stores (PAY-20261015-003)
+  const [inspectedPayment, setInspectedPayment] = useState<PaymentRecord | null>(initialPaymentsList[2]); // Default to PAY-20261015-003 Priya Stores
+  const [paymentSearchQuery, setPaymentSearchQuery] = useState('');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('All Methods');
+  const [paymentPartnerFilter, setPaymentPartnerFilter] = useState('All Delivery Partners');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('All Statuses');
 
   // Modals
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
@@ -397,11 +669,26 @@ export default function AdminInvoicesPage({
     );
   };
 
-  const toggleSelectAll = () => {
+  const toggleSelectAllInvoices = () => {
     if (selectedInvoiceIds.length === detailedInvoicesList.length) {
       setSelectedInvoiceIds([]);
     } else {
       setSelectedInvoiceIds(detailedInvoicesList.map((i) => i.id));
+    }
+  };
+
+  const toggleSelectPayment = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedPaymentIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllPayments = () => {
+    if (selectedPaymentIds.length === initialPaymentsList.length) {
+      setSelectedPaymentIds([]);
+    } else {
+      setSelectedPaymentIds(initialPaymentsList.map((p) => p.id));
     }
   };
 
@@ -429,6 +716,31 @@ export default function AdminInvoicesPage({
       return true;
     });
   }, [searchQuery, statusFilter, partnerFilter, customerFilter]);
+
+  const filteredPayments = useMemo(() => {
+    return initialPaymentsList.filter((pay) => {
+      if (paymentSearchQuery.trim()) {
+        const q = paymentSearchQuery.toLowerCase();
+        const match =
+          pay.paymentRef.toLowerCase().includes(q) ||
+          pay.customerName.toLowerCase().includes(q) ||
+          pay.customerCode.toLowerCase().includes(q) ||
+          pay.relatedInvoicesText.toLowerCase().includes(q) ||
+          pay.deliveryPartner.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      if (paymentMethodFilter !== 'All Methods' && paymentMethodFilter !== 'All Methods (Cash, UPI)') {
+        if (pay.method !== paymentMethodFilter) return false;
+      }
+      if (paymentPartnerFilter !== 'All Delivery Partners') {
+        if (!pay.deliveryPartner.toLowerCase().includes(paymentPartnerFilter.toLowerCase())) return false;
+      }
+      if (paymentStatusFilter !== 'All Statuses' && paymentStatusFilter !== 'All') {
+        if (pay.verification !== paymentStatusFilter) return false;
+      }
+      return true;
+    });
+  }, [paymentSearchQuery, paymentMethodFilter, paymentPartnerFilter, paymentStatusFilter]);
 
   const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -504,13 +816,23 @@ export default function AdminInvoicesPage({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  {activeTab === 'Invoices' ? 'Invoices' : 'Invoices & Payments'}
+                  {activeTab === 'Invoices'
+                    ? 'Invoices'
+                    : activeTab === 'Payments'
+                    ? 'Payments'
+                    : 'Invoices & Payments'}
                 </h1>
-                {activeTab === 'Invoices' ? (
+                {activeTab === 'Invoices' && (
                   <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
                     86 Total
                   </span>
-                ) : (
+                )}
+                {activeTab === 'Payments' && (
+                  <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
+                    58 Entries
+                  </span>
+                )}
+                {activeTab === 'Overview' && (
                   <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
                     Live Sync Active
@@ -520,6 +842,8 @@ export default function AdminInvoicesPage({
               <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
                 {activeTab === 'Invoices'
                   ? 'View and manage customer invoices, payment status, and outstanding balances.'
+                  : activeTab === 'Payments'
+                  ? 'Track customer payments, collection methods, invoice allocations, and customer credit balance.'
                   : 'Manage customer invoices, payment collections, outstanding balances, and customer advances with automated FIFO liquidation.'}
               </p>
             </div>
@@ -528,11 +852,17 @@ export default function AdminInvoicesPage({
             <div className="flex items-center gap-3 shrink-0">
               <button
                 type="button"
-                onClick={() => triggerToast('Exporting invoices register...')}
+                onClick={() =>
+                  triggerToast(
+                    activeTab === 'Payments'
+                      ? 'Exporting payments registry...'
+                      : 'Exporting invoices register...'
+                  )
+                }
                 className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
-                <span>Export</span>
+                <span>{activeTab === 'Payments' ? 'Export Payments' : 'Export'}</span>
               </button>
 
               {activeTab === 'Invoices' ? (
@@ -581,7 +911,558 @@ export default function AdminInvoicesPage({
           </div>
 
           {/* ========================================================= */}
-          {/* TAB 1: INVOICES TAB (Exact matching attached Figma image) */}
+          {/* TAB: PAYMENTS TAB (Exact matching attached Figma image)    */}
+          {/* ========================================================= */}
+          {activeTab === 'Payments' && (
+            <div className="space-y-5">
+              {/* Automatic FIFO Engine Active Banner */}
+              <div className="bg-[#F0F5FF] rounded-2xl border border-blue-200/70 p-4 shadow-2xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4 fill-slate-700 text-slate-700" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900">
+                        Automatic FIFO Engine Active
+                      </h3>
+                      <span className="bg-emerald-800 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded">
+                        ENFORCED
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-relaxed">
+                      Incoming payments strictly clear the oldest outstanding invoices first in chronological sequence. Admins and field delivery partners cannot manually override allocation order. Any surplus payment is automatically preserved and credited to Customer Advances for future billing.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => triggerToast('Opening FIFO Engine Audit Logic')}
+                  className="text-xs font-bold text-[#BC0118] hover:underline flex items-center gap-1 shrink-0 self-end md:self-center cursor-pointer"
+                >
+                  <span>Audit Logic</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Payments Title & Reset Bar */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Payments</h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentSearchQuery('');
+                      setPaymentMethodFilter('All Methods');
+                      setPaymentPartnerFilter('All Delivery Partners');
+                      setPaymentStatusFilter('All Statuses');
+                      triggerToast('Payments filters reset');
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Filters</span>
+                  </button>
+                </div>
+
+                {/* Filter Controls Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+                  {/* Search input */}
+                  <div className="lg:col-span-4 relative">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={paymentSearchQuery}
+                      onChange={(e) => setPaymentSearchQuery(e.target.value)}
+                      placeholder="Search payment ref, customer name or invoice..."
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-9.5 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                    />
+                  </div>
+
+                  {/* Date range */}
+                  <div className="lg:col-span-3">
+                    <button
+                      type="button"
+                      onClick={() => triggerToast('Date range: Oct 01, 2026 - Oct 24, 2026')}
+                      className="w-full bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 flex items-center justify-between gap-2 shadow-2xs cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Oct 01, 2026 - Oct 24, 2026</span>
+                      </div>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  </div>
+
+                  {/* Method dropdown */}
+                  <div className="lg:col-span-2 relative">
+                    <select
+                      value={paymentMethodFilter}
+                      onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                      className="w-full bg-white border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All Methods">All Methods (Cash, UPI)</option>
+                      <option value="Cash">Cash Only</option>
+                      <option value="UPI">UPI Only</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Partner dropdown */}
+                  <div className="lg:col-span-2 relative">
+                    <select
+                      value={paymentPartnerFilter}
+                      onChange={(e) => setPaymentPartnerFilter(e.target.value)}
+                      className="w-full bg-white border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All Delivery Partners">All Delivery Partners</option>
+                      <option value="Rajesh">DP-001 Rajesh</option>
+                      <option value="Mohamed">DP-002 Mohamed</option>
+                      <option value="Suresh">DP-003 Suresh</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Statuses dropdown */}
+                  <div className="lg:col-span-1 relative">
+                    <select
+                      value={paymentStatusFilter}
+                      onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                      className="w-full bg-white border border-slate-200 hover:bg-slate-50 pl-3 pr-7 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                    >
+                      <option value="All Statuses">All</option>
+                      <option value="Verified">Verified</option>
+                      <option value="Pending Verif.">Pending</option>
+                      <option value="Not Applicable">N/A</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Content Split: Left Table + Right Flyout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                {/* Left Table (Cols 8 when drawer open) */}
+                <div className={`${inspectedPayment ? 'lg:col-span-8' : 'lg:col-span-12'} bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all space-y-4`}>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#EDF2F9] text-slate-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                          <th className="py-3 px-3 w-8">
+                            <input
+                              type="checkbox"
+                              checked={selectedPaymentIds.length === initialPaymentsList.length}
+                              onChange={toggleSelectAllPayments}
+                              className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                            />
+                          </th>
+                          <th className="py-3 px-3">PAYMENT REF &amp; DATE</th>
+                          <th className="py-3 px-3">CUSTOMER</th>
+                          <th className="py-3 px-3 text-center">RELATED INVOICES</th>
+                          <th className="py-3 px-3">DP / AGENT</th>
+                          <th className="py-3 px-3 text-right">RECEIVED</th>
+                          <th className="py-3 px-3 text-center">METHOD</th>
+                          <th className="py-3 px-3 text-right">ALLOCATED</th>
+                          <th className="py-3 px-3 text-right">ADVANCE</th>
+                          <th className="py-3 px-3 text-center">VERIFICATION</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                        {filteredPayments.map((pay) => {
+                          const isInspected = inspectedPayment?.id === pay.id;
+                          const isChecked = selectedPaymentIds.includes(pay.id);
+
+                          return (
+                            <tr
+                              key={pay.id}
+                              onClick={() => setInspectedPayment(pay)}
+                              className={`transition cursor-pointer ${
+                                isInspected
+                                  ? 'bg-red-50/40 hover:bg-red-50/60'
+                                  : 'hover:bg-slate-50/80'
+                              }`}
+                            >
+                              {/* Checkbox */}
+                              <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => toggleSelectPayment(pay.id, e as unknown as React.MouseEvent)}
+                                  className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                />
+                              </td>
+
+                              {/* Payment Ref & Date */}
+                              <td className="py-3.5 px-3">
+                                <div
+                                  className={`font-black ${
+                                    isInspected ? 'text-[#BC0118]' : 'text-slate-900'
+                                  }`}
+                                >
+                                  {pay.paymentRef}
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
+                                  {pay.time}
+                                </div>
+                              </td>
+
+                              {/* Customer */}
+                              <td className="py-3.5 px-3">
+                                <div className="font-extrabold text-slate-900 leading-tight">
+                                  {pay.customerName}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  {pay.customerCode}
+                                </div>
+                              </td>
+
+                              {/* Related Invoices */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                {pay.isSpecialRelated ? (
+                                  <span className="inline-block bg-red-50 text-red-700 border border-red-100 font-extrabold text-[10px] px-2 py-0.5 rounded leading-tight">
+                                    2<br />Cleared<br />+<br />Advance
+                                  </span>
+                                ) : (
+                                  <span className="bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-100/70">
+                                    {pay.relatedInvoicesText}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* DP / Agent */}
+                              <td className="py-3.5 px-3 whitespace-nowrap text-slate-700 font-semibold text-xs">
+                                {pay.deliveryPartner}
+                              </td>
+
+                              {/* Received */}
+                              <td className="py-3.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
+                                ₹{pay.receivedAmount.toLocaleString()}
+                              </td>
+
+                              {/* Method */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                {pay.method === 'Cash' ? (
+                                  <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100/80 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                    <Banknote className="w-3 h-3" />
+                                    <span>Cash</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100/80 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                    <QrCode className="w-3 h-3" />
+                                    <span>UPI</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Allocated */}
+                              <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
+                                <span className={pay.isSpecialRelated ? 'text-emerald-700' : 'text-slate-900'}>
+                                  ₹{pay.allocatedAmount.toLocaleString()}
+                                </span>
+                              </td>
+
+                              {/* Advance */}
+                              <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
+                                {pay.advanceAmount > 0 ? (
+                                  <span className="text-[#BC0118]">
+                                    ₹{pay.advanceAmount.toLocaleString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400 font-bold">₹0</span>
+                                )}
+                              </td>
+
+                              {/* Verification */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                {pay.verification === 'Verified' && (
+                                  <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2 py-0.5 rounded">
+                                    Verified
+                                  </span>
+                                )}
+                                {pay.verification === 'Pending Verif.' && (
+                                  <span className="bg-amber-50 text-amber-700 border border-amber-200 font-extrabold text-[10px] px-2 py-0.5 rounded">
+                                    Pending Verif.
+                                  </span>
+                                )}
+                                {pay.verification === 'Not Applicable' && (
+                                  <span className="bg-slate-100 text-slate-500 font-bold text-[10px] px-2 py-0.5 rounded">
+                                    Not Applicable
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Footer */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs text-slate-500 font-medium">
+                    <div className="flex items-center gap-3">
+                      <span>
+                        Showing <strong className="text-slate-900">1 to 6</strong> of <strong className="text-slate-900">58</strong> payments
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-slate-400">Rows per page:</span>
+                        <span className="bg-slate-100 font-extrabold text-slate-800 px-2 py-0.5 rounded-md">
+                          10
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Page 1 active')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="w-7 h-7 bg-[#BC0118] text-white rounded-lg font-black flex items-center justify-center cursor-pointer shadow-2xs"
+                      >
+                        1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to page 2')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        2
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to page 3')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        3
+                      </button>
+                      <span className="px-1 text-slate-400">..</span>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to page 6')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        6
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Navigating to next page')}
+                        className="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold flex items-center justify-center hover:bg-slate-50 cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Flyout / Inspection Card (Cols 4) */}
+                {inspectedPayment && (
+                  <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4 animate-in fade-in duration-150">
+                    {/* Top Title & Close Button */}
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                            {inspectedPayment.paymentRef}
+                          </h3>
+                          <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[10px] px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                            Verified Cash
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                          Recorded on {inspectedPayment.time} by Driver Terminal ({inspectedPayment.deliveryPartner})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setInspectedPayment(null)}
+                        className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                        title="Close Inspector"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Customer Box */}
+                    <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/70 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-black text-xs flex items-center justify-center">
+                            PS
+                          </div>
+                          <div>
+                            <span className="font-black text-sm text-slate-900 block leading-tight">
+                              {inspectedPayment.customerName}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              {inspectedPayment.customerCode}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => triggerToast(`Opening customer details for ${inspectedPayment.customerName}`)}
+                          className="text-[#BC0118] hover:text-red-800 transition cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Contact & Depot Route */}
+                      <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                        <div className="bg-white rounded-lg p-2 border border-slate-200/80">
+                          <span className="text-[10px] text-slate-400 font-semibold block">Contact Phone</span>
+                          <span className="font-bold text-slate-900 text-[11px] block mt-0.5">
+                            {inspectedPayment.phone ?? '+91 98945 12345'}
+                          </span>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 border border-slate-200/80">
+                          <span className="text-[10px] text-slate-400 font-semibold block">Depot Route</span>
+                          <span className="font-bold text-slate-900 text-[11px] block mt-0.5">
+                            {inspectedPayment.route ?? 'Bypass Rd, Madurai'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financial Summary Box */}
+                    <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/70 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-600 font-bold">Total Received</span>
+                        <span className="text-lg font-black text-slate-900">
+                          ₹{inspectedPayment.receivedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-600 font-semibold text-[11px]">
+                        <span>Payment Method</span>
+                        <span className="text-slate-800 font-bold flex items-center gap-1">
+                          <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Cash (Depot Verified)</span>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                        <span>Invoices Settled</span>
+                        <span className="text-emerald-700 font-black">
+                          ₹{inspectedPayment.allocatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-[11px] font-bold">
+                        <span className="text-slate-700">Surplus Credited to Advance</span>
+                        <span className="text-[#BC0118] font-black">
+                          ₹{inspectedPayment.advanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Section: Chronological FIFO Allocation */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                          CHRONOLOGICAL FIFO ALLOCATION
+                        </span>
+                        <span className="text-[10px] font-extrabold text-emerald-700 flex items-center gap-1">
+                          <RefreshCw className="w-3 h-3 text-emerald-600" />
+                          <span>Automated</span>
+                        </span>
+                      </div>
+
+                      {/* Timeline Steps */}
+                      <div className="relative pl-5 space-y-3 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                        {inspectedPayment.fifoSteps?.map((step, idx) => (
+                          <div key={idx} className="relative">
+                            {/* Dot on line */}
+                            <span
+                              className={`absolute -left-5 top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white ${
+                                step.isSurplus ? 'bg-[#BC0118]' : 'bg-emerald-500'
+                              }`}
+                            ></span>
+
+                            <div className="bg-[#F8FAFC] rounded-xl p-2.5 border border-slate-200/80 space-y-1">
+                              <div className="flex items-center justify-between text-xs font-black">
+                                <span className="text-slate-900">{step.title}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`text-[9px] font-black px-1.5 py-0.2 rounded ${
+                                      step.statusBadge === 'Credited'
+                                        ? 'bg-red-50 text-[#BC0118] border border-red-100'
+                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                    }`}
+                                  >
+                                    {step.statusBadge}
+                                  </span>
+                                  <span
+                                    className={`font-black ${
+                                      step.isSurplus ? 'text-[#BC0118]' : 'text-slate-900'
+                                    }`}
+                                  >
+                                    ₹{step.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-semibold">
+                                {step.invoiceNo}
+                              </div>
+                              <p className="text-[10px] text-slate-600 font-medium leading-tight">
+                                {step.note}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section: Settlement & Audit Trail */}
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                        <span>SETTLEMENT &amp; AUDIT TRAIL</span>
+                      </div>
+
+                      <div className="bg-[#F8FAFC] rounded-xl p-3 border border-slate-200/80 space-y-2 text-[11px]">
+                        {inspectedPayment.auditTrail?.map((trail, idx) => (
+                          <div key={idx} className="flex items-start gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600 font-medium leading-tight">{trail}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Downloading receipt for ${inspectedPayment.paymentRef}...`)}
+                        className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs py-2.5 rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <FileDown className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Download Receipt</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Navigating to ledger for ${inspectedPayment.customerName}`)}
+                        className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs py-2.5 rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <BookOpen className="w-3.5 h-3.5 text-slate-600" />
+                        <span>View Ledger</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB: INVOICES TAB                                          */}
           {/* ========================================================= */}
           {activeTab === 'Invoices' && (
             <div className="space-y-5">
@@ -621,7 +1502,6 @@ export default function AdminInvoicesPage({
               {/* Filters & Search Bar */}
               <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
-                  {/* Search Box */}
                   <div className="relative min-w-[240px] flex-1">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -633,7 +1513,6 @@ export default function AdminInvoicesPage({
                     />
                   </div>
 
-                  {/* Date Range Dropdown */}
                   <div className="relative">
                     <button
                       type="button"
@@ -646,7 +1525,6 @@ export default function AdminInvoicesPage({
                     </button>
                   </div>
 
-                  {/* Status Dropdown */}
                   <div className="relative">
                     <select
                       value={statusFilter}
@@ -661,7 +1539,6 @@ export default function AdminInvoicesPage({
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
 
-                  {/* Delivery Partner Dropdown */}
                   <div className="relative">
                     <select
                       value={partnerFilter}
@@ -676,7 +1553,6 @@ export default function AdminInvoicesPage({
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
 
-                  {/* Customers Dropdown */}
                   <div className="relative">
                     <select
                       value={customerFilter}
@@ -691,7 +1567,6 @@ export default function AdminInvoicesPage({
                   </div>
                 </div>
 
-                {/* Reset button & label */}
                 <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
                   <button
                     type="button"
@@ -713,7 +1588,6 @@ export default function AdminInvoicesPage({
 
               {/* Main Content Split: Left Table + Right Flyout */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                {/* Left Table (Cols 7 or 8 when drawer is open) */}
                 <div className={`${inspectedInvoice ? 'lg:col-span-8' : 'lg:col-span-12'} bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all space-y-4`}>
                   <div className="overflow-x-auto rounded-xl border border-slate-200/80">
                     <table className="w-full text-left text-xs border-collapse">
@@ -723,7 +1597,7 @@ export default function AdminInvoicesPage({
                             <input
                               type="checkbox"
                               checked={selectedInvoiceIds.length === detailedInvoicesList.length}
-                              onChange={toggleSelectAll}
+                              onChange={toggleSelectAllInvoices}
                               className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
                             />
                           </th>
@@ -753,7 +1627,6 @@ export default function AdminInvoicesPage({
                                   : 'hover:bg-slate-50/80'
                               }`}
                             >
-                              {/* Checkbox */}
                               <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
                                 <input
                                   type="checkbox"
@@ -762,24 +1635,14 @@ export default function AdminInvoicesPage({
                                   className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
                                 />
                               </td>
-
-                              {/* Invoice Number */}
                               <td className="py-3.5 px-3">
-                                <span
-                                  className={`font-black ${
-                                    isInspected ? 'text-[#BC0118]' : 'text-slate-900'
-                                  }`}
-                                >
+                                <span className={`font-black ${isInspected ? 'text-[#BC0118]' : 'text-slate-900'}`}>
                                   {inv.invoiceNo}
                                 </span>
                               </td>
-
-                              {/* Date */}
                               <td className="py-3.5 px-3 text-slate-600 font-semibold whitespace-nowrap">
                                 {inv.date}
                               </td>
-
-                              {/* Customer */}
                               <td className="py-3.5 px-3">
                                 <div className="font-extrabold text-slate-900 leading-tight">
                                   {inv.customerName}
@@ -788,16 +1651,12 @@ export default function AdminInvoicesPage({
                                   {inv.customerCode}
                                 </div>
                               </td>
-
-                              {/* Delivery Partner */}
                               <td className="py-3.5 px-3 whitespace-nowrap">
                                 <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
                                   <Truck className="w-3.5 h-3.5 text-slate-400" />
                                   <span>{inv.deliveryPartnerName}</span>
                                 </div>
                               </td>
-
-                              {/* Cylinders */}
                               <td className="py-3.5 px-3">
                                 <div className="flex flex-wrap gap-1">
                                   {inv.cylinders.map((cyl, idx) => (
@@ -810,13 +1669,9 @@ export default function AdminInvoicesPage({
                                   ))}
                                 </div>
                               </td>
-
-                              {/* Inv Amount */}
                               <td className="py-3.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
                                 ₹{inv.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </td>
-
-                              {/* Paid */}
                               <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
                                 {inv.paidAmount > 0 ? (
                                   <span className="text-emerald-700">
@@ -826,8 +1681,6 @@ export default function AdminInvoicesPage({
                                   <span className="text-slate-500 font-bold">₹0.00</span>
                                 )}
                               </td>
-
-                              {/* Balance Due */}
                               <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
                                 {inv.balanceDue > 0 ? (
                                   <span className="text-[#BC0118]">
@@ -837,8 +1690,6 @@ export default function AdminInvoicesPage({
                                   <span className="text-slate-400 font-bold">₹0.00</span>
                                 )}
                               </td>
-
-                              {/* Status */}
                               <td className="py-3.5 px-3 text-center whitespace-nowrap">
                                 {inv.status === 'Paid' && (
                                   <span className="bg-emerald-50 text-emerald-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-emerald-100">
@@ -927,7 +1778,6 @@ export default function AdminInvoicesPage({
                 {/* Right Flyout / Inspection Card (Cols 4) */}
                 {inspectedInvoice && (
                   <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4 animate-in fade-in duration-150">
-                    {/* Top Title & Close Button */}
                     <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                       <div>
                         <div className="flex items-center gap-2">
@@ -952,7 +1802,6 @@ export default function AdminInvoicesPage({
                       </button>
                     </div>
 
-                    {/* Section 1: Customer Information */}
                     <div className="space-y-2.5">
                       <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                         CUSTOMER INFORMATION
@@ -986,7 +1835,6 @@ export default function AdminInvoicesPage({
                         </div>
                       </div>
 
-                      {/* Two Sub-cards: Assigned Partner & Delivery Pass */}
                       <div className="grid grid-cols-2 gap-2.5">
                         <div className="bg-[#F8FAFC] rounded-xl p-2.5 border border-slate-200/70">
                           <span className="text-[10px] text-slate-400 font-bold block">Assigned Partner</span>
@@ -1005,7 +1853,6 @@ export default function AdminInvoicesPage({
                       </div>
                     </div>
 
-                    {/* Section 2: Cylinder Dispatch Breakdown */}
                     <div className="space-y-2">
                       <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                         CYLINDER DISPATCH BREAKDOWN
@@ -1029,7 +1876,6 @@ export default function AdminInvoicesPage({
                       </div>
                     </div>
 
-                    {/* Section 3: Payment Summary */}
                     <div className="space-y-2">
                       <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                         PAYMENT SUMMARY
@@ -1056,7 +1902,6 @@ export default function AdminInvoicesPage({
                       </div>
                     </div>
 
-                    {/* Section 4: FIFO Allocation History */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
@@ -1068,7 +1913,6 @@ export default function AdminInvoicesPage({
                       </div>
 
                       <div className="space-y-2">
-                        {/* Event 1: Settled */}
                         <div className="bg-[#F0FDF4] rounded-xl p-2.5 border border-emerald-200/80 space-y-1">
                           <div className="flex items-center justify-between text-xs font-extrabold">
                             <span className="flex items-center gap-1.5 text-emerald-800">
@@ -1082,7 +1926,6 @@ export default function AdminInvoicesPage({
                           </p>
                         </div>
 
-                        {/* Event 2: Pending */}
                         <div className="bg-[#F8FAFC] rounded-xl p-2.5 border border-slate-200 space-y-1">
                           <div className="flex items-center justify-between text-xs font-extrabold">
                             <span className="flex items-center gap-1.5 text-slate-700">
@@ -1098,7 +1941,6 @@ export default function AdminInvoicesPage({
                       </div>
                     </div>
 
-                    {/* Bottom Actions */}
                     <div className="space-y-2 pt-2">
                       <button
                         type="button"
@@ -1135,7 +1977,7 @@ export default function AdminInvoicesPage({
           )}
 
           {/* ========================================================= */}
-          {/* TAB 2: OVERVIEW TAB (From previous session)                */}
+          {/* TAB: OVERVIEW TAB                                          */}
           {/* ========================================================= */}
           {activeTab === 'Overview' && (
             <div className="space-y-6">
@@ -1688,7 +2530,7 @@ export default function AdminInvoicesPage({
           )}
 
           {/* Placeholders for Other Tabs */}
-          {(activeTab === 'Payments' || activeTab === 'Cash Reconciliation' || activeTab === 'Customer Ledger') && (
+          {(activeTab === 'Cash Reconciliation' || activeTab === 'Customer Ledger') && (
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#BC0118] flex items-center justify-center mx-auto">
                 <FileText className="w-6 h-6" />
@@ -1699,10 +2541,10 @@ export default function AdminInvoicesPage({
               </p>
               <button
                 type="button"
-                onClick={() => setActiveTab('Invoices')}
+                onClick={() => setActiveTab('Payments')}
                 className="mt-3 px-4 py-2 bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
               >
-                Back to Invoices
+                Back to Payments
               </button>
             </div>
           )}
