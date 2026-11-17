@@ -41,6 +41,9 @@ import {
   RefreshCw,
   MoreVertical,
   Info,
+  ArrowLeft,
+  ClipboardList,
+  GitBranch,
 } from 'lucide-react';
 
 export interface InvoiceRecord {
@@ -950,12 +953,15 @@ const overviewInvoices: InvoiceRecord[] = [
 
 export interface LedgerTransaction {
   date: string;
-  type: 'Invoice' | 'Payment' | 'Advance Credit';
+  dateTime?: string;
+  type: 'Invoice Created' | 'Payment Received' | 'Invoice' | 'Payment' | 'Advance Credit';
   reference: string;
   description: string;
-  debit: number;
-  credit: number;
+  debit: number | null;
+  credit: number | null;
   runningBalance: number;
+  note?: string;
+  actionText?: string;
 }
 
 export interface CustomerLedgerRecord {
@@ -963,12 +969,18 @@ export interface CustomerLedgerRecord {
   name: string;
   customerCode: string;
   phone: string;
+  address?: string;
+  partnerVehicle?: string;
+  category?: string;
   assignedPartner: string;
   assignedPartnerCode?: string;
   totalInvoiced: number;
   paymentsReceived: number;
   outstandingBalance: number;
   availableAdvance: number;
+  totalAmountPaid?: number;
+  paidInvoicesCount?: number;
+  pendingInvoicesCount?: number;
   status: 'Outstanding' | 'Advance Available' | 'Settled' | 'Inactive';
   transactions: LedgerTransaction[];
 }
@@ -979,49 +991,64 @@ const initialCustomerLedgerList: CustomerLedgerRecord[] = [
     name: 'Rajesh Kumar',
     customerCode: 'CUS-00124',
     phone: '+91 98765 43210',
+    address: 'Plot 14, Anna Nagar 2nd St, Madurai',
+    partnerVehicle: 'DP-001 (Van 04)',
+    category: 'Domestic Consumer',
     assignedPartner: 'Rajesh Kumar',
     assignedPartnerCode: 'DP-001',
     totalInvoiced: 3000,
     paymentsReceived: 2000,
     outstandingBalance: 2000,
     availableAdvance: 500,
+    totalAmountPaid: 2000,
+    paidInvoicesCount: 1,
+    pendingInvoicesCount: 2,
     status: 'Outstanding',
     transactions: [
       {
         date: '10 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261010-011',
-        description: '10x 14.2kg Domestic Refill',
-        debit: 2000,
-        credit: 0,
-        runningBalance: 2000,
+        dateTime: '10 Oct 2026, 11:30 AM',
+        type: 'Invoice Created',
+        reference: 'INV-20261010-001',
+        description: 'Delivery: 1x 14.2kg Domestic LPG Cylinder · Ref Slip: #DEL-9812',
+        debit: 1500,
+        credit: null,
+        runningBalance: 2500,
+        note: 'incl. prev balance',
+        actionText: 'View Invoice',
       },
       {
         date: '12 Oct 2026',
-        type: 'Payment',
-        reference: 'PAY-20261012-045',
-        description: 'Cash payment via DP-001',
-        debit: 0,
-        credit: 1500,
-        runningBalance: 500,
+        dateTime: '12 Oct 2026, 02:15 PM',
+        type: 'Payment Received',
+        reference: 'PAY-20261012-001',
+        description: 'Payment received via UPI (UPI-984210992) · Auto FIFO Allocated',
+        debit: null,
+        credit: 1000,
+        runningBalance: 1500,
+        actionText: 'View Receipt',
       },
       {
         date: '15 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261015-001',
-        description: '5x 14.2kg Domestic Refill',
-        debit: 1000,
-        credit: 0,
-        runningBalance: 1500,
+        dateTime: '15 Oct 2026, 10:15 AM',
+        type: 'Invoice Created',
+        reference: 'INV-20261015-002',
+        description: 'Delivery: 1x 14.2kg Domestic LPG Cylinder · Ref Slip: #DEL-9844',
+        debit: 1500,
+        credit: null,
+        runningBalance: 3000,
+        actionText: 'View Invoice',
       },
       {
         date: '16 Oct 2026',
-        type: 'Advance Credit',
-        reference: 'ADV-20261016-01',
-        description: 'Pre-payment credit added to account',
-        debit: 0,
-        credit: 500,
-        runningBalance: 1000,
+        dateTime: '16 Oct 2026, 04:45 PM',
+        type: 'Payment Received',
+        reference: 'PAY-20261016-001',
+        description: 'Cash payment collected by DP-001 · Handover verified in batch: CASH-20261016-001',
+        debit: null,
+        credit: 1000,
+        runningBalance: 2000,
+        actionText: 'View Payment',
       },
     ],
   },
@@ -1271,11 +1298,22 @@ export default function AdminInvoicesPage({
   );
 
   // Customer Ledger Tab State
+  const [activeCustomerLedgerId, setActiveCustomerLedgerId] = useState<string | null>('CUS-00124');
+  const [individualTxFilter, setIndividualTxFilter] = useState('All Transactions');
+  const [individualTxSearch, setIndividualTxSearch] = useState('');
   const [ledgerSearchQuery, setLedgerSearchQuery] = useState('');
   const [ledgerPartnerFilter, setLedgerPartnerFilter] = useState('All Partners');
   const [ledgerBalanceFilter, setLedgerBalanceFilter] = useState('Balance: All');
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState('Active');
   const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState<CustomerLedgerRecord | null>(null);
+
+  const currentLedgerCustomer = useMemo(() => {
+    if (!activeCustomerLedgerId) return null;
+    return (
+      initialCustomerLedgerList.find((c) => c.customerCode === activeCustomerLedgerId) ||
+      initialCustomerLedgerList[0]
+    );
+  }, [activeCustomerLedgerId]);
 
   // Modals
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
@@ -1467,9 +1505,33 @@ export default function AdminInvoicesPage({
               Dashboard
             </Link>
             <span className="text-slate-300">/</span>
-            <span className="font-bold text-slate-800">
+            <Link href="/admin/invoices-payments" className="text-slate-500 hover:text-slate-800 transition">
               Invoices &amp; Payments
-            </span>
+            </Link>
+            {activeTab === 'Customer Ledger' && (
+              <>
+                <span className="text-slate-300">/</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveCustomerLedgerId(null)}
+                  className={`transition cursor-pointer ${
+                    activeCustomerLedgerId
+                      ? 'text-slate-500 hover:text-slate-800'
+                      : 'font-bold text-slate-800'
+                  }`}
+                >
+                  Customer Ledger
+                </button>
+                {activeCustomerLedgerId && (
+                  <>
+                    <span className="text-slate-300">/</span>
+                    <span className="font-bold text-slate-800">
+                      {currentLedgerCustomer?.name} ({currentLedgerCustomer?.customerCode})
+                    </span>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {/* Right Header Status, Alerts & Admin Profile */}
@@ -1507,133 +1569,137 @@ export default function AdminInvoicesPage({
         {/* Page Content */}
         <main className="p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto pb-16">
           {/* Header Title Row */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          {!(activeTab === 'Customer Ledger' && activeCustomerLedgerId) && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    {activeTab === 'Customer Ledger'
+                      ? 'Customer Ledger'
+                      : activeTab === 'Cash Reconciliation'
+                      ? 'Cash Reconciliation'
+                      : activeTab === 'Invoices'
+                      ? 'Invoices'
+                      : activeTab === 'Payments'
+                      ? 'Payments'
+                      : 'Invoices & Payments'}
+                  </h1>
+                  {activeTab === 'Invoices' && (
+                    <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
+                      86 Total
+                    </span>
+                  )}
+                  {activeTab === 'Payments' && (
+                    <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
+                      58 Entries
+                    </span>
+                  )}
+                  {activeTab === 'Overview' && (
+                    <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                      Live Sync Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
                   {activeTab === 'Customer Ledger'
-                    ? 'Customer Ledger'
+                    ? 'View customer account balances, outstanding invoices, payments, and financial history.'
                     : activeTab === 'Cash Reconciliation'
-                    ? 'Cash Reconciliation'
+                    ? 'Verify delivery partner cash handovers and investigate collection discrepancies.'
                     : activeTab === 'Invoices'
-                    ? 'Invoices'
+                    ? 'View and manage customer invoices, payment status, and outstanding balances.'
                     : activeTab === 'Payments'
-                    ? 'Payments'
-                    : 'Invoices & Payments'}
-                </h1>
-                {activeTab === 'Invoices' && (
-                  <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
-                    86 Total
-                  </span>
-                )}
-                {activeTab === 'Payments' && (
-                  <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
-                    58 Entries
-                  </span>
-                )}
-                {activeTab === 'Overview' && (
-                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-                    Live Sync Active
-                  </span>
-                )}
+                    ? 'Track customer payments, collection methods, invoice allocations, and customer credit balance.'
+                    : 'Manage customer invoices, payment collections, outstanding balances, and customer advances with automated FIFO liquidation.'}
+                </p>
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-                {activeTab === 'Customer Ledger'
-                  ? 'View customer account balances, outstanding invoices, payments, and financial history.'
-                  : activeTab === 'Cash Reconciliation'
-                  ? 'Verify delivery partner cash handovers and investigate collection discrepancies.'
-                  : activeTab === 'Invoices'
-                  ? 'View and manage customer invoices, payment status, and outstanding balances.'
-                  : activeTab === 'Payments'
-                  ? 'Track customer payments, collection methods, invoice allocations, and customer credit balance.'
-                  : 'Manage customer invoices, payment collections, outstanding balances, and customer advances with automated FIFO liquidation.'}
-              </p>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 shrink-0">
-              {activeTab === 'Customer Ledger' ? (
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Exporting customer ledger list...')}
-                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
-                >
-                  <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
-                  <span>Export Customer List</span>
-                </button>
-              ) : activeTab === 'Cash Reconciliation' ? (
-                <button
-                  type="button"
-                  onClick={() => triggerToast('Exporting cash reconciliation report...')}
-                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
-                >
-                  <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
-                  <span>Export Report</span>
-                </button>
-              ) : (
-                <>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 shrink-0">
+                {activeTab === 'Customer Ledger' ? (
                   <button
                     type="button"
-                    onClick={() =>
-                      triggerToast(
-                        activeTab === 'Payments'
-                          ? 'Exporting payments registry...'
-                          : 'Exporting invoices register...'
-                      )
-                    }
+                    onClick={() => triggerToast('Exporting customer ledger list...')}
                     className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
                   >
                     <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
-                    <span>{activeTab === 'Payments' ? 'Export Payments' : 'Export'}</span>
+                    <span>Export Customer List</span>
                   </button>
+                ) : activeTab === 'Cash Reconciliation' ? (
+                  <button
+                    type="button"
+                    onClick={() => triggerToast('Exporting cash reconciliation report...')}
+                    className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
+                    <span>Export Report</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        triggerToast(
+                          activeTab === 'Payments'
+                            ? 'Exporting payments registry...'
+                            : 'Exporting invoices register...'
+                        )
+                      }
+                      className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 stroke-[2.2] text-slate-600" />
+                      <span>{activeTab === 'Payments' ? 'Export Payments' : 'Export'}</span>
+                    </button>
 
-                  {activeTab === 'Invoices' ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateInvoiceModal(true)}
-                      className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 stroke-[2.5]" />
-                      <span>Create Invoice</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowRecordPaymentModal(true)}
-                      className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
-                    >
-                      <CreditCard className="w-4 h-4 stroke-[2.2]" />
-                      <span>Record Payment</span>
-                    </button>
-                  )}
-                </>
-              )}
+                    {activeTab === 'Invoices' ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateInvoiceModal(true)}
+                        className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
+                        <span>Create Invoice</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowRecordPaymentModal(true)}
+                        className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-4.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                      >
+                        <CreditCard className="w-4 h-4 stroke-[2.2]" />
+                        <span>Record Payment</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Navigation Tabs Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs sm:text-sm font-bold border-b border-slate-200/80">
-            {(['Overview', 'Invoices', 'Payments', 'Cash Reconciliation', 'Customer Ledger'] as const).map(
-              (tab) => {
-                const isActive = activeTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? 'bg-[#FEE2E2] text-[#801317] font-black shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                );
-              }
-            )}
-          </div>
+          {!(activeTab === 'Customer Ledger' && activeCustomerLedgerId) && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs sm:text-sm font-bold border-b border-slate-200/80">
+              {(['Overview', 'Invoices', 'Payments', 'Cash Reconciliation', 'Customer Ledger'] as const).map(
+                (tab) => {
+                  const isActive = activeTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
+                        isActive
+                          ? 'bg-[#FEE2E2] text-[#801317] font-black shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          )}
 
           {/* ========================================================= */}
           {/* TAB: PAYMENTS TAB (Exact matching attached Figma image)    */}
@@ -3872,8 +3938,444 @@ export default function AdminInvoicesPage({
           {/* TAB: CUSTOMER LEDGER TAB                                   */}
           {/* ========================================================= */}
           {activeTab === 'Customer Ledger' && (
-            <div className="space-y-5">
-              {/* Filter Controls Bar */}
+            activeCustomerLedgerId ? (
+              /* INDIVIDUAL CUSTOMER LEDGER PAGE (media_1794891492345_27e4eee1.png) */
+              <div className="space-y-5">
+                {/* Secondary Breadcrumbs & Back Row */}
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 text-slate-500">
+                    <Link href="/admin/invoices-payments" className="hover:text-slate-800 transition">
+                      Invoices &amp; Payments
+                    </Link>
+                    <span>&gt;</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveCustomerLedgerId(null)}
+                      className="hover:text-slate-800 transition cursor-pointer"
+                    >
+                      Customer Ledger
+                    </button>
+                    <span>&gt;</span>
+                    <span className="font-bold text-slate-900">
+                      {currentLedgerCustomer?.name} ({currentLedgerCustomer?.customerCode})
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveCustomerLedgerId(null)}
+                    className="text-[#BC0118] hover:text-red-800 font-bold flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Back to Customer Ledger</span>
+                  </button>
+                </div>
+
+                {/* Customer Profile Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div className="flex items-start sm:items-center gap-4">
+                    {/* Dark navy square avatar RK */}
+                    <div className="w-14 h-14 rounded-xl bg-[#1E293B] text-white font-extrabold text-lg flex items-center justify-center shrink-0 tracking-wide shadow-2xs">
+                      {currentLedgerCustomer?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2) || 'RK'}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                          {currentLedgerCustomer?.name}
+                        </h2>
+                        <span className="bg-slate-100 text-slate-700 font-bold text-xs px-2.5 py-0.5 rounded-md border border-slate-200/80">
+                          {currentLedgerCustomer?.customerCode}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                          Active Account
+                        </span>
+                        <span className="bg-slate-100 text-slate-600 font-medium text-xs px-2.5 py-0.5 rounded-md">
+                          {currentLedgerCustomer?.category || 'Domestic Consumer'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs font-semibold text-slate-600 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{currentLedgerCustomer?.phone}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{currentLedgerCustomer?.address || 'Plot 14, Anna Nagar 2nd St, Madurai'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{currentLedgerCustomer?.partnerVehicle || 'DP-001 (Van 04)'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Buttons */}
+                  <div className="flex items-center gap-2.5 shrink-0 self-end lg:self-center">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Exporting Statement for ${currentLedgerCustomer?.name}...`)}
+                        className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
+                      >
+                        <span>Export Statement</span>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => triggerToast(`Viewing Customer Profile for ${currentLedgerCustomer?.name}...`)}
+                      className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>View Customer Profile</span>
+                      <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Financial Summary KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {/* Card 1: TOTAL OUTSTANDING AMOUNT */}
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 border-l-4 border-l-[#BC0118] flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        TOTAL OUTSTANDING AMOUNT
+                      </span>
+                      <div className="w-7 h-7 rounded-lg bg-red-50 text-[#BC0118] flex items-center justify-center">
+                        <Wallet className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-2xl font-black text-[#BC0118] tracking-tight">
+                        ₹{currentLedgerCustomer?.outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '2,000.00'}
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
+                        Total unpaid balance across all unpaid and partially paid invoices
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 2: TOTAL AMOUNT PAID */}
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 border-l-4 border-l-emerald-600 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        TOTAL AMOUNT PAID
+                      </span>
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <Banknote className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-2xl font-black text-emerald-700 tracking-tight">
+                        ₹{currentLedgerCustomer?.totalAmountPaid?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '2,000.00'}
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
+                        Total customer payments received during the selected statement period
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 3: PAID INVOICES */}
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        PAID INVOICES
+                      </span>
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-2xl font-black text-slate-900 tracking-tight">
+                        {currentLedgerCustomer?.paidInvoicesCount ?? 1}
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
+                        Number of invoices fully paid during the selected statement period
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 4: TOTAL PENDING INVOICES */}
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                        TOTAL PENDING INVOICES
+                      </span>
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <ClipboardList className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-2xl font-black text-slate-900 tracking-tight">
+                        {currentLedgerCustomer?.pendingInvoicesCount ?? 2}
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
+                        Number of invoices that are unpaid or partially paid during the selected statement period
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statement Filter Controls */}
+                <div className="space-y-2">
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
+                      {/* Date Range Picker */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => triggerToast('Statement Period: Oct 01, 2026 - Oct 24, 2026')}
+                          className="w-full sm:w-auto bg-[#F8FAFC] border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 flex items-center justify-between gap-2.5 shadow-2xs cursor-pointer"
+                        >
+                          <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Oct 01, 2026 - Oct 24, 2026</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+                      </div>
+
+                      {/* Transaction Type Filter */}
+                      <div className="relative">
+                        <select
+                          value={individualTxFilter}
+                          onChange={(e) => setIndividualTxFilter(e.target.value)}
+                          className="w-full sm:w-auto bg-[#F8FAFC] border border-slate-200 hover:bg-slate-50 pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer shadow-2xs"
+                        >
+                          <option value="All Transactions">All Transactions</option>
+                          <option value="Invoice Created">Invoice Created</option>
+                          <option value="Payment Received">Payment Received</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+
+                      {/* Search Input */}
+                      <div className="relative min-w-[280px] flex-1">
+                        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          value={individualTxSearch}
+                          onChange={(e) => setIndividualTxSearch(e.target.value)}
+                          placeholder="Search transaction reference, invoice ID..."
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-9.5 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Reset and Apply Filters */}
+                    <div className="flex items-center gap-3 shrink-0 self-end lg:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndividualTxFilter('All Transactions');
+                          setIndividualTxSearch('');
+                          triggerToast('Filters reset to default');
+                        }}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer px-2 py-1"
+                      >
+                        Reset
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => triggerToast('Filters applied')}
+                        className="bg-[#1E293B] hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Filter className="w-3.5 h-3.5" />
+                        <span>Apply Filters</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Micro Info Status Bar */}
+                  <div className="flex items-center justify-between text-xs px-1">
+                    <div className="flex items-center gap-1.5 text-slate-500 font-medium text-[11px]">
+                      <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Derived from immutable agency ledger · FIFO Principle Enforced</span>
+                    </div>
+                    <div className="text-slate-500 font-semibold text-[11px]">
+                      Showing {currentLedgerCustomer?.transactions?.length ?? 4} of {currentLedgerCustomer?.transactions?.length ?? 4} entries
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transaction History Table Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 space-y-4">
+                  {/* Card Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                        Transaction History
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Complete financial activity and running balance audit for {currentLedgerCustomer?.name} ({currentLedgerCustomer?.customerCode})
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-red-50 text-[#BC0118] border border-red-200 text-xs font-bold px-2.5 py-1 rounded-lg self-start sm:self-auto">
+                      <RefreshCw className="w-3 h-3 text-[#BC0118]" />
+                      <span>FIFO Principle Enforced</span>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#EDF2F9] text-slate-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                          <th className="py-3.5 px-3 whitespace-nowrap">DATE &amp; TIME</th>
+                          <th className="py-3.5 px-3 whitespace-nowrap">REFERENCE</th>
+                          <th className="py-3.5 px-3 whitespace-nowrap">TRANSACTION TYPE</th>
+                          <th className="py-3.5 px-3 whitespace-nowrap">DESCRIPTION</th>
+                          <th className="py-3.5 px-3 text-right whitespace-nowrap">DEBIT (₹)</th>
+                          <th className="py-3.5 px-3 text-right whitespace-nowrap">CREDIT (₹)</th>
+                          <th className="py-3.5 px-3 text-right whitespace-nowrap">RUNNING BALANCE (₹)</th>
+                          <th className="py-3.5 px-3 text-right whitespace-nowrap">ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                        {currentLedgerCustomer?.transactions
+                          ?.filter((tx) => {
+                            if (individualTxFilter !== 'All Transactions') {
+                              if (individualTxFilter === 'Invoice Created' && tx.type !== 'Invoice Created' && tx.type !== 'Invoice') return false;
+                              if (individualTxFilter === 'Payment Received' && tx.type !== 'Payment Received' && tx.type !== 'Payment') return false;
+                            }
+                            if (individualTxSearch.trim()) {
+                              const q = individualTxSearch.toLowerCase();
+                              return (
+                                tx.reference.toLowerCase().includes(q) ||
+                                tx.description.toLowerCase().includes(q)
+                              );
+                            }
+                            return true;
+                          })
+                          .map((tx, idx) => {
+                            const isInvoice = tx.type === 'Invoice Created' || tx.type === 'Invoice';
+                            return (
+                              <tr key={idx} className="hover:bg-slate-50/80 transition">
+                                {/* Date & Time */}
+                                <td className="py-3.5 px-3 whitespace-nowrap font-medium text-slate-600">
+                                  {tx.dateTime || tx.date}
+                                </td>
+
+                                {/* Reference */}
+                                <td className="py-3.5 px-3 whitespace-nowrap font-bold">
+                                  <span className={isInvoice ? 'text-[#BC0118]' : 'text-emerald-600'}>
+                                    {tx.reference}
+                                  </span>
+                                </td>
+
+                                {/* Transaction Type */}
+                                <td className="py-3.5 px-3 whitespace-nowrap">
+                                  {isInvoice ? (
+                                    <span className="inline-block bg-red-50 text-[#BC0118] border border-red-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                      Invoice Created
+                                    </span>
+                                  ) : (
+                                    <span className="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                      Payment Received
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Description */}
+                                <td className="py-3.5 px-3 text-slate-600 max-w-[340px] truncate font-medium">
+                                  {tx.description}
+                                </td>
+
+                                {/* Debit */}
+                                <td className="py-3.5 px-3 text-right whitespace-nowrap font-black text-slate-900">
+                                  {tx.debit !== null && tx.debit !== undefined ? `₹${tx.debit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                                </td>
+
+                                {/* Credit */}
+                                <td className="py-3.5 px-3 text-right whitespace-nowrap font-black text-emerald-700">
+                                  {tx.credit !== null && tx.credit !== undefined ? `₹${tx.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                                </td>
+
+                                {/* Running Balance */}
+                                <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                                  <span className="font-black text-slate-900 block">
+                                    ₹{tx.runningBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </span>
+                                  {tx.note && (
+                                    <span className="text-[10px] text-slate-400 font-medium block">
+                                      {tx.note}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Actions */}
+                                <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerToast(`Opening ${tx.actionText || (isInvoice ? 'Invoice' : 'Receipt')} for ${tx.reference}...`)}
+                                    className="text-[#BC0118] hover:underline font-bold text-xs cursor-pointer"
+                                  >
+                                    {tx.actionText || (isInvoice ? 'View Invoice' : 'View Receipt')}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Automated FIFO Allocation Breakdown Box */}
+                  <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-200/90 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-2">
+                      <GitBranch className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Automated FIFO Allocation Breakdown for PAY-20261016-001 (₹1,000.00):</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span className="text-slate-600">
+                          Applied to oldest <strong className="text-slate-800">INV-20261010-001</strong>: <strong className="text-slate-900">₹1,000.00</strong> <span className="text-slate-500 font-normal">(Partially Paid, ₹500 remaining)</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                        <span className="text-slate-600">
+                          <strong className="text-slate-800">INV-20261015-002</strong> Balance: <strong className="text-slate-900">₹1,500.00</strong> <span className="text-slate-500 font-normal">(Unpaid)</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#BC0118] shrink-0"></span>
+                        <span className="text-slate-600">
+                          Current Customer Outstanding: <strong className="text-[#BC0118]">₹2,000.00</strong>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Movements Summary Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200 text-xs">
+                    <div className="font-black text-slate-900 uppercase tracking-wider text-[11px]">
+                      TOTAL STATEMENT PERIOD MOVEMENTS:
+                    </div>
+                    <div className="flex items-center gap-6 sm:gap-10 font-bold">
+                      <div>
+                        <span className="text-slate-900 font-black text-sm">₹3,000.00</span>
+                      </div>
+                      <div>
+                        <span className="text-emerald-700 font-black text-sm">₹2,000.00</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#BC0118] font-black text-sm">₹2,000.00</span>
+                        <span className="text-slate-500 font-semibold text-xs">Total Outstanding</span>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* Filter Controls Bar */}
               <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
                   {/* Search input */}
@@ -4086,7 +4588,7 @@ export default function AdminInvoicesPage({
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => setSelectedLedgerCustomer(cust)}
+                                onClick={() => setActiveCustomerLedgerId(cust.customerCode)}
                                 className="border border-red-200 hover:bg-red-50 text-[#BC0118] font-bold text-xs px-2.5 py-1 rounded-lg transition cursor-pointer whitespace-nowrap"
                               >
                                 View Ledger
@@ -4180,6 +4682,7 @@ export default function AdminInvoicesPage({
                 </div>
               </div>
             </div>
+            )
           )}
 
           {/* Customer Ledger Statement Detail Modal */}
@@ -4299,10 +4802,10 @@ export default function AdminInvoicesPage({
                             <td className="py-2.5 px-3 whitespace-nowrap font-bold text-slate-800">{tx.reference}</td>
                             <td className="py-2.5 px-3">{tx.description}</td>
                             <td className="py-2.5 px-3 text-right font-bold text-slate-900">
-                              {tx.debit > 0 ? tx.debit.toLocaleString('en-IN') : '—'}
+                              {(tx.debit ?? 0) > 0 ? tx.debit?.toLocaleString('en-IN') : '—'}
                             </td>
                             <td className="py-2.5 px-3 text-right font-bold text-emerald-600">
-                              {tx.credit > 0 ? tx.credit.toLocaleString('en-IN') : '—'}
+                              {(tx.credit ?? 0) > 0 ? tx.credit?.toLocaleString('en-IN') : '—'}
                             </td>
                             <td className={`py-2.5 px-3 text-right font-black ${
                               tx.runningBalance > 0 ? 'text-[#BC0118]' : 'text-slate-800'
