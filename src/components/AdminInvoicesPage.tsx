@@ -1266,7 +1266,7 @@ interface AdminInvoicesPageProps {
 }
 
 export default function AdminInvoicesPage({
-  initialTab = 'Customer Ledger',
+  initialTab = 'Overview',
 }: AdminInvoicesPageProps) {
   const [activeTab, setActiveTab] = useState<'Overview' | 'Invoices' | 'Payments' | 'Cash Reconciliation' | 'Customer Ledger'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1298,7 +1298,7 @@ export default function AdminInvoicesPage({
   );
 
   // Customer Ledger Tab State
-  const [activeCustomerLedgerId, setActiveCustomerLedgerId] = useState<string | null>('CUS-00124');
+  const [activeCustomerLedgerId, setActiveCustomerLedgerId] = useState<string | null>(null);
   const [individualTxFilter, setIndividualTxFilter] = useState('All Transactions');
   const [individualTxSearch, setIndividualTxSearch] = useState('');
   const [ledgerSearchQuery, setLedgerSearchQuery] = useState('');
@@ -2239,7 +2239,10 @@ export default function AdminInvoicesPage({
                       </button>
                       <button
                         type="button"
-                        onClick={() => triggerToast(`Navigating to ledger for ${inspectedPayment.customerName}`)}
+                        onClick={() => {
+                          setActiveTab('Customer Ledger');
+                          setActiveCustomerLedgerId(inspectedPayment.customerCode || 'CUS-00124');
+                        }}
                         className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs py-2.5 rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <BookOpen className="w-3.5 h-3.5 text-slate-600" />
@@ -2745,7 +2748,10 @@ export default function AdminInvoicesPage({
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
-                          onClick={() => triggerToast(`Navigating to customer ledger for ${inspectedInvoice.customerName}`)}
+                          onClick={() => {
+                            setActiveTab('Customer Ledger');
+                            setActiveCustomerLedgerId(inspectedInvoice.customerCode || 'CUS-00124');
+                          }}
                           className="bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <BookOpen className="w-3.5 h-3.5 text-slate-600" />
