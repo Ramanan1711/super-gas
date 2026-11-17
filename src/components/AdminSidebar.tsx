@@ -65,10 +65,10 @@ export default function AdminSidebar({
       if (pathname.startsWith('/admin/settlements')) {
         return 'Settlements';
       }
-      if (pathname.startsWith('/admin/expenses')) {
+      if (pathname.startsWith('/admin/expenses') || pathname.startsWith('/admin/expense')) {
         return 'Expenses';
       }
-      if (pathname.startsWith('/admin/reports')) {
+      if (pathname.startsWith('/admin/reports') || pathname.startsWith('/admin/report')) {
         return 'Reports';
       }
       if (pathname.startsWith('/admin/settings')) {
@@ -88,7 +88,7 @@ export default function AdminSidebar({
     { name: 'Invoices & Payments', icon: ReceiptText, href: '/admin/invoices' },
     { name: 'Settlements', icon: CheckSquare, href: '/admin/settlements' },
     { name: 'Expenses', icon: FileText, href: '/admin/expenses' },
-    { name: 'Reports', icon: BarChart3, href: '/admin' },
+    { name: 'Reports', icon: BarChart3, href: '/admin/reports' },
     { name: 'Settings', icon: Settings, href: '/admin' },
   ];
 
