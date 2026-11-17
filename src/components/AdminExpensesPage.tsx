@@ -278,10 +278,17 @@ export default function AdminExpensesPage() {
   const [inspectedExpenseRecord, setInspectedExpenseRecord] = useState<ExpenseRecord | null>(null);
 
   // Add Expense Form State
-  const [addExpenseCategory, setAddExpenseCategory] = useState<'Fuel' | 'Vehicle Repair' | 'Maintenance' | 'Other'>('Fuel');
-  const [addExpensePartner, setAddExpensePartner] = useState('Rajesh Kumar (DP-001)');
-  const [addExpenseAmount, setAddExpenseAmount] = useState('');
-  const [addExpenseDesc, setAddExpenseDesc] = useState('');
+  const [addExpenseType, setAddExpenseType] = useState<'Delivery Partner' | 'Agency' | 'Others'>('Delivery Partner');
+  const [addCustomExpenseName, setAddCustomExpenseName] = useState('Petrol Bunk');
+  const [addExpenseAmount, setAddExpenseAmount] = useState('3,500');
+  const [addExpenseDatePartner, setAddExpenseDatePartner] = useState('Rajesh Kumar (DP-001)');
+  const [addExpenseVendor, setAddExpenseVendor] = useState('Petrol Bunk');
+  const [addExpenseLedgerTag, setAddExpenseLedgerTag] = useState('10');
+  const [addExpensePaymentStatus, setAddExpensePaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
+  const [addExpensePaymentMethod, setAddExpensePaymentMethod] = useState('Bank Transfer');
+  const [showPaymentMethodsDropdown, setShowPaymentMethodsDropdown] = useState(false);
+  const [addExpensePurpose, setAddExpensePurpose] = useState('');
+  const [uploadedReceiptFileName, setUploadedReceiptFileName] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -397,25 +404,42 @@ export default function AdminExpensesPage() {
     if (!addExpenseAmount.trim()) return;
 
     const amt = parseFloat(addExpenseAmount.replace(/,/g, '')) || 0;
+    const partnerName =
+      addExpenseType === 'Delivery Partner'
+        ? addExpenseDatePartner.split(' (')[0]
+        : addExpenseType === 'Agency'
+        ? 'Agency Central'
+        : addCustomExpenseName || 'Other Vendor';
+
+    const partnerCode =
+      addExpenseType === 'Delivery Partner' && addExpenseDatePartner.includes('(')
+        ? addExpenseDatePartner.split('(')[1].replace(')', '')
+        : addExpenseType === 'Agency'
+        ? 'HQ-HUB'
+        : 'EXT-01';
+
     const newRecord: ExpenseRecord = {
       id: `exp-${Date.now()}`,
       expenseId: `EXP-REC-${Date.now().toString().slice(-6)}`,
-      partnerName: addExpensePartner.split(' (')[0],
-      partnerCode: addExpensePartner.includes('(') ? addExpensePartner.split('(')[1].replace(')', '') : 'DP-001',
-      category: addExpenseCategory,
-      description: addExpenseDesc || `${addExpenseCategory} recorded by Admin`,
+      partnerName,
+      partnerCode,
+      category: 'Fuel',
+      description: addExpensePurpose || (addExpenseType === 'Others' ? addCustomExpenseName : `${addExpenseVendor} payment`),
       amount: amt,
       expenseDate: '24 Oct 2026',
       source: 'Admin Recorded',
       approvalStatus: 'Approved',
-      paymentStatus: 'Paid (Cash)',
-      type: 'delivery',
+      paymentStatus:
+        addExpensePaymentStatus === 'Paid'
+          ? addExpensePaymentMethod.includes('Bank')
+            ? 'Reimbursed (Bank)'
+            : 'Paid (Cash)'
+          : 'Unpaid',
+      type: addExpenseType === 'Delivery Partner' ? 'delivery' : addExpenseType === 'Agency' ? 'agency' : 'other',
     };
 
     setExpenseRecords((prev) => [newRecord, ...prev]);
     setShowAddExpenseModal(false);
-    setAddExpenseAmount('');
-    setAddExpenseDesc('');
     triggerToast(`Added expense of ₹${amt.toLocaleString('en-IN')} for ${newRecord.partnerName}`);
   };
 
@@ -1272,90 +1296,264 @@ export default function AdminExpensesPage() {
 
       {/* MODAL 1: Add Expense Modal */}
       {showAddExpenseModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-6 sm:p-7 space-y-4 my-auto animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">Record Operational Expense</h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Direct ledger entry with auto approval &amp; cash/bank disbursement tagging.
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">Add Expense</h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                  Agency General Entry
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddExpenseModal(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                className="p-1 rounded-full text-slate-700 hover:text-black transition cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 stroke-[2.2]" />
               </button>
             </div>
 
-            <form onSubmit={handleAddExpenseSubmit} className="space-y-4 text-xs font-semibold">
+            <form onSubmit={handleAddExpenseSubmit} className="space-y-4">
+              {/* Type Segmented Control */}
               <div>
-                <label className="block text-slate-700 mb-1">Expense Category</label>
-                <select
-                  value={addExpenseCategory}
-                  onChange={(e) => setAddExpenseCategory(e.target.value as 'Fuel' | 'Vehicle Repair' | 'Maintenance' | 'Other')}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                >
-                  <option value="Fuel">Fuel (Diesel / Petrol)</option>
-                  <option value="Vehicle Repair">Vehicle Repair &amp; Spares</option>
-                  <option value="Maintenance">Scheduled Maintenance</option>
-                  <option value="Other">Other Operational Overhead</option>
-                </select>
+                <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                  SELECTED DELIVERY PARTNER
+                </label>
+                <div className="bg-[#F1F4FA] p-1.5 rounded-2xl flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setAddExpenseType('Delivery Partner')}
+                    className={`flex-1 py-2.5 text-xs text-center rounded-xl transition cursor-pointer ${
+                      addExpenseType === 'Delivery Partner'
+                        ? 'bg-white text-slate-900 font-black shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 font-bold'
+                    }`}
+                  >
+                    Delivery Partner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddExpenseType('Agency')}
+                    className={`flex-1 py-2.5 text-xs text-center rounded-xl transition cursor-pointer ${
+                      addExpenseType === 'Agency'
+                        ? 'bg-white text-slate-900 font-black shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 font-bold'
+                    }`}
+                  >
+                    Agency
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddExpenseType('Others')}
+                    className={`flex-1 py-2.5 text-xs text-center rounded-xl transition cursor-pointer ${
+                      addExpenseType === 'Others'
+                        ? 'bg-white text-slate-900 font-black shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 font-bold'
+                    }`}
+                  >
+                    Others
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 mb-1">Payee / Delivery Partner</label>
-                <select
-                  value={addExpensePartner}
-                  onChange={(e) => setAddExpensePartner(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                >
-                  <option value="Rajesh Kumar (DP-001)">Rajesh Kumar (DP-001)</option>
-                  <option value="Suresh Babu (DP-003)">Suresh Babu (DP-003)</option>
-                  <option value="Mohamed Irfan (DP-002)">Mohamed Irfan (DP-002)</option>
-                  <option value="Ramesh Varma (DP-006)">Ramesh Varma (DP-006)</option>
-                  <option value="Agency Central (HQ-HUB)">Agency Central (HQ-HUB)</option>
-                </select>
+              {/* Conditional Custom Expense Name if "Others" tab is active */}
+              {addExpenseType === 'Others' && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    CUSTOME EXPENSE NAME*
+                  </label>
+                  <input
+                    type="text"
+                    value={addCustomExpenseName}
+                    onChange={(e) => setAddCustomExpenseName(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-bold text-slate-900 border-none outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Row 1: Amount & Expense Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    AMOUNT*
+                  </label>
+                  <div className="bg-[#F1F4FA] rounded-xl px-4 py-2.5 flex items-center">
+                    <span className="text-base font-black text-slate-900 mr-1.5">₹</span>
+                    <input
+                      type="text"
+                      value={addExpenseAmount}
+                      onChange={(e) => setAddExpenseAmount(e.target.value)}
+                      className="bg-transparent border-none outline-none text-base font-black text-slate-900 w-full"
+                      placeholder="3,500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    EXPENSE DATE*
+                  </label>
+                  <div className="bg-[#F1F4FA] rounded-xl px-4 py-3 flex items-center justify-between">
+                    <input
+                      type="text"
+                      value={addExpenseDatePartner}
+                      onChange={(e) => setAddExpenseDatePartner(e.target.value)}
+                      className="bg-transparent border-none outline-none text-xs font-bold text-slate-900 w-full"
+                    />
+                    <Calendar className="w-4 h-4 text-slate-700 shrink-0" />
+                  </div>
+                </div>
               </div>
 
+              {/* Row 2: Vendor Name & Ledger Tag */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    VENDOR/PAYEE NAME
+                  </label>
+                  <input
+                    type="text"
+                    value={addExpenseVendor}
+                    onChange={(e) => setAddExpenseVendor(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-bold text-slate-900 border-none outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    LEDGER TAG
+                  </label>
+                  <input
+                    type="text"
+                    value={addExpenseLedgerTag}
+                    onChange={(e) => setAddExpenseLedgerTag(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-bold text-slate-900 border-none outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Payment Status & Payment Methods */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    PAYMENT STATUS*
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAddExpensePaymentStatus('Paid')}
+                      className="flex-1 bg-[#F1F4FA] rounded-xl px-4 py-3 flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-900 transition hover:bg-slate-200/60"
+                    >
+                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${addExpensePaymentStatus === 'Paid' ? 'border-slate-800' : 'border-slate-400'}`}>
+                        {addExpensePaymentStatus === 'Paid' && <span className="w-2 h-2 rounded-full bg-slate-900" />}
+                      </span>
+                      <span>Paid</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddExpensePaymentStatus('Unpaid')}
+                      className="flex-1 bg-[#F1F4FA] rounded-xl px-4 py-3 flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-900 transition hover:bg-slate-200/60"
+                    >
+                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${addExpensePaymentStatus === 'Unpaid' ? 'border-slate-800' : 'border-slate-400'}`}>
+                        {addExpensePaymentStatus === 'Unpaid' && <span className="w-2 h-2 rounded-full bg-slate-900" />}
+                      </span>
+                      <span>Unpaid</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    PAYMENT METHODS*
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentMethodsDropdown(!showPaymentMethodsDropdown)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-bold text-slate-900 border-none flex items-center justify-between cursor-pointer hover:bg-slate-200/60 transition"
+                  >
+                    <span>{addExpensePaymentMethod}</span>
+                    <ChevronDown className="w-4 h-4 text-slate-700" />
+                  </button>
+                  {showPaymentMethodsDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1 text-xs font-bold text-slate-800">
+                      {['Bank Transfer', 'Cash (Depot Verified)', 'UPI (Online)', 'Fleet Card'].map((method) => (
+                        <div
+                          key={method}
+                          onClick={() => {
+                            setAddExpensePaymentMethod(method);
+                            setShowPaymentMethodsDropdown(false);
+                          }}
+                          className="px-4 py-2 hover:bg-[#F1F4FA] cursor-pointer"
+                        >
+                          {method}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 4: Description / Purpose */}
               <div>
-                <label className="block text-slate-700 mb-1">Amount (₹)</label>
+                <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                  DESCRIPTION / PURPOSE
+                </label>
                 <input
                   type="text"
-                  placeholder="e.g. 1,250.00"
-                  value={addExpenseAmount}
-                  onChange={(e) => setAddExpenseAmount(e.target.value)}
-                  required
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20 font-bold"
+                  value={addExpensePurpose}
+                  onChange={(e) => setAddExpensePurpose(e.target.value)}
+                  placeholder="Provide operational context for this expense."
+                  className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 border-none outline-none"
                 />
               </div>
 
+              {/* Row 5: Receipt / Tax Invoice Attachment */}
               <div>
-                <label className="block text-slate-700 mb-1">Narrative / Trip Reference</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Emergency tyre puncture on Bypass Road"
-                  value={addExpenseDesc}
-                  onChange={(e) => setAddExpenseDesc(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                />
+                <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                  RECEIPT / TAX INVOICE ATTACHMENT
+                </label>
+                <label className="w-full bg-[#F1F4FA] hover:bg-slate-200/60 transition rounded-2xl py-8 px-4 flex flex-col items-center justify-center text-center cursor-pointer block border-none">
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/png,image/jpeg,application/pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setUploadedReceiptFileName(e.target.files[0].name);
+                        triggerToast(`Attached receipt: ${e.target.files[0].name}`);
+                      }
+                    }}
+                  />
+                  <svg className="w-7 h-7 text-slate-900 stroke-[2.2] mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 12v9" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="m16 16-4-4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <p className="text-sm font-black text-slate-900">
+                    {uploadedReceiptFileName ? uploadedReceiptFileName : 'Click to upload or drag receipt file'}
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    PNG, JPG, PDF upto 10 MB
+                  </p>
+                </label>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              {/* Bottom Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddExpenseModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="bg-[#F1F4FA] hover:bg-slate-200 text-slate-800 font-bold text-xs px-6 py-3 rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#BC0118] hover:bg-red-800 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition cursor-pointer"
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow-xs transition cursor-pointer"
                 >
-                  Record Expense
+                  Issue Cylinders &amp; Print Pass
                 </button>
               </div>
             </form>
