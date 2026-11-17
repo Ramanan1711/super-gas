@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
+import ExpenseDetailsScreen from './ExpenseDetailsScreen';
 import {
   Plus,
   Search,
@@ -109,6 +110,7 @@ export default function DeliveryExpensesScreen() {
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [sortOrder, setSortOrder] = useState<'LATEST' | 'OLDEST'>('LATEST');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedClaimForDetail, setSelectedClaimForDetail] = useState<ExpenseClaim | null>(null);
 
   // New expense form state matching Figma design
   const [newCategory, setNewCategory] = useState<'Fuel / Petrol' | 'Vehicle Maintenance' | 'Food / Allowance' | 'Parking Charges' | 'Mobile / Data' | 'Other'>('Fuel / Petrol');
@@ -218,6 +220,26 @@ export default function DeliveryExpensesScreen() {
     setReceiptPreview(null);
     setShowAddModal(false);
   };
+
+  if (selectedClaimForDetail) {
+    return (
+      <ExpenseDetailsScreen
+        claim={{
+          id: selectedClaimForDetail.id,
+          code: selectedClaimForDetail.code,
+          category: selectedClaimForDetail.category.toUpperCase(),
+          categoryType: selectedClaimForDetail.categoryType,
+          amount: selectedClaimForDetail.amount,
+          dateStr: selectedClaimForDetail.dateStr,
+          status: selectedClaimForDetail.status,
+          settlementStatus: selectedClaimForDetail.paymentStatus === 'Paid - Depot UPI' ? 'Paid Full' : selectedClaimForDetail.paymentStatus,
+          vehicle: selectedClaimForDetail.vanInfo || 'Van 03 (TN 58 AX 4821)',
+          description: selectedClaimForDetail.description || 'Brake pad replacement & emergency tyre puncture repair during Madurai North commercial delivery run.',
+        }}
+        onBack={() => setSelectedClaimForDetail(null)}
+      />
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC] overflow-hidden">
@@ -441,7 +463,8 @@ export default function DeliveryExpensesScreen() {
               return (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs ${borderLeftClass} transition-shadow hover:shadow-xs`}
+                  onClick={() => setSelectedClaimForDetail(item)}
+                  className={`bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs ${borderLeftClass} transition-all hover:shadow-xs hover:border-slate-300 cursor-pointer`}
                 >
                   {/* Top Row: Category Icon, Name, Amount */}
                   <div className="flex items-start justify-between">
