@@ -55,24 +55,27 @@ export default function DeliveryCustomerInvoicePage() {
           {/* Screen 1: With GST & Paid */}
           <div className="w-full max-w-[400px] h-[860px] max-h-[92vh] bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/90 flex flex-col">
             <CustomerInvoiceDetailScreen
-              initialVariant="with-gst-paid"
-              showVariantToggle={false}
+              status="Paid"
+              hasGst={true}
+              invoiceNo="INV-20261018-052"
             />
           </div>
 
           {/* Screen 2: Without GST & Unpaid */}
           <div className="w-full max-w-[400px] h-[860px] max-h-[92vh] bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/90 flex flex-col">
             <CustomerInvoiceDetailScreen
-              initialVariant="without-gst-unpaid"
-              showVariantToggle={false}
+              status="Unpaid"
+              hasGst={false}
+              invoiceNo="INV-20261018-052"
             />
           </div>
 
           {/* Screen 3: Without GST & Partial Payment */}
           <div className="w-full max-w-[400px] h-[860px] max-h-[92vh] bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/90 flex flex-col">
             <CustomerInvoiceDetailScreen
-              initialVariant="without-gst-partial"
-              showVariantToggle={false}
+              status="Partial Payment"
+              hasGst={false}
+              invoiceNo="INV-20261018-052"
             />
           </div>
         </div>
@@ -80,8 +83,9 @@ export default function DeliveryCustomerInvoicePage() {
         /* Single Mobile Device View */
         <div className="w-full max-w-[430px] h-[880px] max-h-[94vh] bg-white rounded-[36px] shadow-2xl overflow-hidden border border-slate-200/90 flex flex-col">
           <CustomerInvoiceDetailScreen
-            initialVariant={singleVariant}
-            showVariantToggle={true}
+            status={singleVariant === 'without-gst-unpaid' ? 'Unpaid' : singleVariant === 'without-gst-partial' ? 'Partial Payment' : 'Paid'}
+            hasGst={singleVariant === 'with-gst-paid'}
+            invoiceNo="INV-20261018-052"
           />
         </div>
       )}

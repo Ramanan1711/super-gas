@@ -16,6 +16,7 @@ export interface DeliveryHistoryItem {
   totalAmount: number;
   totalDisplay: string;
   status: 'Paid' | 'Unpaid' | 'Partial Payment';
+  hasGst?: boolean;
 }
 
 const mockDeliveriesData: DeliveryHistoryItem[] = [
@@ -33,6 +34,7 @@ const mockDeliveriesData: DeliveryHistoryItem[] = [
     totalAmount: 7200,
     totalDisplay: '₹7,200.00',
     status: 'Paid',
+    hasGst: true,
   },
   {
     id: 'del-2',
@@ -52,6 +54,7 @@ const mockDeliveriesData: DeliveryHistoryItem[] = [
     totalAmount: 7200,
     totalDisplay: '₹7,200.00',
     status: 'Paid',
+    hasGst: false,
   },
   {
     id: 'del-3',
@@ -67,6 +70,7 @@ const mockDeliveriesData: DeliveryHistoryItem[] = [
     totalAmount: 7200,
     totalDisplay: '₹7,200.00',
     status: 'Unpaid',
+    hasGst: false,
   },
   {
     id: 'del-4',
@@ -82,6 +86,7 @@ const mockDeliveriesData: DeliveryHistoryItem[] = [
     totalAmount: 7200,
     totalDisplay: '₹7,200.00',
     status: 'Partial Payment',
+    hasGst: false,
   },
   {
     id: 'del-5',
@@ -97,6 +102,7 @@ const mockDeliveriesData: DeliveryHistoryItem[] = [
     totalAmount: 7200,
     totalDisplay: '₹7,200.00',
     status: 'Paid',
+    hasGst: true,
   },
   {
     id: 'del-6',
@@ -112,6 +118,7 @@ const mockDeliveriesData: DeliveryHistoryItem[] = [
     totalAmount: 7200,
     totalDisplay: '₹7,200.00',
     status: 'Paid',
+    hasGst: false,
   },
 ];
 
@@ -152,18 +159,14 @@ export default function CustomerAllDeliveriesScreen({
   }, [searchQuery, sortBy]);
 
   if (selectedInvoice) {
-    const variant =
-      selectedInvoice.status === 'Paid'
-        ? 'with-gst-paid'
-        : selectedInvoice.status === 'Unpaid'
-        ? 'without-gst-unpaid'
-        : 'without-gst-partial';
-
     return (
       <div className="absolute inset-0 z-50 bg-white flex flex-col overflow-hidden animate-in fade-in slide-in-from-right duration-200">
         <CustomerInvoiceDetailScreen
-          initialVariant={variant}
+          status={selectedInvoice.status}
+          hasGst={selectedInvoice.hasGst}
           invoiceNo={selectedInvoice.invoiceNo.replace('#', '')}
+          dateTime={selectedInvoice.dateTime}
+          totalAmount={selectedInvoice.totalAmount}
           onBack={() => setSelectedInvoice(null)}
         />
       </div>

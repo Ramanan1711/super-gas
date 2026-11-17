@@ -19,19 +19,44 @@ import {
 } from 'lucide-react';
 
 export interface CustomerInvoiceDetailScreenProps {
-  initialVariant?: 'with-gst-paid' | 'without-gst-unpaid' | 'without-gst-partial';
   invoiceNo?: string;
+  status?: 'Paid' | 'Unpaid' | 'Partial Payment';
+  hasGst?: boolean;
+  dateTime?: string;
+  deliveryDate?: string;
+  customerName?: string;
+  customerCode?: string;
+  customerCategory?: string;
+  customerAddress?: string;
+  customerPhone?: string;
+  deliveryRef?: string;
+  deliveryPartner?: string;
+  totalAmount?: number;
+  receivedAmount?: number;
+  balanceDue?: number;
   onBack?: () => void;
-  showVariantToggle?: boolean;
+  initialVariant?: 'with-gst-paid' | 'without-gst-unpaid' | 'without-gst-partial';
 }
 
 export default function CustomerInvoiceDetailScreen({
-  initialVariant = 'with-gst-paid',
   invoiceNo = 'INV-20261018-052',
+  status: propStatus,
+  hasGst: propHasGst,
+  dateTime = '18 Oct 2026, 03:45 PM',
+  deliveryDate = '18 Oct 2026',
+  customerName = 'Hotel Annapoorna',
+  customerCode = 'CUS-00042',
+  customerCategory = 'Commercial',
+  customerAddress = '14/2 Bypass Road, Near Mattuthavani Junction, Madurai - 625007, Tamil Nadu',
+  customerPhone = '+91 99432 11223',
+  deliveryRef = 'DEL-20261018-94',
+  deliveryPartner = 'Suresh Babu (DP-003)',
+  totalAmount = 7200,
+  receivedAmount: propReceivedAmount,
+  balanceDue: propBalanceDue,
   onBack,
-  showVariantToggle = true,
+  initialVariant = 'with-gst-paid',
 }: CustomerInvoiceDetailScreenProps) {
-  const [variant, setVariant] = useState<'with-gst-paid' | 'without-gst-unpaid' | 'without-gst-partial'>(initialVariant);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {
@@ -39,13 +64,36 @@ export default function CustomerInvoiceDetailScreen({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const isWithGst = variant === 'with-gst-paid';
-  const status =
-    variant === 'with-gst-paid'
-      ? 'Paid'
-      : variant === 'without-gst-unpaid'
+  const status: 'Paid' | 'Unpaid' | 'Partial Payment' =
+    propStatus ??
+    (initialVariant === 'without-gst-unpaid'
       ? 'Unpaid'
-      : 'Partial Payment';
+      : initialVariant === 'without-gst-partial'
+      ? 'Partial Payment'
+      : 'Paid');
+
+  const isWithGst: boolean =
+    propHasGst !== undefined
+      ? propHasGst
+      : initialVariant === 'with-gst-paid';
+
+  const receivedAmount =
+    propReceivedAmount !== undefined
+      ? propReceivedAmount
+      : status === 'Unpaid'
+      ? 0
+      : status === 'Partial Payment'
+      ? 5000
+      : totalAmount;
+
+  const balanceDue =
+    propBalanceDue !== undefined
+      ? propBalanceDue
+      : status === 'Paid'
+      ? 0
+      : status === 'Unpaid'
+      ? totalAmount
+      : totalAmount - receivedAmount;
 
   return (
     <div className="w-full h-full bg-[#F8FAFC] flex flex-col font-sans antialiased text-slate-800 overflow-hidden relative">
@@ -78,59 +126,18 @@ export default function CustomerInvoiceDetailScreen({
       </div>
 
       {/* Screen Header Bar */}
-      <div className="shrink-0 px-4 py-3 flex items-center justify-between bg-white border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack ? onBack : () => window.history.back()}
-            className="p-1 -ml-1 text-slate-900 hover:text-slate-600 transition cursor-pointer"
-            aria-label="Back"
-          >
-            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-          </button>
-          <h1 className="text-lg font-black text-slate-900 tracking-tight">
-            Invoice
-          </h1>
-        </div>
-
-        {/* GST & Status Mode Switcher */}
-        {showVariantToggle && (
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[10px] font-bold">
-            <button
-              type="button"
-              onClick={() => setVariant('with-gst-paid')}
-              className={`px-2 py-1 rounded-lg transition cursor-pointer ${
-                variant === 'with-gst-paid'
-                  ? 'bg-white text-emerald-700 shadow-2xs font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              With GST (Paid)
-            </button>
-            <button
-              type="button"
-              onClick={() => setVariant('without-gst-unpaid')}
-              className={`px-2 py-1 rounded-lg transition cursor-pointer ${
-                variant === 'without-gst-unpaid'
-                  ? 'bg-white text-rose-700 shadow-2xs font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              No GST (Unpaid)
-            </button>
-            <button
-              type="button"
-              onClick={() => setVariant('without-gst-partial')}
-              className={`px-2 py-1 rounded-lg transition cursor-pointer ${
-                variant === 'without-gst-partial'
-                  ? 'bg-white text-amber-700 shadow-2xs font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              No GST (Partial)
-            </button>
-          </div>
-        )}
+      <div className="shrink-0 px-4 py-3 flex items-center gap-3 bg-white border-b border-slate-100">
+        <button
+          type="button"
+          onClick={onBack ? onBack : () => window.history.back()}
+          className="p-1 -ml-1 text-slate-900 hover:text-slate-600 transition cursor-pointer"
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+        </button>
+        <h1 className="text-lg font-black text-slate-900 tracking-tight">
+          Invoice
+        </h1>
       </div>
 
       {/* Scrollable Screen Content */}
@@ -170,7 +177,7 @@ export default function CustomerInvoiceDetailScreen({
                 Invoice Date &amp; Time
               </span>
               <p className="text-xs font-bold text-slate-800 mt-0.5">
-                18 Oct 2026, 03:45 PM
+                {dateTime}
               </p>
             </div>
             <div>
@@ -178,7 +185,7 @@ export default function CustomerInvoiceDetailScreen({
                 Delivery Date
               </span>
               <p className="text-xs font-bold text-slate-800 mt-0.5">
-                18 Oct 2026
+                {deliveryDate}
               </p>
             </div>
           </div>
@@ -186,7 +193,7 @@ export default function CustomerInvoiceDetailScreen({
           <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 text-xs text-slate-600 font-semibold">
             <Tag className="w-3.5 h-3.5 text-slate-400" />
             <span>Customer Ref:</span>
-            <span className="font-extrabold text-slate-900">CUS-00042</span>
+            <span className="font-extrabold text-slate-900">{customerCode}</span>
           </div>
         </div>
 
@@ -198,14 +205,14 @@ export default function CustomerInvoiceDetailScreen({
               <h3 className="text-sm font-black text-slate-900">Customer Details</h3>
             </div>
             <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
-              Commercial
+              {customerCategory}
             </span>
           </div>
 
           <div>
-            <h4 className="text-base font-black text-slate-900">Hotel Annapoorna</h4>
+            <h4 className="text-base font-black text-slate-900">{customerName}</h4>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              EA CUS-00042 · Food &amp; Hospitality
+              EA {customerCode} · Food &amp; Hospitality
             </p>
           </div>
 
@@ -213,7 +220,7 @@ export default function CustomerInvoiceDetailScreen({
           <div className="bg-[#F8FAFC] rounded-xl p-3 flex items-start gap-2.5 border border-slate-100/80">
             <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
             <p className="text-xs text-slate-700 font-medium leading-relaxed">
-              14/2 Bypass Road, Near Mattuthavani Junction, Madurai - 625007, Tamil Nadu
+              {customerAddress}
             </p>
           </div>
 
@@ -221,11 +228,11 @@ export default function CustomerInvoiceDetailScreen({
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
               <Phone className="w-3.5 h-3.5 text-slate-500" />
-              <span>+91 99432 11223</span>
+              <span>{customerPhone}</span>
             </div>
             <button
               type="button"
-              onClick={() => triggerToast('Dialing +91 99432 11223...')}
+              onClick={() => triggerToast(`Dialing ${customerPhone}...`)}
               className="bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-800 font-bold text-xs px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
             >
               <Phone className="w-3.5 h-3.5 text-slate-600" />
@@ -250,15 +257,15 @@ export default function CustomerInvoiceDetailScreen({
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="text-slate-500 font-medium">Delivery Reference</span>
-              <span className="font-bold text-slate-900 font-mono">DEL-20261018-94</span>
+              <span className="font-bold text-slate-900 font-mono">{deliveryRef}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500 font-medium">Delivery Partner</span>
-              <span className="font-bold text-slate-900">Suresh Babu (DP-003)</span>
+              <span className="font-bold text-slate-900">{deliveryPartner}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500 font-medium">Timestamp</span>
-              <span className="font-bold text-slate-900">18 Oct 2026, 03:45 PM</span>
+              <span className="font-bold text-slate-900">{dateTime}</span>
             </div>
           </div>
         </div>
@@ -368,12 +375,14 @@ export default function CustomerInvoiceDetailScreen({
           <div className="bg-[#F8FAFC] rounded-xl p-3 border border-slate-100/90 space-y-2 mt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-900">Total Invoice Amount</span>
-              <span className="text-base font-black text-slate-900">₹7,200.00</span>
+              <span className="text-base font-black text-slate-900">
+                ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 font-medium">Total Received</span>
               <span className="font-black text-emerald-600">
-                {status === 'Unpaid' ? '₹0.00' : status === 'Partial Payment' ? '₹5,000.00' : '₹7,200.00'}
+                ₹{receivedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60">
@@ -387,9 +396,13 @@ export default function CustomerInvoiceDetailScreen({
                     <span className="font-black text-slate-900">₹0.00</span>
                   </>
                 ) : status === 'Unpaid' ? (
-                  <span className="font-black text-rose-600">₹7,200.00</span>
+                  <span className="font-black text-rose-600">
+                    ₹{balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
                 ) : (
-                  <span className="font-black text-amber-600">₹2,200.00</span>
+                  <span className="font-black text-amber-600">
+                    ₹{balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
                 )}
               </div>
             </div>
@@ -467,11 +480,15 @@ export default function CustomerInvoiceDetailScreen({
           <div className="flex items-center justify-between pt-1">
             <div>
               <span className="block text-[10px] text-slate-500 font-medium">Total Settled</span>
-              <span className="text-base font-black text-slate-900">₹7,200.00</span>
+              <span className="text-base font-black text-slate-900">
+                ₹{receivedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
             </div>
             <div className="text-right">
               <span className="block text-[10px] text-slate-500 font-medium">Remaining Balance</span>
-              <span className="text-base font-black text-emerald-600">₹0.00</span>
+              <span className="text-base font-black text-emerald-600">
+                ₹{balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
