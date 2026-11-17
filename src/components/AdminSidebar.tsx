@@ -87,7 +87,7 @@ export default function AdminSidebar({
     { name: 'Delivery Partners', icon: Truck, href: '/admin/delivery-partners' },
     { name: 'Invoices & Payments', icon: ReceiptText, href: '/admin/invoices' },
     { name: 'Settlements', icon: CheckSquare, href: '/admin/settlements' },
-    { name: 'Expenses', icon: FileText, href: '/admin' },
+    { name: 'Expenses', icon: FileText, href: '/admin/expenses' },
     { name: 'Reports', icon: BarChart3, href: '/admin' },
     { name: 'Settings', icon: Settings, href: '/admin' },
   ];
