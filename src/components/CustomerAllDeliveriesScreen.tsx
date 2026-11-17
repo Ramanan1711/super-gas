@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Search, Wifi } from 'lucide-react';
+import CustomerInvoiceDetailScreen from './CustomerInvoiceDetailScreen';
 
 export interface DeliveryHistoryItem {
   id: string;
@@ -124,6 +125,7 @@ export default function CustomerAllDeliveriesScreen({
 }: CustomerAllDeliveriesScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
+  const [selectedInvoice, setSelectedInvoice] = useState<DeliveryHistoryItem | null>(null);
 
   const filteredAndSorted = useMemo(() => {
     let list = mockDeliveriesData.filter((item) => {
@@ -148,6 +150,25 @@ export default function CustomerAllDeliveriesScreen({
 
     return list;
   }, [searchQuery, sortBy]);
+
+  if (selectedInvoice) {
+    const variant =
+      selectedInvoice.status === 'Paid'
+        ? 'with-gst-paid'
+        : selectedInvoice.status === 'Unpaid'
+        ? 'without-gst-unpaid'
+        : 'without-gst-partial';
+
+    return (
+      <div className="absolute inset-0 z-50 bg-white flex flex-col overflow-hidden animate-in fade-in slide-in-from-right duration-200">
+        <CustomerInvoiceDetailScreen
+          initialVariant={variant}
+          invoiceNo={selectedInvoice.invoiceNo.replace('#', '')}
+          onBack={() => setSelectedInvoice(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full bg-white flex flex-col font-sans antialiased text-slate-800 overflow-hidden">
@@ -231,7 +252,8 @@ export default function CustomerAllDeliveriesScreen({
         {filteredAndSorted.map((item) => (
           <div
             key={item.id}
-            className="bg-[#F8FAFC] rounded-2xl p-4 space-y-2.5 transition"
+            onClick={() => setSelectedInvoice(item)}
+            className="bg-[#F8FAFC] hover:bg-slate-100/90 active:scale-99 rounded-2xl p-4 space-y-2.5 transition cursor-pointer"
           >
             {/* Card Header: Invoice & DateTime */}
             <div className="flex items-center justify-between">
