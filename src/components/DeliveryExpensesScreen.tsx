@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -14,9 +14,11 @@ import {
   Smartphone,
   Truck,
   ChevronRight,
+  ChevronDown,
   Paperclip,
-  UploadCloud,
   Check,
+  Camera,
+  Calendar,
 } from 'lucide-react';
 
 interface ExpenseClaim {
@@ -108,11 +110,21 @@ export default function DeliveryExpensesScreen() {
   const [sortOrder, setSortOrder] = useState<'LATEST' | 'OLDEST'>('LATEST');
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // New expense form state
+  // New expense form state matching Figma design
   const [newCategory, setNewCategory] = useState<'Fuel / Petrol' | 'Vehicle Maintenance' | 'Food / Allowance' | 'Parking Charges' | 'Mobile / Data' | 'Other'>('Fuel / Petrol');
+  const [newExpenseDate, setNewExpenseDate] = useState('24/ 10/ 2026');
+  const [assignedVehicle, setAssignedVehicle] = useState('TN 58 AX 1234');
   const [newAmount, setNewAmount] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [hasNewReceipt, setHasNewReceipt] = useState(true);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setReceiptPreview(URL.createObjectURL(file));
+    }
+  };
 
   // Filter and sort claims
   const filteredClaims = useMemo(() => {
@@ -175,9 +187,10 @@ export default function DeliveryExpensesScreen() {
 
   const handleAddExpenseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAmount || isNaN(Number(newAmount))) return;
+    const cleanAmount = newAmount.replace(/[^0-9.]/g, '');
+    if (!cleanAmount || isNaN(Number(cleanAmount))) return;
 
-    const amountNum = Number(newAmount);
+    const amountNum = Number(cleanAmount);
     let catType: ExpenseClaim['categoryType'] = 'fuel';
     if (newCategory === 'Vehicle Maintenance') catType = 'vehicle';
     else if (newCategory === 'Food / Allowance') catType = 'food';
@@ -191,17 +204,18 @@ export default function DeliveryExpensesScreen() {
       category: newCategory,
       categoryType: catType,
       amount: amountNum,
-      dateStr: 'Today, Just now',
+      dateStr: newExpenseDate ? `Today, ${newExpenseDate}` : 'Today, Just now',
       status: 'PENDING',
       paymentStatus: 'Unpaid',
       description: newDesc || undefined,
-      hasReceipt: hasNewReceipt,
-      vanInfo: catType === 'fuel' ? 'Van 03 (TN 58 AX 4821)' : undefined,
+      hasReceipt: Boolean(receiptPreview),
+      vanInfo: catType === 'fuel' ? assignedVehicle : undefined,
     };
 
     setClaims([newClaim, ...claims]);
     setNewAmount('');
     setNewDesc('');
+    setReceiptPreview(null);
     setShowAddModal(false);
   };
 
@@ -586,106 +600,179 @@ export default function DeliveryExpensesScreen() {
         </div>
       </div>
 
-      {/* Add Expense Modal Bottom Sheet */}
+      {/* Add Expense Popup / Modal matching exact image design */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs p-0 sm:p-4">
-          <div className="w-full max-w-[430px] bg-white rounded-t-[28px] sm:rounded-3xl p-5 shadow-2xl border border-slate-200/80 animate-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-2xs p-4">
+          <div className="w-full max-w-[400px] bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150 max-h-[94vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-1">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Add Expense</h3>
-                <p className="text-xs text-slate-500 font-medium">Partner Settlement Claim</p>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                  My Claims
+                </h2>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Partner settlement claims & allowances
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+                className="p-1 text-slate-800 hover:text-black cursor-pointer -mr-1"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5 stroke-[2]" />
               </button>
             </div>
 
-            <form onSubmit={handleAddExpenseSubmit} className="mt-4 space-y-3.5 text-xs">
-              {/* Category Selection */}
+            <form onSubmit={handleAddExpenseSubmit} className="mt-4 space-y-3.5">
+              {/* Expense Category* */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Expense Category*</label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as typeof newCategory)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  <option value="Fuel / Petrol">Fuel / Petrol</option>
-                  <option value="Vehicle Maintenance">Vehicle Maintenance</option>
-                  <option value="Food / Allowance">Food / Allowance</option>
-                  <option value="Parking Charges">Parking Charges</option>
-                  <option value="Mobile / Data">Mobile / Data</option>
-                  <option value="Other">Other Miscellaneous</option>
-                </select>
+                <label className="text-xs font-bold text-slate-900 mb-1.5 block">
+                  Expense Category*
+                </label>
+                <div className="relative">
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as typeof newCategory)}
+                    className="w-full bg-[#EEF2FF] hover:bg-[#E6ECFF] text-slate-900 text-xs font-semibold rounded-xl px-4 py-3 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500 transition cursor-pointer"
+                  >
+                    <option value="Fuel / Petrol">Fuel / Petrol</option>
+                    <option value="Vehicle Maintenance">Vehicle Maintenance</option>
+                    <option value="Food / Allowance">Food / Allowance</option>
+                    <option value="Parking Charges">Parking Charges</option>
+                    <option value="Mobile / Data">Mobile / Data</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                </div>
               </div>
 
-              {/* Amount */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Amount (₹)*</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold text-sm">₹</span>
+              {/* Expense Date* & Assigned Vechcle */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Expense Date* */}
+                <div>
+                  <label className="text-xs font-bold text-slate-900 mb-1.5 block">
+                    Expense Date*
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={newExpenseDate}
+                      onChange={(e) => setNewExpenseDate(e.target.value)}
+                      placeholder="24/ 10/ 2026"
+                      className="w-full bg-[#EEF2FF] text-slate-900 text-xs font-semibold rounded-xl px-4 py-3 pr-9 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <Calendar className="w-4 h-4 text-slate-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2]" />
+                  </div>
+                </div>
+
+                {/* Assigned Vechcle */}
+                <div>
+                  <label className="text-xs font-bold text-slate-900 mb-1.5 block">
+                    Assigned Vechcle
+                  </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={newAmount}
-                    onChange={(e) => setNewAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-7 pr-3 py-2.5 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    type="text"
+                    readOnly
+                    value={assignedVehicle}
+                    onChange={(e) => setAssignedVehicle(e.target.value)}
+                    className="w-full bg-[#EEF2FF] text-slate-900 text-xs font-semibold rounded-xl px-4 py-3 focus:outline-none cursor-default"
                   />
                 </div>
               </div>
 
-              {/* Description */}
+              {/* Amount (INR)* */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Description / Purpose</label>
-                <textarea
-                  rows={2}
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Provide details (e.g. 10L diesel top-up at HPCL)"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              {/* Upload Receipt */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Receipt Attachment</label>
-                <div
-                  onClick={() => setHasNewReceipt(!hasNewReceipt)}
-                  className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition ${
-                    hasNewReceipt
-                      ? 'border-emerald-400 bg-emerald-50/50 text-emerald-700'
-                      : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    <UploadCloud className="w-5 h-5 text-slate-400" />
-                    <p className="font-semibold text-xs">
-                      {hasNewReceipt ? 'Receipt Attached (e-slip.jpg)' : 'Click to capture or upload receipt'}
-                    </p>
-                    <span className="text-[10px] text-slate-400">PNG, JPG, PDF up to 10 MB</span>
-                  </div>
+                <label className="text-xs font-bold text-slate-900 mb-1.5 block">
+                  Amount (INR)*
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={newAmount}
+                    onChange={(e) => setNewAmount(e.target.value)}
+                    placeholder="₹ 0.00"
+                    className="w-full bg-[#EEF2FF] text-slate-900 text-xs font-semibold rounded-xl px-4 py-3 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 pt-2">
+              {/* Receipt or Bill Photo* */}
+              <div>
+                <label className="text-xs font-bold text-slate-900 mb-1.5 block">
+                  Receipt or Bill Photo*
+                </label>
+                {receiptPreview ? (
+                  /* Uploaded State (State 2 in design): Square thumbnail with remove x button */
+                  <div className="relative inline-block mt-0.5">
+                    <div className="w-16 h-16 rounded-md bg-slate-300 overflow-hidden flex items-center justify-center border border-slate-300 shadow-2xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={receiptPreview}
+                        alt="Receipt preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptPreview(null)}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-800 text-white rounded-full flex items-center justify-center text-[11px] font-bold shadow-xs hover:bg-black cursor-pointer leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  /* Empty State (State 1 in design): Take Photo or Upload Slip */
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full bg-[#EEF2FF] hover:bg-[#E6ECFF] rounded-2xl py-6 px-4 flex flex-col items-center justify-center cursor-pointer transition text-center"
+                  >
+                    <Camera className="w-7 h-7 text-slate-800 stroke-[1.8] mb-1.5" />
+                    <p className="text-xs font-bold text-slate-900">
+                      Take Photo or Upload Slip
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                      PNG, JPG, PDF upto 10 MB
+                    </p>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*,.pdf"
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Description / Purpose */}
+              <div>
+                <label className="text-xs font-bold text-slate-900 mb-1.5 block">
+                  Description / Purpose
+                </label>
+                <input
+                  type="text"
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  placeholder="eg. tank full at Indian Oil"
+                  className="w-full bg-[#EEF2FF] text-slate-900 text-xs font-medium rounded-xl px-4 py-3 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              {/* Buttons: Cancel & Submit claim */}
+              <div className="flex items-center justify-end gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition"
+                  className="bg-[#EEF2FF] hover:bg-[#E4EAFF] text-slate-800 font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 text-white font-bold transition shadow-sm"
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition shadow-xs"
                 >
-                  Submit Claim
+                  Submit claim
                 </button>
               </div>
             </form>
