@@ -4,6 +4,7 @@ import React from 'react';
 import BrandLogo from '@/components/BrandLogo';
 import CustomersTabScreen from './CustomersTabScreen';
 import DeliveryStocksScreen from './DeliveryStocksScreen';
+import DeliveryExpensesScreen from './DeliveryExpensesScreen';
 import {
   Phone,
   MapPin,
@@ -66,6 +67,8 @@ export default function MainDeliveryScreen({
         />
       ) : activeBottomNav === 'STOCKS' ? (
         <DeliveryStocksScreen />
+      ) : activeBottomNav === 'EXPENSES' ? (
+        <DeliveryExpensesScreen />
       ) : (
         <>
           {/* Top Header */}
