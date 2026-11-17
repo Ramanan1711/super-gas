@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import CustomerAllDeliveriesScreen from './CustomerAllDeliveriesScreen';
 import {
   ArrowLeft,
   Phone,
@@ -36,6 +37,7 @@ export default function CustomerDetailScreen({
   onStartDelivery,
 }: CustomerDetailScreenProps) {
   const [copied, setCopied] = useState(false);
+  const [showAllDeliveries, setShowAllDeliveries] = useState(false);
 
   // Fallback / default data matching exact Figma design
   const customerName = 'Hotel Annapoorna';
@@ -80,6 +82,17 @@ export default function CustomerDetailScreen({
       onStartDelivery(fallbackDelivery);
     }
   };
+
+  if (showAllDeliveries) {
+    return (
+      <div className="absolute inset-0 z-40 bg-white flex flex-col overflow-hidden animate-in fade-in slide-in-from-right duration-200">
+        <CustomerAllDeliveriesScreen
+          customerName={customerName}
+          onBack={() => setShowAllDeliveries(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0 z-30 bg-[#F8FAFC] flex flex-col overflow-hidden">
@@ -471,6 +484,7 @@ export default function CustomerDetailScreen({
           {/* View All Deliveries Link */}
           <button
             type="button"
+            onClick={() => setShowAllDeliveries(true)}
             className="w-full pt-1 flex items-center justify-between text-xs font-bold text-slate-900 hover:text-[#E81B24] transition cursor-pointer"
           >
             <span>View All Deliveries (14)</span>
