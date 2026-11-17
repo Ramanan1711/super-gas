@@ -65,10 +65,7 @@ export default function MainDeliveryScreen({
           getInitials={getInitials}
         />
       ) : activeBottomNav === 'STOCKS' ? (
-        <DeliveryStocksScreen
-          activeBottomNav={activeBottomNav}
-          setActiveBottomNav={setActiveBottomNav}
-        />
+        <DeliveryStocksScreen />
       ) : (
         <>
           {/* Top Header */}

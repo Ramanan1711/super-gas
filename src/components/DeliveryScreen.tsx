@@ -45,9 +45,21 @@ export interface DeliveryStats {
   onlineCollected: number;
 }
 
+const defaultStats: DeliveryStats = {
+  totalDeliveries: 15,
+  completedDeliveries: 10,
+  pendingDeliveries: 5,
+  cancelledDeliveries: 0,
+  emptyCylindersCollected: 8,
+  totalCollected: 12000,
+  cashInHand: 10500,
+  onlineCollected: 1500,
+};
+
 interface DeliveryScreenProps {
-  initialStats: DeliveryStats;
-  initialDeliveries: Delivery[];
+  initialStats?: DeliveryStats;
+  initialDeliveries?: Delivery[];
+  initialBottomNav?: 'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE';
 }
 
 export function getInitials(name: string): string {
@@ -59,8 +71,9 @@ export function getInitials(name: string): string {
 }
 
 export default function DeliveryScreen({
-  initialStats,
-  initialDeliveries,
+  initialStats = defaultStats,
+  initialDeliveries = [],
+  initialBottomNav = 'HOME',
 }: DeliveryScreenProps) {
   const [stats, setStats] = useState<DeliveryStats>(initialStats);
   const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
@@ -87,7 +100,7 @@ export default function DeliveryScreen({
   const [outstandingBalance, setOutstandingBalance] = useState<number>(0);
   const [gstRequired, setGstRequired] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeBottomNav, setActiveBottomNav] = useState<'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE'>('HOME');
+  const [activeBottomNav, setActiveBottomNav] = useState<'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE'>(initialBottomNav);
 
   // Cylinder custody stock on van (matching Figma design)
   const [filledStock, setFilledStock] = useState(10);

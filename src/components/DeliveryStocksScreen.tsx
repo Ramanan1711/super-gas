@@ -5,17 +5,11 @@ import {
   Truck,
   Check,
   RefreshCw,
-  Home,
-  Users,
-  Box,
-  Banknote,
-  Menu,
   ChevronDown,
   ChevronUp,
   Building2,
   ArrowUpRight,
   ArrowDownLeft,
-  Wifi,
   Flame,
   TableProperties,
 } from 'lucide-react';
@@ -81,15 +75,7 @@ const mockMovements: MovementRecord[] = [
   },
 ];
 
-interface DeliveryStocksScreenProps {
-  activeBottomNav?: 'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE';
-  setActiveBottomNav?: (nav: 'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE') => void;
-}
-
-export default function DeliveryStocksScreen({
-  activeBottomNav = 'STOCKS',
-  setActiveBottomNav,
-}: DeliveryStocksScreenProps) {
+export default function DeliveryStocksScreen() {
   const [filterType, setFilterType] = useState<'all' | 'issued' | 'delivered' | 'empty'>('all');
   const [showAllMovements, setShowAllMovements] = useState(false);
 
@@ -101,34 +87,8 @@ export default function DeliveryStocksScreen({
     return mockMovements;
   }, [filterType]);
 
-  const handleNav = (nav: 'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE') => {
-    if (setActiveBottomNav) {
-      setActiveBottomNav(nav);
-    }
-  };
-
   return (
-    <div className="w-full h-full bg-[#F8FAFC] flex flex-col font-sans antialiased text-slate-800 overflow-hidden relative">
-      {/* Device Status Bar */}
-      <div className="shrink-0 px-6 pt-3 pb-1 flex items-center justify-between text-xs font-bold text-slate-800 bg-white select-none">
-        <span>9:30</span>
-        {/* Camera Punch-Hole Notch */}
-        <div className="w-4 h-4 rounded-full bg-black -ml-4" />
-        {/* System Status Icons */}
-        <div className="flex items-center gap-1.5 text-slate-800">
-          <Wifi className="w-3.5 h-3.5 stroke-[2.4]" />
-          <div className="flex items-end gap-0.5 h-3">
-            <span className="w-0.5 h-1.5 bg-slate-800 rounded-2xs" />
-            <span className="w-0.5 h-2 bg-slate-800 rounded-2xs" />
-            <span className="w-0.5 h-2.5 bg-slate-800 rounded-2xs" />
-            <span className="w-0.5 h-3 bg-slate-800 rounded-2xs" />
-          </div>
-          <div className="w-5 h-2.5 border-1.5 border-slate-800 rounded-2xs p-0.5 flex items-center">
-            <div className="h-full w-full bg-slate-800 rounded-3xs" />
-          </div>
-        </div>
-      </div>
-
+    <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC] overflow-hidden">
       {/* Screen Header */}
       <div className="shrink-0 px-5 pt-3 pb-3 bg-white border-b border-slate-100">
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -140,7 +100,7 @@ export default function DeliveryStocksScreen({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3.5 space-y-4 pb-24">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3.5 space-y-4 pb-6">
         {/* Driver & Vehicle Info Card */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-2xs flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -500,74 +460,6 @@ export default function DeliveryStocksScreen({
             )}
           </button>
         </div>
-      </div>
-
-      {/* Fixed Bottom Navigation Bar */}
-      <div className="shrink-0 bg-white border-t border-slate-200/80 px-6 pt-2.5 pb-1 flex flex-col z-20 shadow-lg">
-        <div className="flex items-center justify-between">
-          {/* Home */}
-          <button
-            type="button"
-            onClick={() => handleNav('HOME')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeBottomNav === 'HOME' ? 'text-[#BC0118]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Home className="w-5 h-5 stroke-[2]" />
-            <span className="text-[11px] font-medium">Home</span>
-          </button>
-
-          {/* Customers */}
-          <button
-            type="button"
-            onClick={() => handleNav('CUSTOMERS')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeBottomNav === 'CUSTOMERS' ? 'text-[#BC0118]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Users className="w-5 h-5 stroke-[2]" />
-            <span className="text-[11px] font-medium">Customers</span>
-          </button>
-
-          {/* My stocks */}
-          <button
-            type="button"
-            onClick={() => handleNav('STOCKS')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeBottomNav === 'STOCKS' ? 'text-[#BC0118]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Box className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[11px] font-bold text-[#BC0118]">My stocks</span>
-          </button>
-
-          {/* Expenses */}
-          <button
-            type="button"
-            onClick={() => handleNav('EXPENSES')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeBottomNav === 'EXPENSES' ? 'text-[#BC0118]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Banknote className="w-5 h-5 stroke-[2]" />
-            <span className="text-[11px] font-medium">Expenses</span>
-          </button>
-
-          {/* More */}
-          <button
-            type="button"
-            onClick={() => handleNav('MORE')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeBottomNav === 'MORE' ? 'text-[#BC0118]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Menu className="w-5 h-5 stroke-[2]" />
-            <span className="text-[11px] font-medium">More</span>
-          </button>
-        </div>
-
-        {/* Mobile Home Indicator Bar */}
-        <div className="w-32 h-1 bg-black rounded-full mx-auto mt-2 mb-1" />
       </div>
     </div>
   );
