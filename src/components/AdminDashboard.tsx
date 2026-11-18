@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import AdminSidebar from './AdminSidebar';
 import {
   Search,
   Bell,
   ChevronDown,
   ArrowUpRight,
-  QrCode,
+  RefreshCw,
   Plus,
   CheckCircle2,
   AlertTriangle,
@@ -37,36 +37,49 @@ export default function AdminDashboard() {
   const [completedDeliveries, setCompletedDeliveries] = useState<number>(72);
   const [emptyAvailable, setEmptyAvailable] = useState<number>(300);
   const [overallEmpty, setOverallEmpty] = useState<number>(550);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Fetch live metrics from database
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/metrics');
+      if (!res.ok) return;
+      const result = await res.json();
+      if (result.success && result.data) {
+        const d = result.data;
+        if (d.totalRevenue !== undefined) setTotalRevenue(d.totalRevenue);
+        if (d.todayCollection !== undefined) setTodayCollection(d.todayCollection);
+        if (d.activeVehicles !== undefined) setActiveVehicles(d.activeVehicles);
+        if (d.cylindersInCirculation !== undefined) setCylindersInCirculation(d.cylindersInCirculation);
+        if (d.deliveries?.completed !== undefined) setCompletedDeliveries(d.deliveries.completed);
+        if (d.inventory?.depotEmpty !== undefined) setEmptyAvailable(d.inventory.depotEmpty);
+        if (d.inventory?.depotEmpty !== undefined && d.inventory?.vehicleEmpty !== undefined) {
+          setOverallEmpty(d.inventory.depotEmpty + d.inventory.vehicleEmpty);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load admin metrics from database:', err);
+    }
+  }, []);
+
+  // Fetch live metrics from database on mount
   React.useEffect(() => {
     let ignore = false;
     async function loadMetrics() {
-      try {
-        const res = await fetch('/api/admin/metrics');
-        if (!res.ok) return;
-        const result = await res.json();
-        if (!ignore && result.success && result.data) {
-          const d = result.data;
-          if (d.totalRevenue !== undefined) setTotalRevenue(d.totalRevenue);
-          if (d.todayCollection !== undefined) setTodayCollection(d.todayCollection);
-          if (d.activeVehicles !== undefined) setActiveVehicles(d.activeVehicles);
-          if (d.cylindersInCirculation !== undefined) setCylindersInCirculation(d.cylindersInCirculation);
-          if (d.deliveries?.completed !== undefined) setCompletedDeliveries(d.deliveries.completed);
-          if (d.inventory?.depotEmpty !== undefined) setEmptyAvailable(d.inventory.depotEmpty);
-          if (d.inventory?.depotEmpty !== undefined && d.inventory?.vehicleEmpty !== undefined) {
-            setOverallEmpty(d.inventory.depotEmpty + d.inventory.vehicleEmpty);
-          }
-        }
-      } catch (err) {
-        console.warn('Could not load admin metrics from database:', err);
+      if (!ignore) {
+        await fetchMetrics();
       }
     }
     loadMetrics();
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [fetchMetrics]);
+
+  const handleForceSync = async () => {
+    setIsSyncing(true);
+    await fetchMetrics();
+    setTimeout(() => setIsSyncing(false), 500);
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans antialiased">
@@ -156,10 +169,12 @@ export default function AdminDashboard() {
 
               <button
                 type="button"
-                className="bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 flex items-center gap-1.5 shadow-2xs cursor-pointer transition"
+                onClick={handleForceSync}
+                disabled={isSyncing}
+                className="bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs sm:text-[13px] font-bold text-slate-900 flex items-center gap-2 shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer transition disabled:opacity-75"
               >
-                <QrCode className="w-4 h-4 text-slate-600" />
-                <span>Reconcile Sync</span>
+                <RefreshCw className={`w-4 h-4 text-slate-900 stroke-[2.4] ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>Force Sync</span>
               </button>
 
               <button
