@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from './AdminSidebar';
 import {
@@ -285,6 +285,83 @@ export default function AdminDeliveryPartnersPage({
   const [onboardIndemnityBond, setOnboardIndemnityBond] = useState(true);
   const [onboardCashLimit, setOnboardCashLimit] = useState('50,000');
 
+  useEffect(() => {
+    let isMounted = true;
+    interface DriverApiRecord {
+      id: string;
+      code: string;
+      name: string;
+      phone: string;
+      altPhone?: string | null;
+      address?: string | null;
+      bloodGroup?: string | null;
+      status: string;
+      joiningDate?: string | null;
+      filledCylinders?: number;
+      emptyCylinders?: number;
+      todayDeliveries?: number;
+    }
+
+    fetch('/api/drivers')
+      .then((res) => res.json())
+      .then((json) => {
+        if (!isMounted) return;
+        if (json?.success && json?.data?.partners?.length) {
+          const apiPartners: PartnerRecord[] = json.data.partners.map((p: DriverApiRecord) => {
+            const initials = p.name
+              ? p.name
+                  .split(' ')
+                  .map((n: string) => n[0])
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase()
+              : 'DP';
+
+            return {
+              id: p.code || p.id,
+              name: p.name,
+              code: p.code,
+              initials,
+              avatarBg: 'bg-red-100',
+              avatarText: 'text-[#BC0118]',
+              joinedDate: p.joiningDate
+                ? `Joined ${new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(p.joiningDate))}`
+                : 'Joined 2024',
+              phone: p.phone,
+              area: p.address?.split(',')?.[0] || 'Central Madurai',
+              customersCount: 30,
+              filledCylinders: p.filledCylinders || 0,
+              emptyCylinders: p.emptyCylinders || 0,
+              status: p.status === 'SUSPENDED' ? 'On Leave' : (p.status === 'OFF_DUTY' ? 'Standby' : 'Active'),
+              hasWarning: false,
+              todayDeliveries: p.todayDeliveries || 0,
+              activeGatePass: {
+                code: `#GP-${p.code.replace('DP-', '')}01`,
+                issuedAt: 'Gate Pass Active',
+                loadedUnits: p.filledCylinders || 0,
+                operator: 'Gate Operator: S. Raman',
+                status: 'Confirmed',
+              },
+              custodyLogs: [],
+            };
+          });
+
+          setPartners((prev) => {
+            const existingCodes = new Set(apiPartners.map((p) => p.code));
+            const extra = prev.filter((p) => !existingCodes.has(p.code));
+            return [...apiPartners, ...extra];
+          });
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load drivers from API:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const triggerToast = (msg: string) => {
     setActionToast(msg);
     setTimeout(() => setActionToast(null), 3000);
@@ -378,11 +455,81 @@ export default function AdminDeliveryPartnersPage({
   };
 
   // Submit the Full Onboarding form
-  const handleCompleteOnboardPartner = (e: React.FormEvent) => {
+  const handleCompleteOnboardPartner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!onboardFullName.trim()) return;
 
-    const newCode = 'DP-006';
+    try {
+      const res = await fetch('/api/drivers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: onboardFullName.trim(),
+          phone: `+91 ${onboardPrimaryPhone.trim().replace(/^\+91\s*/, '')}`,
+          altPhone: onboardEmergencyPhone ? `+91 ${onboardEmergencyPhone.trim().replace(/^\+91\s*/, '')}` : null,
+          address: onboardAddress,
+          bloodGroup: 'O+ (Rh Pos)',
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success && json.data?.partner) {
+        const p = json.data.partner;
+        const initials = onboardFullName
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .substring(0, 2)
+          .toUpperCase();
+
+        const created: PartnerRecord = {
+          id: p.partnerCode || p.id,
+          name: p.name,
+          code: p.partnerCode,
+          initials: initials || 'DP',
+          avatarBg: 'bg-red-100',
+          avatarText: 'text-[#BC0118]',
+          joinedDate: 'Joined Just Now',
+          phone: p.phone,
+          area: 'Simmakkal',
+          customersCount: 24,
+          filledCylinders: 0,
+          emptyCylinders: 0,
+          status: 'Active',
+          hasWarning: false,
+          todayDeliveries: 0,
+          activeGatePass: {
+            code: '#GP-1096',
+            issuedAt: 'Pending Shift First Issue',
+            loadedUnits: 0,
+            operator: 'Gate Operator: S. Raman',
+            status: 'Pending',
+          },
+          custodyLogs: [
+            {
+              id: 'log-onboard',
+              action: 'Driver Onboarded & Verified',
+              customer: 'Madurai Central Depot',
+              time: 'Just Now',
+              changeText: 'Credentials Activated in Database',
+            },
+          ],
+        };
+
+        setPartners((prev) => [created, ...prev]);
+        setSelectedPartnerId(created.id);
+        setViewMode('list');
+        triggerToast(`Partner ${p.name} (${p.partnerCode}) successfully onboarded and saved to database!`);
+        return;
+      } else if (json.error) {
+        alert(json.error);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to save partner to database:', err);
+    }
+
+    const newCode = `DP-00${partners.length + 1}`;
     const initials = onboardFullName
       .split(' ')
       .map((n) => n[0])
@@ -427,7 +574,7 @@ export default function AdminDeliveryPartnersPage({
     setPartners((prev) => [...prev, created]);
     setSelectedPartnerId(newCode);
     setViewMode('list');
-    triggerToast(`Partner ${onboardFullName} (DP-006) successfully onboarded and authorized!`);
+    triggerToast(`Partner ${onboardFullName} (${newCode}) successfully onboarded!`);
   };
 
   const handleIssueSubmit = (e: React.FormEvent) => {

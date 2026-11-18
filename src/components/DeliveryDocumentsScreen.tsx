@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -19,18 +19,40 @@ import {
   X,
   ShieldCheck,
   Check,
+  Upload,
+  Calendar,
 } from 'lucide-react';
 
 interface DeliveryDocumentsScreenProps {
   onBack: () => void;
 }
 
+interface DriverDocument {
+  id: string;
+  type: string;
+  title: string;
+  docNumber: string;
+  issuedBy?: string | null;
+  validUntil?: string | null;
+  status: string;
+  fileUrl?: string | null;
+  remarks?: string | null;
+}
+
 export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScreenProps) {
+  const [documents, setDocuments] = useState<DriverDocument[]>([]);
+  const [now, setNow] = useState<number | null>(null);
+
   // PUC status state to allow interactive update
   const [pucUpdated, setPucUpdated] = useState(false);
   const [pucNumber, setPucNumber] = useState('TN058-PUC-2026-9481');
   const [showPucModal, setShowPucModal] = useState(false);
   const [pucInput, setPucInput] = useState('');
+  const [vehicleReg, setVehicleReg] = useState('TN 58 AX 4821');
+  const [expiryDate, setExpiryDate] = useState('2027-11-18');
+  const [pucFile, setPucFile] = useState<File | null>(null);
+  const [isSavingPuc, setIsSavingPuc] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   // Hazardous renewal state
   const [hazRenewed, setHazRenewed] = useState(false);
@@ -41,43 +63,181 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
     refNumber: string;
     issuedBy: string;
     validity: string;
+    fileUrl?: string | null;
   } | null>(null);
 
   // Status check modal state
   const [statusCheckDoc, setStatusCheckDoc] = useState<string | null>(null);
 
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const res = await fetch('/api/drivers/documents?partnerCode=DP-003');
+      const json = await res.json();
+      if (json?.success && json?.data?.documents) {
+        const docs: DriverDocument[] = json.data.documents;
+        setDocuments(docs);
+
+        const puc = docs.find((d) => d.type === 'PUC_CERTIFICATE');
+        if (puc) {
+          setPucNumber(puc.docNumber);
+          if (puc.status === 'VERIFIED') setPucUpdated(true);
+        }
+
+        const haz = docs.find((d) => d.type === 'HAZARDOUS_LPG');
+        if (haz && haz.status === 'VERIFIED') {
+          setHazRenewed(true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load driver documents:', err);
+    }
+  }, []);
+
   useEffect(() => {
-    fetch('/api/drivers/documents')
+    let isMounted = true;
+    fetch('/api/drivers/documents?partnerCode=DP-003')
       .then((res) => res.json())
-      .then((res) => {
-        if (res?.success && res?.data?.documents) {
-          const puc = res.data.documents.find((d: { type: string }) => d.type === 'PUC_CERTIFICATE');
+      .then((json) => {
+        if (!isMounted) return;
+        setNow(Date.now());
+        if (json?.success && json?.data?.documents) {
+          const docs: DriverDocument[] = json.data.documents;
+          setDocuments(docs);
+
+          const puc = docs.find((d) => d.type === 'PUC_CERTIFICATE');
           if (puc) {
             setPucNumber(puc.docNumber);
             if (puc.status === 'VERIFIED') setPucUpdated(true);
           }
+
+          const haz = docs.find((d) => d.type === 'HAZARDOUS_LPG');
+          if (haz && haz.status === 'VERIFIED') {
+            setHazRenewed(true);
+          }
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to load driver documents:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // Derived counts
+  const verifiedCount = useMemo(() => {
+    let count = documents.filter((d) => d.status === 'VERIFIED').length;
+    if (pucUpdated && !documents.some((d) => d.type === 'PUC_CERTIFICATE' && d.status === 'VERIFIED')) {
+      count += 1;
+    }
+    if (hazRenewed && !documents.some((d) => d.type === 'HAZARDOUS_LPG' && d.status === 'VERIFIED')) {
+      count += 1;
+    }
+    return count > 0 ? count : (pucUpdated ? 5 : 4);
+  }, [documents, pucUpdated, hazRenewed]);
+
+  const pendingCount = useMemo(() => {
+    return documents.filter((d) => d.status === 'PENDING_VERIFICATION' || d.status === 'EXPIRING_SOON').length || 1;
+  }, [documents]);
+
+  const issuesCount = useMemo(() => {
+    if (pucUpdated && hazRenewed) return 0;
+    if (pucUpdated || hazRenewed) return 1;
+    return 2;
+  }, [pucUpdated, hazRenewed]);
+
+  // Helper date formatters
+  const formatDateStr = (dateStr?: string | null, fallback = 'N/A') => {
+    if (!dateStr) return fallback;
+    try {
+      return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(dateStr));
+    } catch {
+      return fallback;
+    }
+  };
+
+  const getDaysRemainingText = (dateStr?: string | null, fallback = 'Expiring Soon') => {
+    if (!dateStr) return fallback;
+    try {
+      const target = new Date(dateStr).getTime();
+      const current = now ?? new Date('2026-11-18').getTime();
+      const diffDays = Math.ceil((target - current) / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) return `Expired ${Math.abs(diffDays)} days ago`;
+      if (diffDays === 0) return 'Expires today';
+      return `Expires in ${diffDays} days in PESO Portal`;
+    } catch {
+      return fallback;
+    }
+  };
+
+  // Find individual documents
+  const dlDoc = documents.find((d) => d.type === 'DRIVING_LICENSE');
+  const hazDoc = documents.find((d) => d.type === 'HAZARDOUS_LPG');
+  const rcDoc = documents.find((d) => d.type === 'VEHICLE_RC');
+  const insDoc = documents.find((d) => d.type === 'FLEET_INSURANCE');
+  const pucDoc = documents.find((d) => d.type === 'PUC_CERTIFICATE');
 
   const handleUpdatePuc = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pucInput.trim()) return;
-    const newDoc = pucInput.trim();
-    setPucNumber(newDoc);
-    setPucUpdated(true);
-    setShowPucModal(false);
-    setPucInput('');
+    setIsSavingPuc(true);
+    setUploadStatus('Preparing verification...');
 
     try {
-      await fetch('/api/drivers/documents/puc', {
-        method: 'PATCH',
+      let uploadedFileUrl: string | undefined = undefined;
+
+      // Handle optional file upload
+      if (pucFile) {
+        setUploadStatus('Uploading certificate attachment...');
+        const formData = new FormData();
+        formData.append('file', pucFile);
+        formData.append('folder', 'documents');
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const uploadJson = await uploadRes.json();
+        if (uploadJson.success && uploadJson.data?.url) {
+          uploadedFileUrl = uploadJson.data.url;
+        }
+      }
+
+      setUploadStatus('Validating with Parivahan emission registry...');
+      const res = await fetch('/api/drivers/documents/puc', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docNumber: newDoc }),
+        body: JSON.stringify({
+          certificateNumber: pucInput.trim(),
+          vehicleRegNumber: vehicleReg,
+          expiryDate: expiryDate,
+          fileUrl: uploadedFileUrl,
+        }),
       });
+
+      const json = await res.json();
+      if (json.success) {
+        setPucNumber(pucInput.trim());
+        setPucUpdated(true);
+        setShowPucModal(false);
+        setPucInput('');
+        setPucFile(null);
+        await fetchDocuments();
+      } else {
+        alert(json.error || 'Failed to update PUC certificate.');
+      }
     } catch (err) {
       console.error('Failed to sync PUC update:', err);
+      alert('Error updating PUC certificate.');
+    } finally {
+      setIsSavingPuc(false);
+      setUploadStatus(null);
     }
   };
 
@@ -112,7 +272,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
               </div>
             </div>
             <p className="text-xl font-black text-slate-900 tracking-tight">
-              {pucUpdated ? '5' : '4'}
+              {verifiedCount}
             </p>
             <p className="text-[10px] font-bold text-emerald-600">
               Active
@@ -130,7 +290,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
               </div>
             </div>
             <p className="text-xl font-black text-slate-900 tracking-tight">
-              1
+              {pendingCount}
             </p>
             <p className="text-[10px] font-medium text-slate-400">
               In Review
@@ -148,10 +308,10 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
               </div>
             </div>
             <p className="text-xl font-black text-slate-900 tracking-tight">
-              {pucUpdated ? (hazRenewed ? '0' : '1') : (hazRenewed ? '1' : '2')}
+              {issuesCount}
             </p>
             <p className="text-[10px] font-bold text-rose-600">
-              {pucUpdated && hazRenewed ? 'Cleared' : 'Alerts'}
+              {issuesCount === 0 ? 'Cleared' : 'Alerts'}
             </p>
           </div>
         </div>
@@ -279,7 +439,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                     Commercial DL (LMV / HMV)
                   </h3>
                   <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    TN-58-2015-0046019
+                    {dlDoc?.docNumber || 'TN-58-2015-0046019'}
                   </p>
                 </div>
               </div>
@@ -296,7 +456,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                   PARIVAHAN STATUS
                 </span>
                 <span className="text-[11px] font-bold text-slate-900 block mt-0.5">
-                  Valid until 20 Nov 2028
+                  {dlDoc?.validUntil ? `Valid until ${formatDateStr(dlDoc.validUntil)}` : 'Valid until 20 Nov 2028'}
                 </span>
               </div>
               <div>
@@ -304,7 +464,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                   RTO OFFICE
                 </span>
                 <span className="text-[11px] font-bold text-slate-900 block mt-0.5">
-                  Madurai South (TN-58)
+                  {dlDoc?.issuedBy || 'Madurai South (TN-58)'}
                 </span>
               </div>
             </div>
@@ -331,7 +491,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                     Hazardous LPG Endorsement
                   </h3>
                   <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    HAZ-LPG-TN-901
+                    {hazDoc?.docNumber || 'HAZ-LPG-TN-901'}
                   </p>
                 </div>
               </div>
@@ -352,10 +512,10 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
               <div className="bg-[#F0F3FF] rounded-xl p-3 space-y-1">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
                   <Clock className="w-3.5 h-3.5 text-indigo-600 stroke-[2.2]" />
-                  <span>Expires in 18 days in PESO Portal</span>
+                  <span>{getDaysRemainingText(hazDoc?.validUntil, 'Expires in 18 days in PESO Portal')}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
-                  Safety endorsement reaches its valid validity date on 10 Nov 2026. Complete mandated depot refresher training to update licensing registry.
+                  Safety endorsement reaches its valid validity date on {formatDateStr(hazDoc?.validUntil, '10 Nov 2026')}. Complete mandated depot refresher training to update licensing registry.
                 </p>
               </div>
             ) : (
@@ -371,9 +531,9 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                 onClick={() =>
                   setSelectedDocPreview({
                     title: 'Hazardous LPG Endorsement',
-                    refNumber: 'HAZ-LPG-TN-901',
-                    issuedBy: 'PESO (Petroleum & Explosives Safety Organisation)',
-                    validity: hazRenewed ? 'Valid until 10 Nov 2029' : 'Valid until 10 Nov 2026 (Expiring Soon)',
+                    refNumber: hazDoc?.docNumber || 'HAZ-LPG-TN-901',
+                    issuedBy: hazDoc?.issuedBy || 'PESO (Petroleum & Explosives Safety Organisation)',
+                    validity: hazRenewed ? 'Valid until 10 Nov 2029' : (hazDoc?.validUntil ? `Valid until ${formatDateStr(hazDoc.validUntil)} (Expiring Soon)` : 'Valid until 10 Nov 2026 (Expiring Soon)'),
                   })
                 }
                 className="flex-1 bg-[#F0F3FF] hover:bg-[#E4EAFF] text-slate-800 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1 transition cursor-pointer"
@@ -423,7 +583,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                     RC - Tata Ace Gold Diesel
                   </h3>
                   <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    VAHAN-RC-••••4821
+                    {rcDoc?.docNumber || 'VAHAN-RC-••••4821'}
                   </p>
                 </div>
               </div>
@@ -434,7 +594,9 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
             </div>
 
             <div className="flex items-center justify-between text-[11px] pt-0.5">
-              <span className="text-slate-500 font-medium">VAHAN Valid until 14 Mar 2035</span>
+              <span className="text-slate-500 font-medium">
+                {rcDoc?.validUntil ? `VAHAN Valid until ${formatDateStr(rcDoc.validUntil)}` : 'VAHAN Valid until 14 Mar 2035'}
+              </span>
               <span className="text-emerald-700 font-bold">Fitness passed</span>
             </div>
 
@@ -460,7 +622,7 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                     Commercial Fleet Insurance
                   </h3>
                   <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    HDFC ERGO •••• 0821
+                    {insDoc?.docNumber || 'HDFC ERGO •••• 0821'}
                   </p>
                 </div>
               </div>
@@ -471,7 +633,9 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
             </div>
 
             <div className="flex items-center justify-between text-[11px] pt-0.5">
-              <span className="text-slate-500 font-medium">IIB Registry: Expires 15 Oct 2027</span>
+              <span className="text-slate-500 font-medium">
+                {insDoc?.validUntil ? `IIB Registry: Expires ${formatDateStr(insDoc.validUntil)}` : 'IIB Registry: Expires 15 Oct 2027'}
+              </span>
               <span className="text-slate-600 font-medium text-right">Comprehensive Cover</span>
             </div>
 
@@ -521,12 +685,12 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                   <span>Parivahan Registry Notice</span>
                 </div>
                 <p className="text-[11px] text-rose-800 leading-relaxed font-normal">
-                  PUC emission record for TN 58 AX 4821 expired on Parivahan central server on 22 Oct 2026. Complete automated center test and enter renewed test certificate ID.
+                  PUC emission record for {vehicleReg} expired on Parivahan central server on 22 Oct 2026. Complete automated center test and enter renewed test certificate ID.
                 </p>
               </div>
             ) : (
               <div className="bg-emerald-50 rounded-xl p-3 text-[11px] text-emerald-800 font-medium">
-                Renewed PUC Certificate validated on Parivahan database. Valid until 18 Nov 2027.
+                Renewed PUC Certificate validated on Parivahan database. Valid until {formatDateStr(pucDoc?.validUntil, '18 Nov 2027')}.
               </div>
             )}
 
@@ -653,9 +817,9 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                 <label className="text-slate-700 font-bold block mb-1">Vehicle Fleet Unit</label>
                 <input
                   type="text"
-                  readOnly
-                  value="TN 58 AX 4821"
-                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2.5 font-bold text-slate-900 focus:outline-none"
+                  value={vehicleReg}
+                  onChange={(e) => setVehicleReg(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 uppercase"
                 />
               </div>
 
@@ -671,19 +835,71 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
                 />
               </div>
 
+              <div>
+                <label className="text-slate-700 font-bold block mb-1">Expiry Date*</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    required
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                  <Calendar className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-700 font-bold block mb-1">Certificate Attachment (Photo / PDF)</label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="pucAttachmentInput"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={(e) => setPucFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="pucAttachmentInput"
+                    className="flex items-center justify-between w-full bg-slate-50 border border-slate-200 border-dashed rounded-xl px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition"
+                  >
+                    <span className="text-xs text-slate-600 truncate">
+                      {pucFile ? pucFile.name : 'Upload Certificate (Image or PDF)...'}
+                    </span>
+                    <Upload className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                  </label>
+                </div>
+              </div>
+
+              {uploadStatus && (
+                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-700 text-xs font-medium flex items-center gap-2">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span>{uploadStatus}</span>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowPucModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                  disabled={isSavingPuc}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 text-white font-bold transition shadow-xs"
+                  disabled={isSavingPuc}
+                  className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 disabled:opacity-60 text-white font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  Save & Validate
+                  {isSavingPuc ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save & Validate</span>
+                  )}
                 </button>
               </div>
             </form>

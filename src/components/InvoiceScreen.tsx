@@ -16,6 +16,8 @@ import {
   Lock,
   ArrowRight,
   RefreshCw,
+  Printer,
+  Share2,
 } from 'lucide-react';
 import type { Delivery } from './DeliveryScreen';
 
@@ -47,10 +49,10 @@ export default function InvoiceScreen({
   getInitials,
 }: InvoiceScreenProps) {
   const customerIndex = deliveries.findIndex((d) => d.id === selectedDelivery.id);
-  const customerCode = `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
+  const customerCode = selectedDelivery.customer.customerCode || `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
 
   // Live real-time clock: continuously updates every second so the date & time stays live
-  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
+  const [currentTime, setCurrentTime] = useState<Date>(() => new Date('2026-11-18T10:00:00Z'));
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -61,28 +63,29 @@ export default function InvoiceScreen({
 
   // Dynamic unique invoice number
   const invoiceNo = useMemo(() => {
-    const now = new Date();
+    const now = currentTime || new Date('2026-11-18T10:00:00Z');
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const dateCode = `${year}${month}${day}`;
     const seq = String(customerIndex >= 0 ? customerIndex + 1 : 1).padStart(3, '0');
     return `INV-${dateCode}-${seq}`;
-  }, [customerIndex]);
+  }, [customerIndex, currentTime]);
 
   // Format live Date & Time: "DD MMM YYYY • hh:mm A" (e.g. "13 Nov 2026 • 12:52 PM")
   const formattedDateTime = useMemo(() => {
+    const target = currentTime || new Date('2026-11-18T10:00:00Z');
     const formattedDate = new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
-    }).format(currentTime);
+    }).format(target);
 
     const formattedTime = new Intl.DateTimeFormat('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
-    }).format(currentTime);
+    }).format(target);
 
     return `${formattedDate} • ${formattedTime}`;
   }, [currentTime]);
@@ -122,6 +125,37 @@ export default function InvoiceScreen({
 
   const gstAmount = gstRequired ? subtotal * 0.05 : 0;
   const totalPayable = subtotal + gstAmount;
+
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
+  };
+
+  const handleShare = async () => {
+    const summary = `*Super Gas Delivery Invoice*\nInvoice: ${invoiceNo}\nCustomer: ${selectedDelivery.customer.name} (${customerCode})\nItems Handed Over: ${outgoingText}\nEmpties Collected: ${incomingText}\nTotal Amount: ₹${Math.round(totalPayable)}/-\nDate: ${formattedDateTime}`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Invoice ${invoiceNo} - Super Gas`,
+          text: summary,
+        });
+        return;
+      } catch {
+        // user dismiss or unsupported
+      }
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(summary);
+        alert('Invoice summary copied to clipboard!');
+        return;
+      } catch {
+        // fallback
+      }
+    }
+    alert(summary);
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
@@ -351,16 +385,31 @@ export default function InvoiceScreen({
           </span>
         </div>
 
-        {/* Download Invoice PDF */}
-        <div className="flex justify-center pt-1 pb-1">
+        {/* Actions: Print Receipt & Share Digital Receipt & Download */}
+        <div className="flex items-center justify-center gap-2 pt-1 pb-1">
           <button
             type="button"
-            onClick={() => alert('Invoice PDF download initiated')}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#E81B24] hover:underline cursor-pointer"
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Printer className="w-4 h-4 text-slate-500 stroke-[2.2]" />
+            <span>Print Receipt</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Share2 className="w-4 h-4 text-slate-500 stroke-[2.2]" />
+            <span>Share Receipt</span>
+          </button>
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-[#E81B24] border border-red-200/60 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
           >
             <Download className="w-4 h-4 stroke-[2.2]" />
-            <span>Download Invoice PDF</span>
-            <span className="text-slate-400 font-normal">| Stamped</span>
+            <span>PDF</span>
           </button>
         </div>
       </div>

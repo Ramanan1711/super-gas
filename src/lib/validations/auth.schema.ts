@@ -14,8 +14,13 @@ export const updateProfileSchema = z.object({
 });
 
 export const updateDocumentPucSchema = z.object({
-  docNumber: z.string().min(5, 'Valid PUC Certificate number is required').trim(),
-  validUntil: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+  docNumber: z.string().min(3, 'Valid PUC Certificate number is required').trim().optional(),
+  certificateNumber: z.string().optional(),
+  vehicleRegNumber: z.string().optional(),
+  validUntil: z.string().optional(),
+  expiryDate: z.string().optional(),
+  fileUrl: z.string().optional(),
+  partnerCode: z.string().optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

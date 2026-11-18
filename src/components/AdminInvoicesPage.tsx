@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 import {
@@ -1276,8 +1276,33 @@ export default function AdminInvoicesPage({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Invoices Tab Table Selection & Inspection
+  const [invoicesList, setInvoicesList] = useState<InvoiceRecord[]>(detailedInvoicesList);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(['inv-101']);
   const [inspectedInvoice, setInspectedInvoice] = useState<InvoiceRecord | null>(detailedInvoicesList[1]); // Default to Mohammed Ali (INV-20261015-002)
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/admin/invoices')
+      .then((res) => res.json())
+      .then((json) => {
+        if (!isMounted) return;
+        if (json?.success && json?.data?.invoices?.length) {
+          const liveInvoices: InvoiceRecord[] = json.data.invoices;
+          setInvoicesList((prev) => {
+            const liveNumbers = new Set(liveInvoices.map((i) => i.invoiceNo));
+            const filteredPrev = prev.filter((i) => !liveNumbers.has(i.invoiceNo));
+            return [...liveInvoices, ...filteredPrev];
+          });
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load live invoices:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Payments Tab State
   const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>(['pay-003']); // Default checked on Priya Stores (PAY-20261015-003)
@@ -1345,10 +1370,10 @@ export default function AdminInvoicesPage({
   };
 
   const toggleSelectAllInvoices = () => {
-    if (selectedInvoiceIds.length === detailedInvoicesList.length) {
+    if (selectedInvoiceIds.length === invoicesList.length) {
       setSelectedInvoiceIds([]);
     } else {
-      setSelectedInvoiceIds(detailedInvoicesList.map((i) => i.id));
+      setSelectedInvoiceIds(invoicesList.map((i) => i.id));
     }
   };
 
@@ -1368,7 +1393,7 @@ export default function AdminInvoicesPage({
   };
 
   const filteredInvoices = useMemo(() => {
-    return detailedInvoicesList.filter((inv) => {
+    return invoicesList.filter((inv) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const match =
@@ -1390,7 +1415,7 @@ export default function AdminInvoicesPage({
       }
       return true;
     });
-  }, [searchQuery, statusFilter, partnerFilter, customerFilter]);
+  }, [invoicesList, searchQuery, statusFilter, partnerFilter, customerFilter]);
 
   const filteredPayments = useMemo(() => {
     return initialPaymentsList.filter((pay) => {
@@ -2390,7 +2415,7 @@ export default function AdminInvoicesPage({
                           <th className="py-3 px-3 w-8">
                             <input
                               type="checkbox"
-                              checked={selectedInvoiceIds.length === detailedInvoicesList.length}
+                              checked={selectedInvoiceIds.length === invoicesList.length}
                               onChange={toggleSelectAllInvoices}
                               className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
                             />
