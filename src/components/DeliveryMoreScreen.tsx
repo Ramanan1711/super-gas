@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DeliveryProfileScreen from './DeliveryProfileScreen';
 import DeliveryDocumentsScreen from './DeliveryDocumentsScreen';
 import DeliveryHistoryScreen from './DeliveryHistoryScreen';
+import DeliverySettlementsScreen from './DeliverySettlementsScreen';
 import {
   User,
   FileText,
@@ -28,6 +29,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showDocumentsPage, setShowDocumentsPage] = useState(false);
   const [showHistoryPage, setShowHistoryPage] = useState(false);
+  const [showSettlementsPage, setShowSettlementsPage] = useState(false);
   const [activeModal, setActiveModal] = useState<'LANGUAGE' | 'END_SHIFT' | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ta'>('ta');
 
@@ -41,6 +43,10 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
 
   if (showHistoryPage) {
     return <DeliveryHistoryScreen onBack={() => setShowHistoryPage(false)} />;
+  }
+
+  if (showSettlementsPage) {
+    return <DeliverySettlementsScreen onBack={() => setShowSettlementsPage(false)} />;
   }
 
   return (
@@ -167,7 +173,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             {/* My Settlements */}
             <button
               type="button"
-              onClick={() => router.push('/admin/settlements')}
+              onClick={() => setShowSettlementsPage(true)}
               className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
             >
               <div className="flex items-center gap-3">
