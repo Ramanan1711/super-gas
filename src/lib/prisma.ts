@@ -8,8 +8,30 @@ const adapter = new PrismaPg({
 // Explicit intersection ensures TypeScript in all IDEs recognizes dynamically added models
 // without requiring manual TS Server restarts when schemas change.
 export type AppPrismaClient = PrismaClient & {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  user: any;
+  depot: any;
+  vehicle: any;
+  deliveryPartner: any;
+  partnerDocument: any;
+  customer: any;
+  customerLedgerEntry: any;
+  cylinderProduct: any;
+  depotInventory: any;
+  vehicleInventory: any;
+  stockTransferLog: any;
+  stockTransferItem: any;
+  deliveryTrip: any;
+  deliveryTask: any;
+  deliveryItem: any;
+  invoice: any;
+  paymentTransaction: any;
+  expenseClaim: any;
+  dailySettlement: any;
+  cashHandoverEvent: any;
   delivery: any;
+  [key: string]: any;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 };
 
 const globalForPrisma = globalThis as unknown as {
