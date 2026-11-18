@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import DeliveryProfileScreen from './DeliveryProfileScreen';
 import {
   User,
   FileText,
@@ -23,8 +24,13 @@ interface DeliveryMoreScreenProps {
 
 export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreenProps) {
   const router = useRouter();
-  const [activeModal, setActiveModal] = useState<'PROFILE' | 'DOCUMENTS' | 'LANGUAGE' | 'END_SHIFT' | null>(null);
+  const [showProfilePage, setShowProfilePage] = useState(false);
+  const [activeModal, setActiveModal] = useState<'DOCUMENTS' | 'LANGUAGE' | 'END_SHIFT' | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ta'>('ta');
+
+  if (showProfilePage) {
+    return <DeliveryProfileScreen onBack={() => setShowProfilePage(false)} />;
+  }
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC] overflow-hidden">
@@ -38,7 +44,10 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
       {/* Scrollable Screen Content */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-8">
         {/* 1. Driver Profile Card */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+        <div
+          onClick={() => setShowProfilePage(true)}
+          className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3.5 cursor-pointer hover:border-slate-300 transition"
+        >
           {/* Avatar with Online/Active indicator */}
           <div className="relative shrink-0">
             <div className="w-13 h-13 rounded-full bg-[#3F4D67] text-white font-black text-base flex items-center justify-center shadow-inner tracking-wide">
@@ -73,7 +82,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             {/* My Profile */}
             <button
               type="button"
-              onClick={() => setActiveModal('PROFILE')}
+              onClick={() => setShowProfilePage(true)}
               className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
             >
               <div className="flex items-center gap-3">
@@ -241,69 +250,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
         </div>
       </div>
 
-      {/* Modal 1: My Profile */}
-      {activeModal === 'PROFILE' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
-          <div className="w-full max-w-[390px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <User className="w-4 h-4 stroke-[2.2]" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">Driver Profile</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="p-1 text-slate-400 hover:text-black cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
-                <span className="text-slate-400 font-medium">Full Name</span>
-                <span className="font-bold text-slate-900">Suresh Babu</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
-                <span className="text-slate-400 font-medium">Partner ID</span>
-                <span className="font-bold text-slate-900">DP-003</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
-                <span className="text-slate-400 font-medium">Assigned Route</span>
-                <span className="font-bold text-slate-900">Madurai North Zone</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
-                <span className="text-slate-400 font-medium">Delivery Vehicle</span>
-                <span className="font-bold text-slate-900">Van 03 (TN 58 AX 4821)</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
-                <span className="text-slate-400 font-medium">Phone Number</span>
-                <span className="font-bold text-slate-900">+91 98421 98421</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-50">
-                <span className="text-slate-400 font-medium">Driving License</span>
-                <span className="font-bold text-slate-900">TN-58-2018-00941 (HMV)</span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-400 font-medium">Operating Depot</span>
-                <span className="font-bold text-slate-900">Central Logistics Depot</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveModal(null)}
-              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 2: My Documents */}
+      {/* Modal 1: My Documents */}
       {activeModal === 'DOCUMENTS' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
           <div className="w-full max-w-[390px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
