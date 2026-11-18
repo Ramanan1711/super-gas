@@ -79,11 +79,23 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     return badRequestResponse('Driver name and phone number are required.');
   }
 
-  // Generate partnerCode if not provided
+  // Generate partnerCode if not provided (start after existing 5 beats DP-001..DP-005)
   let partnerCode = body.partnerCode?.trim();
   if (!partnerCode) {
-    const count = await prisma.deliveryPartner.count();
-    partnerCode = `DP-${String(count + 1).padStart(3, '0')}`;
+    const allPartners = await prisma.deliveryPartner.findMany({
+      select: { partnerCode: true },
+    });
+    let maxNum = 5;
+    for (const p of allPartners) {
+      const match = p.partnerCode?.match(/DP-(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+    partnerCode = `DP-${String(maxNum + 1).padStart(3, '0')}`;
   }
 
   // Check uniqueness of partnerCode and phone
@@ -91,8 +103,20 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     where: { partnerCode },
   });
   if (existingCode) {
-    const count = await prisma.deliveryPartner.count();
-    partnerCode = `DP-${String(count + 2).padStart(3, '0')}`;
+    const allPartners = await prisma.deliveryPartner.findMany({
+      select: { partnerCode: true },
+    });
+    let maxNum = 5;
+    for (const p of allPartners) {
+      const match = p.partnerCode?.match(/DP-(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+    partnerCode = `DP-${String(maxNum + 2).padStart(3, '0')}`;
   }
 
   const existingPhone = await prisma.deliveryPartner.findUnique({

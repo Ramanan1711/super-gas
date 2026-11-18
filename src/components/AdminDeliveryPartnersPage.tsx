@@ -347,9 +347,28 @@ export default function AdminDeliveryPartnersPage({
           });
 
           setPartners((prev) => {
-            const existingCodes = new Set(apiPartners.map((p) => p.code));
-            const extra = prev.filter((p) => !existingCodes.has(p.code));
-            return [...apiPartners, ...extra];
+            const seen = new Set<string>();
+            const merged: PartnerRecord[] = [];
+
+            // 1. Prioritize live database partners
+            for (const p of apiPartners) {
+              const key = (p.code || p.id).toUpperCase();
+              if (!seen.has(key)) {
+                seen.add(key);
+                merged.push({ ...p, id: key, code: key });
+              }
+            }
+
+            // 2. Add fallback initial partners that aren't already loaded
+            for (const p of prev) {
+              const key = (p.code || p.id).toUpperCase();
+              if (!seen.has(key)) {
+                seen.add(key);
+                merged.push({ ...p, id: key, code: key });
+              }
+            }
+
+            return merged;
           });
         }
       })
@@ -373,7 +392,7 @@ export default function AdminDeliveryPartnersPage({
 
   // Filtering Logic
   const filteredPartners = useMemo(() => {
-    return partners.filter((p) => {
+    const list = partners.filter((p) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = p.name.toLowerCase().includes(q);
@@ -408,6 +427,14 @@ export default function AdminDeliveryPartnersPage({
         if (settlementFilter === 'Settled' && p.hasWarning) return false;
       }
 
+      return true;
+    });
+
+    const seen = new Set<string>();
+    return list.filter((p) => {
+      const key = (p.id || p.code).toUpperCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
   }, [partners, searchQuery, statusFilter, areaFilter, assignmentFilter, custodyFilter, settlementFilter]);
@@ -516,7 +543,11 @@ export default function AdminDeliveryPartnersPage({
           ],
         };
 
-        setPartners((prev) => [created, ...prev]);
+        setPartners((prev) => {
+          const uniqueKey = (p.partnerCode || p.id).toUpperCase();
+          const cleanPrev = prev.filter((item) => (item.code || item.id).toUpperCase() !== uniqueKey);
+          return [created, ...cleanPrev];
+        });
         setSelectedPartnerId(created.id);
         setViewMode('list');
         triggerToast(`Partner ${p.name} (${p.partnerCode}) successfully onboarded and saved to database!`);
@@ -529,7 +560,7 @@ export default function AdminDeliveryPartnersPage({
       console.error('Failed to save partner to database:', err);
     }
 
-    const newCode = `DP-00${partners.length + 1}`;
+    const newCode = `DP-${String(partners.length + 6).padStart(3, '0')}`;
     const initials = onboardFullName
       .split(' ')
       .map((n) => n[0])
@@ -571,7 +602,10 @@ export default function AdminDeliveryPartnersPage({
       ],
     };
 
-    setPartners((prev) => [...prev, created]);
+    setPartners((prev) => {
+      const cleanPrev = prev.filter((item) => (item.code || item.id).toUpperCase() !== newCode.toUpperCase());
+      return [created, ...cleanPrev];
+    });
     setSelectedPartnerId(newCode);
     setViewMode('list');
     triggerToast(`Partner ${onboardFullName} (${newCode}) successfully onboarded!`);
@@ -1659,12 +1693,13 @@ export default function AdminDeliveryPartnersPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filteredPartners.map((partner) => {
-                        const isSelected = partner.id === selectedPartnerId;
+                      {filteredPartners.map((partner, index) => {
+                        const rowKey = partner.id || partner.code || `partner-${index}`;
+                        const isSelected = rowKey === selectedPartnerId || partner.code === selectedPartnerId;
                         return (
                           <tr
-                            key={partner.id}
-                            onClick={() => setSelectedPartnerId(partner.id)}
+                            key={rowKey}
+                            onClick={() => setSelectedPartnerId(rowKey)}
                             className={`hover:bg-slate-50/80 transition cursor-pointer select-none ${
                               isSelected ? 'bg-red-50/30 ring-1 ring-inset ring-red-200' : ''
                             }`}
