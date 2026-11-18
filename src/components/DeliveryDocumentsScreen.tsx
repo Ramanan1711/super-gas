@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -46,13 +46,39 @@ export default function DeliveryDocumentsScreen({ onBack }: DeliveryDocumentsScr
   // Status check modal state
   const [statusCheckDoc, setStatusCheckDoc] = useState<string | null>(null);
 
-  const handleUpdatePuc = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetch('/api/drivers/documents')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res?.success && res?.data?.documents) {
+          const puc = res.data.documents.find((d: { type: string }) => d.type === 'PUC_CERTIFICATE');
+          if (puc) {
+            setPucNumber(puc.docNumber);
+            if (puc.status === 'VERIFIED') setPucUpdated(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleUpdatePuc = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pucInput.trim()) return;
-    setPucNumber(pucInput.trim());
+    const newDoc = pucInput.trim();
+    setPucNumber(newDoc);
     setPucUpdated(true);
     setShowPucModal(false);
     setPucInput('');
+
+    try {
+      await fetch('/api/drivers/documents/puc', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docNumber: newDoc }),
+      });
+    } catch (err) {
+      console.error('Failed to sync PUC update:', err);
+    }
   };
 
   return (

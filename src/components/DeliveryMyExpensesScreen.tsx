@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ArrowLeft,
   Search,
   X,
   FileText,
+  ShieldCheck,
   CheckCircle2,
   Clock,
   Fuel,
-  Coins,
   Wrench,
   AlertCircle,
   XCircle,
@@ -37,6 +37,7 @@ export interface LedgerExpense {
   settledAmount?: number;
   balanceDue?: number;
   period: 'this-month' | 'last-30' | 'last-7' | 'today';
+  receiptUrl?: string;
 }
 
 const mockLedgerData: LedgerExpense[] = [
@@ -91,7 +92,7 @@ const mockLedgerData: LedgerExpense[] = [
     description: 'Commercial complex entry parking fee - Mattuthavani Wholesale Market',
     approvalStatus: 'Approved',
     paymentStatus: 'Paid in Full',
-    paidVia: 'Paid via UPI - 28 Oct 2026',
+    paidVia: 'Paid via UPI · 28 Oct 2026',
     referenceNumber: 'Ref: UPI-992104',
     period: 'last-30',
   },
@@ -114,16 +115,100 @@ const mockLedgerData: LedgerExpense[] = [
 ];
 
 interface DeliveryMyExpensesScreenProps {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesScreenProps) {
+  const [expenses, setExpenses] = useState<LedgerExpense[]>(mockLedgerData);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'All' | 'This Month' | 'Last 30 Days' | 'Last 7 Days' | 'Today'>('This Month');
   const [selectedExpense, setSelectedExpense] = useState<LedgerExpense | null>(null);
 
+  // Fetch live expense ledger from API
+  useEffect(() => {
+    async function fetchExpenses() {
+      try {
+        const res = await fetch('/api/expenses?partnerCode=DP-003');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (result.success && Array.isArray(result.data?.claims) && result.data.claims.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mapped: LedgerExpense[] = result.data.claims.map((c: any) => {
+            const rawCat = (c.category || '').toLowerCase();
+            let catType: 'fuel' | 'toll' | 'maintenance' | 'parking' | 'repair' = 'fuel';
+            if (rawCat.includes('toll')) catType = 'toll';
+            else if (rawCat.includes('maint')) catType = 'maintenance';
+            else if (rawCat.includes('park')) catType = 'parking';
+            else if (rawCat.includes('repair')) catType = 'repair';
+
+            const approval: 'Approved' | 'Pending Review' | 'Rejected' =
+              c.status === 'APPROVED' ? 'Approved' : c.status === 'REJECTED' ? 'Rejected' : 'Pending Review';
+
+            const isDisallowed = c.status === 'REJECTED';
+
+            const claimDate = new Date(c.claimDate || c.createdAt);
+            const dateStr = claimDate.toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            });
+
+            return {
+              id: c.id,
+              code: c.claimNumber || 'EXP-000',
+              dateStr,
+              category: c.categoryLabel || c.category || 'Expense',
+              categoryType: catType,
+              amount: c.amount || 0,
+              amountStatus: isDisallowed ? 'Disallowed' : 'Submitted',
+              description: c.description || '',
+              approvalStatus: approval,
+              paymentStatus: (c.paymentStatus as LedgerExpense['paymentStatus']) || 'Unpaid',
+              partiallyPaidAmount: c.disbursedAmount,
+              settledAmount: c.disbursedAmount,
+              balanceDue: (c.amount || 0) - (c.disbursedAmount || 0),
+              adminRemark: c.adminRemark || undefined,
+              paidVia: c.paymentStatus === 'Paid in Full' ? `Paid via UPI · ${dateStr}` : undefined,
+              referenceNumber: c.referenceNumber || (c.paymentStatus === 'Paid in Full' ? 'Ref: UPI-992104' : undefined),
+              period: 'this-month',
+              receiptUrl: c.receiptUrl || undefined,
+            };
+          });
+          setExpenses(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to load expenses from API, using fallback data:', err);
+      }
+    }
+
+    fetchExpenses();
+  }, []);
+
+  // Compute metric totals
+  const metrics = useMemo(() => {
+    let submitted = 0;
+    let approved = 0;
+    let pending = 0;
+
+    expenses.forEach((item) => {
+      submitted += item.amount;
+      if (item.approvalStatus === 'Approved') {
+        approved += item.amount;
+      } else if (item.approvalStatus === 'Pending Review') {
+        pending += item.amount;
+      }
+    });
+
+    return {
+      submitted,
+      approved,
+      pending,
+      count: expenses.length,
+    };
+  }, [expenses]);
+
   const filteredExpenses = useMemo(() => {
-    let list = [...mockLedgerData];
+    let list = [...expenses];
 
     // Filter by period
     if (activeFilter === 'This Month') {
@@ -148,20 +233,23 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
     }
 
     return list;
-  }, [activeFilter, searchQuery]);
+  }, [expenses, activeFilter, searchQuery]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC] overflow-hidden">
-      {/* Driver Header Strip */}
+      {/* Top Driver Header Strip */}
       <div className="shrink-0 px-4 pt-3 pb-3 bg-[#EEF2FB] border-b border-slate-200/60 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="p-1 -ml-1 text-slate-800 hover:text-black transition cursor-pointer"
-          >
-            <ArrowLeft className="w-5 h-5 stroke-[2]" />
-          </button>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="p-1 -ml-1 text-slate-700 hover:text-black transition cursor-pointer"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
+            </button>
+          )}
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-[#DDE4F5] text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
               SB
@@ -204,10 +292,10 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
               <FileText className="w-3.5 h-3.5 text-slate-400 stroke-[2.2]" />
             </div>
             <p className="text-lg font-black text-slate-900 tracking-tight mt-1">
-              ₹4,500
+              ₹{metrics.submitted.toLocaleString('en-IN')}
             </p>
             <p className="text-[10px] font-medium text-slate-400">
-              5 logged entries
+              {metrics.count} logged entries
             </p>
           </div>
 
@@ -217,10 +305,10 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
               <span className="text-[10px] font-bold text-emerald-600 tracking-wider uppercase">
                 APPROVED
               </span>
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 stroke-[2.2]" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 stroke-[2.2]" />
             </div>
             <p className="text-lg font-black text-emerald-600 tracking-tight mt-1">
-              ₹3,000
+              ₹{metrics.approved.toLocaleString('en-IN')}
             </p>
             <p className="text-[10px] font-medium text-slate-400">
               Verified audit
@@ -238,7 +326,7 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
               </div>
             </div>
             <p className="text-lg font-black text-amber-800 tracking-tight mt-1">
-              ₹1,500
+              ₹{metrics.pending.toLocaleString('en-IN')}
             </p>
             <p className="text-[10px] font-medium text-slate-400">
               Admin review
@@ -279,7 +367,7 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                   isActive
                     ? 'bg-[#BC0118] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-white text-slate-600 border border-slate-200/70 hover:bg-slate-50'
                 }`}
               >
                 {filter}
@@ -313,7 +401,10 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
                     )}
                     {expense.categoryType === 'toll' && (
                       <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                        <Coins className="w-4 h-4 stroke-[2.2]" />
+                        <svg className="w-4 h-4 stroke-[2.2] fill-none stroke-current" viewBox="0 0 24 24">
+                          <circle cx="8" cy="12" r="5" strokeWidth="2" />
+                          <circle cx="16" cy="12" r="5" strokeWidth="2" />
+                        </svg>
                       </div>
                     )}
                     {expense.categoryType === 'maintenance' && (
@@ -328,7 +419,9 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
                     )}
                     {expense.categoryType === 'repair' && (
                       <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                        <Wrench className="w-4 h-4 stroke-[2.2]" />
+                        <svg className="w-4 h-4 stroke-[2] fill-none stroke-current" viewBox="0 0 24 24">
+                          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                        </svg>
                       </div>
                     )}
 
@@ -373,12 +466,10 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
 
                 {/* Optional Admin Remark Box */}
                 {expense.adminRemark && (
-                  <div className="bg-[#FFF5F5] border border-rose-100 rounded-xl p-2.5 space-y-1">
-                    <div className="flex items-center gap-1.5 text-rose-700 font-bold text-xs">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Admin Remark:</span>
-                    </div>
-                    <p className="text-[11px] text-slate-700 font-medium leading-snug">
+                  <div className="bg-[#FEF2F2] border border-rose-100 rounded-xl p-2.5 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-slate-700 leading-snug">
+                      <span className="font-bold text-[#DC2626]">Admin Remark: </span>
                       {expense.adminRemark}
                     </p>
                   </div>
@@ -435,7 +526,7 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
 
                 {/* Optional Info Strip for Paid in Full */}
                 {expense.paidVia && (
-                  <div className="bg-[#EEF2FF] rounded-xl px-3 py-1.5 flex items-center justify-between text-[11px] font-medium">
+                  <div className="bg-[#EEF4FE] rounded-xl px-3 py-1.5 flex items-center justify-between text-[11px] font-medium">
                     <span className="text-slate-600">{expense.paidVia}</span>
                     <span className="text-slate-500">{expense.referenceNumber}</span>
                   </div>
@@ -443,13 +534,13 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
 
                 {/* Optional Progress & Balance for Partially Paid */}
                 {expense.paymentStatus === 'Partially Paid' && (
-                  <div className="bg-[#EEF2FF] rounded-xl p-2.5 space-y-1.5">
+                  <div className="bg-[#EEF4FE] rounded-xl p-2.5 space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] font-medium text-slate-600">
                       <span>Settled: ₹{expense.settledAmount}</span>
                       <span>Balance due: ₹{expense.balanceDue}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-700 rounded-full w-[57%]" />
+                    <div className="h-1.5 w-full bg-[#CBD5E1] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#15803D] rounded-full w-[57%]" />
                     </div>
                   </div>
                 )}
@@ -491,7 +582,17 @@ export default function DeliveryMyExpensesScreen({ onBack }: DeliveryMyExpensesS
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Amount:</span>
-                  <span className="font-black text-slate-900 text-sm">₹{selectedExpense.amount.toLocaleString('en-IN')}</span>
+                  <span className="font-black text-slate-900 text-sm">
+                    ₹{selectedExpense.amount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Approval Status:</span>
+                  <span className="font-bold text-slate-900">{selectedExpense.approvalStatus}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Payment Status:</span>
+                  <span className="font-bold text-slate-900">{selectedExpense.paymentStatus}</span>
                 </div>
               </div>
 
