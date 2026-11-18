@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DeliveryProfileScreen from './DeliveryProfileScreen';
+import DeliveryDocumentsScreen from './DeliveryDocumentsScreen';
 import {
   User,
   FileText,
@@ -14,7 +15,6 @@ import {
   LogOut,
   X,
   CheckCircle2,
-  ShieldCheck,
   AlertTriangle,
 } from 'lucide-react';
 
@@ -25,11 +25,16 @@ interface DeliveryMoreScreenProps {
 export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreenProps) {
   const router = useRouter();
   const [showProfilePage, setShowProfilePage] = useState(false);
-  const [activeModal, setActiveModal] = useState<'DOCUMENTS' | 'LANGUAGE' | 'END_SHIFT' | null>(null);
+  const [showDocumentsPage, setShowDocumentsPage] = useState(false);
+  const [activeModal, setActiveModal] = useState<'LANGUAGE' | 'END_SHIFT' | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ta'>('ta');
 
   if (showProfilePage) {
     return <DeliveryProfileScreen onBack={() => setShowProfilePage(false)} />;
+  }
+
+  if (showDocumentsPage) {
+    return <DeliveryDocumentsScreen onBack={() => setShowDocumentsPage(false)} />;
   }
 
   return (
@@ -104,7 +109,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             {/* My Documents */}
             <button
               type="button"
-              onClick={() => setActiveModal('DOCUMENTS')}
+              onClick={() => setShowDocumentsPage(true)}
               className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
             >
               <div className="flex items-center gap-3">
@@ -250,70 +255,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
         </div>
       </div>
 
-      {/* Modal 1: My Documents */}
-      {activeModal === 'DOCUMENTS' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
-          <div className="w-full max-w-[390px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <FileText className="w-4 h-4 stroke-[2.2]" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">Driver Documents</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="p-1 text-slate-400 hover:text-black cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
-                <div>
-                  <p className="font-bold text-slate-900">Aadhaar Card</p>
-                  <p className="text-[10px] text-slate-400">UIDAI Verified • **** **** 3819</p>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Verified
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
-                <div>
-                  <p className="font-bold text-slate-900">HMV Commercial License</p>
-                  <p className="text-[10px] text-slate-400">Valid until 14 Nov 2028</p>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Active
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
-                <div>
-                  <p className="font-bold text-slate-900">LPG HAZMAT Safety Badging</p>
-                  <p className="text-[10px] text-slate-400">PESO Authorized Safety Badge</p>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Certified
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveModal(null)}
-              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 3: App Language */}
+      {/* Modal 1: App Language */}
       {activeModal === 'LANGUAGE' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
           <div className="w-full max-w-[360px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
