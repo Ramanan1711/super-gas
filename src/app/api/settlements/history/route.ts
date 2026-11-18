@@ -4,31 +4,35 @@ import { withApiHandler } from '@/lib/api-middleware';
 import { successResponse, notFoundResponse } from '@/lib/api-response';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
-  const partnerCode = req.nextUrl.searchParams.get('partnerCode') || 'DP-003';
+  const partnerCode = req.nextUrl.searchParams.get('partnerCode');
   const filter = req.nextUrl.searchParams.get('filter') || 'All';
 
-  const partner = await prisma.deliveryPartner.findUnique({
-    where: { partnerCode },
-  });
-
-  if (!partner) {
-    return notFoundResponse('Delivery partner');
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { partnerId: partner.id };
+  const where: any = {};
+
+  if (partnerCode && partnerCode !== 'ALL' && partnerCode !== 'all') {
+    const partner = await prisma.deliveryPartner.findUnique({
+      where: { partnerCode },
+    });
+
+    if (!partner) {
+      return notFoundResponse('Delivery partner');
+    }
+    where.partnerId = partner.id;
+  }
 
   if (filter === 'Verified') {
     where.status = 'VERIFIED';
   } else if (filter === 'Partially Handed Over') {
     where.status = 'PARTIALLY_HANDED_OVER';
-  } else if (filter === 'Pending Verification') {
+  } else if (filter === 'Pending Verification' || filter === 'Pending') {
     where.status = 'PENDING_VERIFICATION';
   }
 
   const settlements = await prisma.dailySettlement.findMany({
     where,
     include: {
+      partner: true,
       handovers: {
         orderBy: { handoverTime: 'desc' },
       },
@@ -36,22 +40,14 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     orderBy: { businessDate: 'desc' },
   });
 
-  const formatted = settlements.map((s: {
-    id: string;
-    businessDate: Date;
-    status: string;
-    cashExpected: number;
-    cashHandedOver: number;
-    remainingBalance: number;
-    shortfallAmount: number;
-    auditRemarks: string | null;
-  }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formatted = settlements.map((s: any) => {
     let displayStatus = 'Verified';
     if (s.status === 'PENDING_VERIFICATION') displayStatus = 'Pending Verification';
     if (s.status === 'PARTIALLY_HANDED_OVER') displayStatus = 'Partially Handed Over';
     if (s.status === 'DIFFERENCE_FOUND') displayStatus = 'Difference Found';
 
-    const dateFormatted = s.businessDate.toLocaleDateString('en-GB', {
+    const dateFormatted = new Date(s.businessDate).toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -62,12 +58,15 @@ export const GET = withApiHandler(async (req: NextRequest) => {
       date: dateFormatted,
       status: displayStatus,
       rawStatus: s.status,
+      partnerName: s.partner?.name || 'Suresh Babu',
+      partnerCode: s.partner?.partnerCode || 'DP-003',
       expectedAmount: s.cashExpected,
       handedOverAmount: s.cashHandedOver,
       remainingAmount: s.remainingBalance,
       shortfall: s.shortfallAmount > 0 ? s.shortfallAmount : undefined,
       footerStatusText: s.auditRemarks || (s.remainingBalance === 0 ? 'Fully Cleared' : 'In Progress'),
       isShortfallNotice: s.status === 'DIFFERENCE_FOUND',
+      handovers: s.handovers || [],
     };
   });
 

@@ -340,62 +340,188 @@ export default function AdminExpensesPage() {
     });
   }, [expenseRecords, activeSubTab, tableSearch, partnerFilter, categoryFilter, approvalStatusFilter, paymentStatusFilter]);
 
-  const handleApproveCurrentClaim = () => {
+  // Fetch live expenses from database on mount
+  React.useEffect(() => {
+    let ignore = false;
+    async function loadExpenses() {
+      try {
+        const res = await fetch('/api/expenses');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && Array.isArray(result.data?.claims) && result.data.claims.length > 0) {
+          const dbClaims = result.data.claims;
+
+          // Pending claims for the top audit review carousel
+          const pending = dbClaims
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((c: any) => c.status === 'PENDING')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((c: any) => {
+              const partnerName = c.partner?.name || 'Suresh Babu';
+              const partnerCode = c.partner?.partnerCode || 'DP-003';
+              const rawCat = (c.category || '').toLowerCase();
+              let cat: PendingClaim['category'] = 'Fuel';
+              if (rawCat.includes('repair')) cat = 'Vehicle Repair';
+              else if (rawCat.includes('maint')) cat = 'Maintenance';
+              else if (rawCat.includes('park')) cat = 'Parking';
+              else if (rawCat.includes('toll')) cat = 'Toll';
+              else if (rawCat.includes('food') || rawCat.includes('meal')) cat = 'Meals';
+
+              return {
+                id: c.id,
+                claimId: c.claimNumber,
+                partnerName,
+                partnerCode,
+                initials: partnerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+                avatarBg: 'bg-red-100 text-[#BC0118]',
+                category: cat,
+                description: c.description || `${cat} expense`,
+                subDescription: c.vehicle?.regNumber ? `Van ${c.vehicle.regNumber}` : 'Trip Delivery Route',
+                amount: c.amount,
+                time: new Date(c.claimDate || c.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                status: 'Pending Approval' as const,
+                stationName: c.receiptUrl ? 'Verified Receipt Uploaded' : 'Cash Expense',
+                stationOutlet: c.vehicle?.regNumber || 'Madurai Central Hub',
+                terminalTimestamp: new Date(c.createdAt).toLocaleString('en-GB'),
+                receiptType: c.receiptUrl ? 'Bill Slip Upload' : 'Driver Self-Claim',
+              };
+            });
+
+          if (pending.length > 0) {
+            setPendingClaims(pending);
+            setSelectedClaimId(pending[0].id);
+          }
+
+          // Full expense table records
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const records: ExpenseRecord[] = dbClaims.map((c: any) => {
+            const partnerName = c.partner?.name || 'Suresh Babu';
+            const partnerCode = c.partner?.partnerCode || 'DP-003';
+            const rawCat = (c.category || '').toLowerCase();
+            let cat: ExpenseRecord['category'] = 'Fuel';
+            if (rawCat.includes('repair')) cat = 'Vehicle Repair';
+            else if (rawCat.includes('maint')) cat = 'Maintenance';
+            else if (rawCat.includes('park')) cat = 'Parking';
+            else if (rawCat.includes('util')) cat = 'Utilities';
+            else if (rawCat.includes('rent')) cat = 'Rent';
+            else if (rawCat.includes('supply') || rawCat.includes('supplies')) cat = 'Supplies';
+            else if (rawCat.includes('other')) cat = 'Other';
+
+            let approvalStatus: ExpenseRecord['approvalStatus'] = 'Pending Approval';
+            if (c.status === 'APPROVED') approvalStatus = 'Approved';
+            else if (c.status === 'REJECTED') approvalStatus = 'Rejected (Policy)';
+
+            return {
+              id: c.id,
+              expenseId: c.claimNumber,
+              partnerName,
+              partnerCode,
+              category: cat,
+              description: c.description || `${cat} expense`,
+              amount: c.amount,
+              isRedAmount: c.status === 'REJECTED',
+              expenseDate: new Date(c.claimDate || c.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+              source: 'App Submission',
+              approvalStatus,
+              paymentStatus: c.paymentStatus === 'Paid' ? 'Paid (Cash)' : 'Unpaid',
+              type: 'delivery',
+            };
+          });
+
+          if (records.length > 0) {
+            setExpenseRecords(records);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load live expenses:', err);
+      }
+    }
+    loadExpenses();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const handleApproveCurrentClaim = async () => {
     if (!selectedClaim) return;
     const currentId = selectedClaim.id;
 
-    // Add to approved records
-    const newRecord: ExpenseRecord = {
-      id: `exp-${Date.now()}`,
-      expenseId: selectedClaim.claimId.replace('PENDING', '20261024'),
-      partnerName: selectedClaim.partnerName,
-      partnerCode: selectedClaim.partnerCode,
-      category: selectedClaim.category as ExpenseRecord['category'],
-      description: selectedClaim.description,
-      amount: selectedClaim.amount,
-      expenseDate: '24 Oct 2026',
-      source: 'App Submission',
-      approvalStatus: 'Approved',
-      paymentStatus: 'Reimbursed (Bank)',
-      type: 'delivery',
-    };
+    try {
+      const res = await fetch(`/api/expenses/${currentId}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'APPROVED',
+          adminRemark: 'Approved by Agency Admin for reimbursement',
+          disbursedAmount: selectedClaim.amount,
+        }),
+      });
 
-    setExpenseRecords((prev) => [newRecord, ...prev]);
-    setPendingClaims((prev) => prev.filter((c) => c.id !== currentId));
-    triggerToast(`Approved claim ${selectedClaim.claimId} (₹${selectedClaim.amount.toLocaleString('en-IN')}) for ${selectedClaim.partnerName}`);
-    if (pendingClaims.length > 1) {
-      const next = pendingClaims.find((c) => c.id !== currentId);
-      if (next) setSelectedClaimId(next.id);
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error?.message || 'Failed to approve claim');
+      }
+
+      setExpenseRecords((prev) =>
+        prev.map((r) =>
+          r.id === currentId || r.expenseId === selectedClaim.claimId
+            ? { ...r, approvalStatus: 'Approved', paymentStatus: 'Reimbursed (Bank)' }
+            : r
+        )
+      );
+      setPendingClaims((prev) => prev.filter((c) => c.id !== currentId));
+      triggerToast(`Approved claim ${selectedClaim.claimId} (₹${selectedClaim.amount.toLocaleString('en-IN')}) for ${selectedClaim.partnerName}`);
+      if (pendingClaims.length > 1) {
+        const next = pendingClaims.find((c) => c.id !== currentId);
+        if (next) setSelectedClaimId(next.id);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error approving expense');
     }
   };
 
-  const handleConfirmRejectClaim = () => {
+  const handleConfirmRejectClaim = async () => {
     if (!selectedClaim) return;
     const currentId = selectedClaim.id;
+    const finalRemark = rejectCustomNote.trim() || rejectReason;
 
-    const newRecord: ExpenseRecord = {
-      id: `exp-${Date.now()}`,
-      expenseId: selectedClaim.claimId.replace('PENDING', '20261024'),
-      partnerName: selectedClaim.partnerName,
-      partnerCode: selectedClaim.partnerCode,
-      category: selectedClaim.category as ExpenseRecord['category'],
-      description: `${selectedClaim.description} · Disallowed: ${rejectReason}`,
-      amount: selectedClaim.amount,
-      isRedAmount: true,
-      expenseDate: '24 Oct 2026',
-      source: 'App Submission',
-      approvalStatus: 'Rejected (Policy)',
-      paymentStatus: 'Disallowed',
-      type: 'delivery',
-    };
+    try {
+      const res = await fetch(`/api/expenses/${currentId}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'REJECTED',
+          adminRemark: finalRemark,
+        }),
+      });
 
-    setExpenseRecords((prev) => [newRecord, ...prev]);
-    setPendingClaims((prev) => prev.filter((c) => c.id !== currentId));
-    setShowRejectModal(false);
-    triggerToast(`Rejected claim ${selectedClaim.claimId}: ${rejectReason}`);
-    if (pendingClaims.length > 1) {
-      const next = pendingClaims.find((c) => c.id !== currentId);
-      if (next) setSelectedClaimId(next.id);
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error?.message || 'Failed to reject claim');
+      }
+
+      setExpenseRecords((prev) =>
+        prev.map((r) =>
+          r.id === currentId || r.expenseId === selectedClaim.claimId
+            ? {
+                ...r,
+                approvalStatus: 'Rejected (Policy)',
+                paymentStatus: 'Disallowed',
+                isRedAmount: true,
+                description: `${r.description} · ${finalRemark}`,
+              }
+            : r
+        )
+      );
+      setPendingClaims((prev) => prev.filter((c) => c.id !== currentId));
+      setShowRejectModal(false);
+      triggerToast(`Rejected claim ${selectedClaim.claimId}: ${finalRemark}`);
+      if (pendingClaims.length > 1) {
+        const next = pendingClaims.find((c) => c.id !== currentId);
+        if (next) setSelectedClaimId(next.id);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error rejecting expense');
     }
   };
 

@@ -5,19 +5,23 @@ import { successResponse, notFoundResponse } from '@/lib/api-response';
 import { createExpenseSchema } from '@/lib/validations/expense.schema';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
-  const partnerCode = req.nextUrl.searchParams.get('partnerCode') || 'DP-003';
+  const partnerCode = req.nextUrl.searchParams.get('partnerCode');
   const status = req.nextUrl.searchParams.get('status');
 
-  const partner = await prisma.deliveryPartner.findUnique({
-    where: { partnerCode },
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {};
 
-  if (!partner) {
-    return notFoundResponse('Delivery partner');
+  if (partnerCode && partnerCode !== 'ALL' && partnerCode !== 'all') {
+    const partner = await prisma.deliveryPartner.findUnique({
+      where: { partnerCode },
+    });
+
+    if (!partner) {
+      return notFoundResponse('Delivery partner');
+    }
+    where.partnerId = partner.id;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { partnerId: partner.id };
   if (status && status !== 'All' && status !== 'ALL') {
     where.status = status.toUpperCase();
   }
@@ -25,6 +29,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const claims = await prisma.expenseClaim.findMany({
     where,
     include: {
+      partner: true,
       vehicle: true,
       reviewedBy: {
         select: { id: true, name: true, role: true },

@@ -29,6 +29,45 @@ export default function AdminDashboard() {
   const [chart2Period, setChart2Period] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [fuelClaimStatus, setFuelClaimStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
+  // Live KPI counters
+  const [totalRevenue, setTotalRevenue] = useState<number>(125000);
+  const [todayCollection, setTodayCollection] = useState<number>(45000);
+  const [activeVehicles, setActiveVehicles] = useState<number>(6);
+  const [cylindersInCirculation, setCylindersInCirculation] = useState<number>(1250);
+  const [completedDeliveries, setCompletedDeliveries] = useState<number>(72);
+  const [emptyAvailable, setEmptyAvailable] = useState<number>(300);
+  const [overallEmpty, setOverallEmpty] = useState<number>(550);
+
+  // Fetch live metrics from database
+  React.useEffect(() => {
+    let ignore = false;
+    async function loadMetrics() {
+      try {
+        const res = await fetch('/api/admin/metrics');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && result.data) {
+          const d = result.data;
+          if (d.totalRevenue !== undefined) setTotalRevenue(d.totalRevenue);
+          if (d.todayCollection !== undefined) setTodayCollection(d.todayCollection);
+          if (d.activeVehicles !== undefined) setActiveVehicles(d.activeVehicles);
+          if (d.cylindersInCirculation !== undefined) setCylindersInCirculation(d.cylindersInCirculation);
+          if (d.deliveries?.completed !== undefined) setCompletedDeliveries(d.deliveries.completed);
+          if (d.inventory?.depotEmpty !== undefined) setEmptyAvailable(d.inventory.depotEmpty);
+          if (d.inventory?.depotEmpty !== undefined && d.inventory?.vehicleEmpty !== undefined) {
+            setOverallEmpty(d.inventory.depotEmpty + d.inventory.vehicleEmpty);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load admin metrics from database:', err);
+      }
+    }
+    loadMetrics();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans antialiased">
       {/* 1. Left Sidebar */}
@@ -111,7 +150,7 @@ export default function AdminDashboard() {
                   DEPOT STATUS
                 </span>
                 <span className="text-xs font-black text-slate-900 block">
-                  Coimbatore Central Hub
+                  Coimbatore Central Hub ({activeVehicles} Active Vans)
                 </span>
               </div>
 
@@ -145,7 +184,7 @@ export default function AdminDashboard() {
                   <Package className="w-4 h-4 stroke-[2.2]" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">1,250</p>
+              <p className="text-3xl font-black text-slate-900 tracking-tight">{cylindersInCirculation.toLocaleString('en-IN')}</p>
               <div className="flex items-center gap-1 text-xs">
                 <span className="font-bold text-[#16A34A] flex items-center">
                   <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -165,7 +204,7 @@ export default function AdminDashboard() {
                   <CheckCircle2 className="w-4 h-4 stroke-[2.2]" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">72</p>
+              <p className="text-3xl font-black text-slate-900 tracking-tight">{completedDeliveries}</p>
               <div className="flex items-center gap-1 text-xs">
                 <span className="font-bold text-[#16A34A]">87%</span>
                 <span className="text-slate-400 font-medium">completion rate</span>
@@ -182,7 +221,7 @@ export default function AdminDashboard() {
                   <Package className="w-4 h-4 stroke-[2.2]" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">300</p>
+              <p className="text-3xl font-black text-slate-900 tracking-tight">{emptyAvailable}</p>
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="w-2 h-2 rounded-full bg-[#16A34A]"></span>
                 <span className="text-slate-500 font-medium">Collected by the agent</span>
@@ -199,7 +238,7 @@ export default function AdminDashboard() {
                   <Package className="w-4 h-4 stroke-[2.2]" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">550</p>
+              <p className="text-3xl font-black text-slate-900 tracking-tight">{overallEmpty}</p>
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="w-2 h-2 rounded-full bg-[#16A34A]"></span>
                 <span className="text-slate-500 font-medium">Held by the customer</span>
@@ -527,34 +566,34 @@ export default function AdminDashboard() {
 
             {/* 5 Column Metric Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 pt-1">
-              {/* Card 1: INVOICE VALUE TODAY */}
+              {/* Card 1: INVOICE VALUE TODAY / TOTAL REVENUE */}
               <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-100 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    INVOICE VALUE TODAY
+                    TOTAL REVENUE (TODAY)
                   </span>
                   <span className="bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                     Total Billed
                   </span>
                 </div>
-                <p className="text-xl font-black text-slate-900 tracking-tight">₹1,25,000</p>
+                <p className="text-xl font-black text-slate-900 tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</p>
                 <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1">
-                  <span>Total Invoices</span>
-                  <span className="font-bold text-slate-800">86 files</span>
+                  <span>Invoices</span>
+                  <span className="font-bold text-slate-800">Reconciled</span>
                 </div>
               </div>
 
-              {/* Card 2: CASH COLLECTED */}
+              {/* Card 2: CASH COLLECTED / TODAY'S COLLECTION */}
               <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-100 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    CASH COLLECTED
+                    TODAY&apos;S COLLECTION
                   </span>
                   <Wallet className="w-3.5 h-3.5 text-slate-400" />
                 </div>
-                <p className="text-xl font-black text-slate-900 tracking-tight">₹45,000</p>
+                <p className="text-xl font-black text-slate-900 tracking-tight">₹{todayCollection.toLocaleString('en-IN')}</p>
                 <p className="text-[11px] text-slate-400 font-medium pt-1">
-                  Subject to physical cash settlement
+                  Cash vault &amp; digital collection
                 </p>
               </div>
 
