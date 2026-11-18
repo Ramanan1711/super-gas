@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DeliveryProfileScreen from './DeliveryProfileScreen';
 import DeliveryDocumentsScreen from './DeliveryDocumentsScreen';
+import DeliveryHistoryScreen from './DeliveryHistoryScreen';
 import {
   User,
   FileText,
@@ -26,6 +27,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
   const router = useRouter();
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showDocumentsPage, setShowDocumentsPage] = useState(false);
+  const [showHistoryPage, setShowHistoryPage] = useState(false);
   const [activeModal, setActiveModal] = useState<'LANGUAGE' | 'END_SHIFT' | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ta'>('ta');
 
@@ -35,6 +37,10 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
 
   if (showDocumentsPage) {
     return <DeliveryDocumentsScreen onBack={() => setShowDocumentsPage(false)} />;
+  }
+
+  if (showHistoryPage) {
+    return <DeliveryHistoryScreen onBack={() => setShowHistoryPage(false)} />;
   }
 
   return (
@@ -139,7 +145,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             {/* Delivery History */}
             <button
               type="button"
-              onClick={() => router.push('/delivery/customer/all-deliveries')}
+              onClick={() => setShowHistoryPage(true)}
               className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
             >
               <div className="flex items-center gap-3">
