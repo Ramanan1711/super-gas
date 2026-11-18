@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from './AdminSidebar';
 import {
@@ -176,6 +176,64 @@ const authorizedDeliveryPartners = [
   },
 ];
 
+// Helper to convert database customer payload to CustomerRecord format
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDbCustomerToRecord(dbCust: any): CustomerRecord {
+  const isB2B = dbCust.type === 'B2B' || dbCust.customerType === 'INDUSTRIAL';
+  const isCommercial = dbCust.customerType === 'COMMERCIAL' || dbCust.type === 'Commercial';
+
+  let badge: string | undefined = undefined;
+  let badgeType: 'B2B' | 'COMMERCIAL' | undefined = undefined;
+  if (isB2B) {
+    badge = 'B2B';
+    badgeType = 'B2B';
+  } else if (isCommercial && dbCust.type !== 'Residential') {
+    badge = 'COMMERCIAL';
+    badgeType = 'COMMERCIAL';
+  }
+
+  let partnerName = 'Unassigned - Action Required';
+  let partnerCode = '';
+  let isUnassigned = true;
+
+  if (dbCust.route && dbCust.route !== 'Unassigned' && !dbCust.route.includes('Action Required')) {
+    if (dbCust.route.includes('·')) {
+      const parts = dbCust.route.split('·').map((s: string) => s.trim());
+      partnerName = parts[0];
+      partnerCode = parts[1] || '';
+      isUnassigned = false;
+    } else {
+      partnerName = dbCust.route;
+      isUnassigned = false;
+    }
+  }
+
+  const balance = dbCust.currentBalance || 0;
+  const isSettled = balance <= 0;
+  const balanceText = isSettled ? 'Settled (₹0)' : `₹${balance.toLocaleString('en-IN')}`;
+
+  return {
+    id: dbCust.id,
+    name: dbCust.name || dbCust.businessName || 'Customer',
+    code: dbCust.customerCode || `CUS-${dbCust.id.slice(-5).toUpperCase()}`,
+    badge,
+    badgeType,
+    phone: dbCust.phone,
+    address: dbCust.address || 'Madurai',
+    deliveryPartner: {
+      name: partnerName,
+      code: partnerCode,
+      isUnassigned,
+    },
+    balance,
+    balanceText,
+    balanceSubtext: isSettled ? 'Settled' : '1 invoice due',
+    isSettled,
+    isOverdue: balance > 0,
+    statusDot: 'green',
+  };
+}
+
 export default function AdminCustomersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -186,13 +244,41 @@ export default function AdminCustomersPage() {
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
-  const [newCustomerCategory, setNewCustomerCategory] = useState('Residential');
+  const [newCustomerCategory, setNewCustomerCategory] = useState<'Residential' | 'Commercial' | 'B2B'>('Residential');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
   const [newCustomerPartner, setNewCustomerPartner] = useState('Leave unassign');
+  const [isSubmittingCustomer, setIsSubmittingCustomer] = useState(false);
+  const [addCustomerError, setAddCustomerError] = useState<string | null>(null);
+
   const [assigningCustomer, setAssigningCustomer] = useState<CustomerRecord | null>(null);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [customerList, setCustomerList] = useState<CustomerRecord[]>(initialCustomers);
+
+  // Fetch live customers from database on mount
+  useEffect(() => {
+    async function loadCustomers() {
+      try {
+        const res = await fetch('/api/customers?limit=100');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+          const dbRecords = result.data.map(mapDbCustomerToRecord);
+          // Merge with initial design records (by phone/code) so table remains full and consistent
+          const dbPhones = new Set(dbRecords.map((r: CustomerRecord) => r.phone));
+          const merged = [
+            ...dbRecords,
+            ...initialCustomers.filter((init) => !dbPhones.has(init.phone)),
+          ];
+          setCustomerList(merged);
+        }
+      } catch (err) {
+        console.warn('Could not load customers from database:', err);
+      }
+    }
+
+    loadCustomers();
+  }, []);
 
   // Action Popup & Interactive Modals State
   const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
@@ -230,18 +316,35 @@ export default function AdminCustomersPage() {
     );
   };
 
-  const handleSaveEditCustomer = (e: React.FormEvent) => {
+  const handleSaveEditCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCustomer) return;
+
+    const isUnassigned = editPartner === 'Leave unassign';
+    const [partnerName, partnerCode] = !isUnassigned
+      ? editPartner.split(' · ')
+      : ['Unassigned', ''];
+
+    // Sync to database
+    try {
+      await fetch(`/api/customers/${editingCustomer.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName,
+          phone: editPhone,
+          address: editAddress,
+          customerType: editCategory,
+          route: !isUnassigned ? editPartner : 'Unassigned',
+        }),
+      });
+    } catch (err) {
+      console.warn('Could not sync customer update to backend:', err);
+    }
 
     setCustomerList((prev) =>
       prev.map((c) => {
         if (c.id === editingCustomer.id) {
-          const isUnassigned = editPartner === 'Leave unassign';
-          const [partnerName, partnerCode] = !isUnassigned
-            ? editPartner.split(' · ')
-            : ['Unassigned', ''];
-
           return {
             ...c,
             name: editName,
@@ -263,6 +366,61 @@ export default function AdminCustomersPage() {
     setActionToast(`Customer details for ${editName} updated successfully.`);
     setTimeout(() => setActionToast(null), 3000);
     setEditingCustomer(null);
+  };
+
+  // Submit Handler for Add Customer Form (persists directly into Postgres via /api/customers)
+  const handleAddCustomerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingCustomer(true);
+    setAddCustomerError(null);
+
+    const isUnassigned = newCustomerPartner === 'Leave unassign';
+    const [partnerName, partnerCode] = !isUnassigned
+      ? newCustomerPartner.split(' · ')
+      : ['', ''];
+
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newCustomerName.trim(),
+          phone: newCustomerPhone.trim(),
+          address: newCustomerAddress.trim(),
+          customerType: newCustomerCategory,
+          deliveryPartnerName: !isUnassigned ? partnerName : undefined,
+          deliveryPartnerCode: !isUnassigned ? partnerCode : undefined,
+          route: !isUnassigned ? newCustomerPartner : 'Unassigned',
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error?.message || 'Failed to add customer');
+      }
+
+      const createdDbCustomer = result.data;
+      const formattedRecord = mapDbCustomerToRecord(createdDbCustomer);
+
+      setCustomerList((prev) => [
+        formattedRecord,
+        ...prev.filter((c) => c.id !== formattedRecord.id),
+      ]);
+
+      setNewCustomerName('');
+      setNewCustomerPhone('');
+      setNewCustomerCategory('Residential');
+      setNewCustomerAddress('');
+      setNewCustomerPartner('Leave unassign');
+      setShowAddCustomerModal(false);
+
+      setActionToast(`Customer ${formattedRecord.name} (${formattedRecord.code}) created successfully in database!`);
+      setTimeout(() => setActionToast(null), 4000);
+    } catch (err) {
+      setAddCustomerError(err instanceof Error ? err.message : 'Failed to save customer to database.');
+    } finally {
+      setIsSubmittingCustomer(false);
+    }
   };
 
   const handleToggleCustomerStatus = (customerId: string) => {
@@ -971,7 +1129,10 @@ export default function AdminCustomersPage() {
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setShowAddCustomerModal(false)}
+                  onClick={() => {
+                    setShowAddCustomerModal(false);
+                    setAddCustomerError(null);
+                  }}
                   className="text-slate-700 hover:text-slate-950 p-1 -mr-1 -mt-1 cursor-pointer transition"
                   aria-label="Close dialog"
                 >
@@ -984,43 +1145,18 @@ export default function AdminCustomersPage() {
               <div className="border-b border-slate-200/70 pt-2"></div>
             </div>
 
+            {addCustomerError && (
+              <div className="bg-[#FEF2F2] border border-red-200 rounded-xl p-3 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                <p className="text-xs font-semibold text-[#DC2626] leading-tight">
+                  {addCustomerError}
+                </p>
+              </div>
+            )}
+
             {/* Form */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const newCode = `CUS-${String(customerList.length + 124).padStart(5, '0')}`;
-                const isUnassigned = newCustomerPartner === 'Leave unassign';
-                const [partnerName, partnerCode] = isUnassigned
-                  ? ['Unassigned - Action Required', '']
-                  : newCustomerPartner.split(' · ');
-
-                const newCust: CustomerRecord = {
-                  id: String(Date.now()),
-                  name: newCustomerName,
-                  code: newCode,
-                  badge: newCustomerCategory !== 'Residential' ? newCustomerCategory : undefined,
-                  badgeType: newCustomerCategory === 'B2B' ? 'B2B' : 'COMMERCIAL',
-                  phone: newCustomerPhone,
-                  address: newCustomerAddress,
-                  deliveryPartner: {
-                    name: partnerName,
-                    code: partnerCode || '',
-                    isUnassigned,
-                  },
-                  balance: 0,
-                  balanceText: 'Settled (₹0)',
-                  isSettled: true,
-                  statusDot: 'green',
-                };
-
-                setCustomerList((prev) => [newCust, ...prev]);
-                setNewCustomerName('');
-                setNewCustomerPhone('');
-                setNewCustomerCategory('Residential');
-                setNewCustomerAddress('');
-                setNewCustomerPartner('Leave unassign');
-                setShowAddCustomerModal(false);
-              }}
+              onSubmit={handleAddCustomerSubmit}
               className="space-y-4 pt-1"
             >
               {/* Field 1: Customer Name * */}
@@ -1063,7 +1199,7 @@ export default function AdminCustomersPage() {
                   <div className="relative">
                     <select
                       value={newCustomerCategory}
-                      onChange={(e) => setNewCustomerCategory(e.target.value)}
+                      onChange={(e) => setNewCustomerCategory(e.target.value as 'Residential' | 'Commercial' | 'B2B')}
                       className="appearance-none w-full bg-[#F1F4FA] border-0 rounded-xl px-4 py-3 pr-9 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
                     >
                       <option value="Residential">Residential</option>
@@ -1117,16 +1253,24 @@ export default function AdminCustomersPage() {
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddCustomerModal(false)}
-                  className="bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl transition cursor-pointer"
+                  disabled={isSubmittingCustomer}
+                  onClick={() => {
+                    setShowAddCustomerModal(false);
+                    setAddCustomerError(null);
+                  }}
+                  className="bg-[#EEF2F8] hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-xs transition cursor-pointer"
+                  disabled={isSubmittingCustomer}
+                  className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
-                  Save Customer
+                  {isSubmittingCustomer && (
+                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  )}
+                  <span>{isSubmittingCustomer ? 'Saving to Database...' : 'Save Customer'}</span>
                 </button>
               </div>
             </form>
@@ -1161,11 +1305,23 @@ export default function AdminCustomersPage() {
             </div>
 
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 const partner =
                   authorizedDeliveryPartners.find((p) => p.id === selectedPartnerId) ||
                   authorizedDeliveryPartners[0];
+
+                try {
+                  await fetch(`/api/customers/${assigningCustomer.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      route: `${partner.name} · ${partner.id}`,
+                    }),
+                  });
+                } catch (err) {
+                  console.warn('Could not sync partner assignment to database:', err);
+                }
 
                 setCustomerList((prev) =>
                   prev.map((item) => {
