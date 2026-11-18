@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import DeliveryProfileScreen from './DeliveryProfileScreen';
 import DeliveryDocumentsScreen from './DeliveryDocumentsScreen';
 import DeliveryHistoryScreen from './DeliveryHistoryScreen';
 import DeliverySettlementsScreen from './DeliverySettlementsScreen';
+import DeliveryMyExpensesScreen from './DeliveryMyExpensesScreen';
 import {
   User,
   FileText,
@@ -25,11 +25,12 @@ interface DeliveryMoreScreenProps {
 }
 
 export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreenProps) {
-  const router = useRouter();
+  void onNavigateTab;
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showDocumentsPage, setShowDocumentsPage] = useState(false);
   const [showHistoryPage, setShowHistoryPage] = useState(false);
   const [showSettlementsPage, setShowSettlementsPage] = useState(false);
+  const [showExpensesPage, setShowExpensesPage] = useState(false);
   const [activeModal, setActiveModal] = useState<'LANGUAGE' | 'END_SHIFT' | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ta'>('ta');
 
@@ -47,6 +48,10 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
 
   if (showSettlementsPage) {
     return <DeliverySettlementsScreen onBack={() => setShowSettlementsPage(false)} />;
+  }
+
+  if (showExpensesPage) {
+    return <DeliveryMyExpensesScreen onBack={() => setShowExpensesPage(false)} />;
   }
 
   return (
@@ -195,13 +200,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             {/* My Expenses */}
             <button
               type="button"
-              onClick={() => {
-                if (onNavigateTab) {
-                  onNavigateTab('EXPENSES');
-                } else {
-                  router.push('/delivery/expenses');
-                }
-              }}
+              onClick={() => setShowExpensesPage(true)}
               className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
             >
               <div className="flex items-center gap-3">
