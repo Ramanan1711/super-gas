@@ -1,0 +1,478 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  User,
+  FileText,
+  Truck,
+  CreditCard,
+  ReceiptText,
+  Languages,
+  ChevronRight,
+  LogOut,
+  X,
+  CheckCircle2,
+  ShieldCheck,
+  AlertTriangle,
+} from 'lucide-react';
+
+interface DeliveryMoreScreenProps {
+  onNavigateTab?: (tab: 'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE') => void;
+}
+
+export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreenProps) {
+  const router = useRouter();
+  const [activeModal, setActiveModal] = useState<'PROFILE' | 'DOCUMENTS' | 'LANGUAGE' | 'END_SHIFT' | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ta'>('ta');
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC] overflow-hidden">
+      {/* Screen Header */}
+      <div className="shrink-0 px-5 pt-3 pb-3 bg-white border-b border-slate-100">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+          More
+        </h1>
+      </div>
+
+      {/* Scrollable Screen Content */}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-8">
+        {/* 1. Driver Profile Card */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+          {/* Avatar with Online/Active indicator */}
+          <div className="relative shrink-0">
+            <div className="w-13 h-13 rounded-full bg-[#3F4D67] text-white font-black text-base flex items-center justify-center shadow-inner tracking-wide">
+              SB
+            </div>
+            <span className="w-3.5 h-3.5 rounded-full bg-[#17A44B] border-2 border-white absolute bottom-0 right-0 shadow-2xs" />
+          </div>
+
+          {/* Driver Information */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-black text-slate-900 tracking-tight truncate">
+                Suresh Babu
+              </h2>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-bold shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Active</span>
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5 leading-snug">
+              ID: DP-003 • Van 03 (TN 58 AX 4821)
+            </p>
+          </div>
+        </div>
+
+        {/* 2. ACCOUNT & IDENTIFICATION Section */}
+        <div>
+          <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block px-1">
+            ACCOUNT & IDENTIFICATION
+          </span>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs divide-y divide-slate-100 overflow-hidden">
+            {/* My Profile */}
+            <button
+              type="button"
+              onClick={() => setActiveModal('PROFILE')}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F0F3FF] text-blue-600 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                    My Profile
+                  </h3>
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">
+                    Personal records & driver license
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2] shrink-0" />
+            </button>
+
+            {/* My Documents */}
+            <button
+              type="button"
+              onClick={() => setActiveModal('DOCUMENTS')}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F0F3FF] text-blue-600 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                    My Documents
+                  </h3>
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">
+                    Aadhaar, Badging
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2] shrink-0" />
+            </button>
+          </div>
+        </div>
+
+        {/* 3. WORK & RECORDS Section */}
+        <div>
+          <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block px-1">
+            WORK & RECORDS
+          </span>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs divide-y divide-slate-100 overflow-hidden">
+            {/* Delivery History */}
+            <button
+              type="button"
+              onClick={() => router.push('/delivery/customer/all-deliveries')}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F0F3FF] text-blue-600 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                    Delivery History
+                  </h3>
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">
+                    Completed handovers & digital signatures
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2] shrink-0" />
+            </button>
+
+            {/* My Settlements */}
+            <button
+              type="button"
+              onClick={() => router.push('/admin/settlements')}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F0F3FF] text-blue-600 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                    My Settlements
+                  </h3>
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">
+                    Daily cash ledger & depot drop reconciliations
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2] shrink-0" />
+            </button>
+
+            {/* My Expenses */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onNavigateTab) {
+                  onNavigateTab('EXPENSES');
+                } else {
+                  router.push('/delivery/expenses');
+                }
+              }}
+              className="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-50/70 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F0F3FF] text-blue-600 flex items-center justify-center shrink-0">
+                  <ReceiptText className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                    My Expenses
+                  </h3>
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">
+                    Diesel slips, toll passes & vehicle maintenance
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2] shrink-0" />
+            </button>
+          </div>
+        </div>
+
+        {/* 4. SETTINGS & PREFERENCES Section */}
+        <div>
+          <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block px-1">
+            SETTINGS & PREFERENCES
+          </span>
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#F0F3FF] text-blue-600 flex items-center justify-center shrink-0">
+                <Languages className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                  App Language
+                </h3>
+                <p className="text-xs text-slate-400 font-normal mt-0.5">
+                  English (UK) • தமிழ் (Tamil)
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveModal('LANGUAGE')}
+              className="bg-[#EEF2FF] hover:bg-[#E4EAFF] text-slate-800 font-bold text-xs px-3.5 py-1.5 rounded-xl border border-slate-200/70 transition cursor-pointer"
+            >
+              {selectedLanguage === 'ta' ? 'தமிழ்' : 'English'}
+            </button>
+          </div>
+        </div>
+
+        {/* 5. End Shift & Depot Handover Button */}
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setActiveModal('END_SHIFT')}
+            className="w-full bg-white hover:bg-red-50/50 active:scale-98 border border-slate-200/90 rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer text-[#BC0118]"
+          >
+            <LogOut className="w-4 h-4 text-[#BC0118] stroke-[2.4]" />
+            <span className="font-bold text-sm tracking-tight">
+              End Shift & Depot Handover
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Modal 1: My Profile */}
+      {activeModal === 'PROFILE' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
+          <div className="w-full max-w-[390px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <User className="w-4 h-4 stroke-[2.2]" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">Driver Profile</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="p-1 text-slate-400 hover:text-black cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="flex justify-between py-1.5 border-b border-slate-50">
+                <span className="text-slate-400 font-medium">Full Name</span>
+                <span className="font-bold text-slate-900">Suresh Babu</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-50">
+                <span className="text-slate-400 font-medium">Partner ID</span>
+                <span className="font-bold text-slate-900">DP-003</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-50">
+                <span className="text-slate-400 font-medium">Assigned Route</span>
+                <span className="font-bold text-slate-900">Madurai North Zone</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-50">
+                <span className="text-slate-400 font-medium">Delivery Vehicle</span>
+                <span className="font-bold text-slate-900">Van 03 (TN 58 AX 4821)</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-50">
+                <span className="text-slate-400 font-medium">Phone Number</span>
+                <span className="font-bold text-slate-900">+91 98421 98421</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-50">
+                <span className="text-slate-400 font-medium">Driving License</span>
+                <span className="font-bold text-slate-900">TN-58-2018-00941 (HMV)</span>
+              </div>
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-400 font-medium">Operating Depot</span>
+                <span className="font-bold text-slate-900">Central Logistics Depot</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveModal(null)}
+              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: My Documents */}
+      {activeModal === 'DOCUMENTS' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
+          <div className="w-full max-w-[390px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <FileText className="w-4 h-4 stroke-[2.2]" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">Driver Documents</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="p-1 text-slate-400 hover:text-black cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                <div>
+                  <p className="font-bold text-slate-900">Aadhaar Card</p>
+                  <p className="text-[10px] text-slate-400">UIDAI Verified • **** **** 3819</p>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> Verified
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                <div>
+                  <p className="font-bold text-slate-900">HMV Commercial License</p>
+                  <p className="text-[10px] text-slate-400">Valid until 14 Nov 2028</p>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Active
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                <div>
+                  <p className="font-bold text-slate-900">LPG HAZMAT Safety Badging</p>
+                  <p className="text-[10px] text-slate-400">PESO Authorized Safety Badge</p>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Certified
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveModal(null)}
+              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: App Language */}
+      {activeModal === 'LANGUAGE' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
+          <div className="w-full max-w-[360px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Select App Language</h3>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="p-1 text-slate-400 hover:text-black cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLanguage('en');
+                  setActiveModal(null);
+                }}
+                className={`w-full p-3 rounded-xl border flex items-center justify-between transition cursor-pointer ${
+                  selectedLanguage === 'en'
+                    ? 'border-red-500 bg-red-50/40 text-red-700 font-bold'
+                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>English (UK)</span>
+                {selectedLanguage === 'en' && <CheckCircle2 className="w-4 h-4 text-red-600" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLanguage('ta');
+                  setActiveModal(null);
+                }}
+                className={`w-full p-3 rounded-xl border flex items-center justify-between transition cursor-pointer ${
+                  selectedLanguage === 'ta'
+                    ? 'border-red-500 bg-red-50/40 text-red-700 font-bold'
+                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>தமிழ் (Tamil)</span>
+                {selectedLanguage === 'ta' && <CheckCircle2 className="w-4 h-4 text-red-600" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 4: End Shift Confirmation */}
+      {activeModal === 'END_SHIFT' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
+          <div className="w-full max-w-[390px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-slate-900 leading-tight">
+                  End Shift & Depot Handover?
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Please proceed to the physical depot reception to complete cylinder custody and cash settlement handover with Depot Admin.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5 text-xs">
+              <div className="flex justify-between text-slate-600">
+                <span>Completed Deliveries:</span>
+                <span className="font-bold text-slate-900">10 / 15 Deliveries</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Empty Cylinders in Custody:</span>
+                <span className="font-bold text-slate-900">8 Units</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Cash to be Handed Over:</span>
+                <span className="font-bold text-emerald-700">₹10,500.00</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition"
+              >
+                Continue Shift
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  alert('Shift ended. Depot reconciliation report generated for Admin.');
+                  setActiveModal(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs transition shadow-xs"
+              >
+                Confirm Handover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

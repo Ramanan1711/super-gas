@@ -5,6 +5,7 @@ import BrandLogo from '@/components/BrandLogo';
 import CustomersTabScreen from './CustomersTabScreen';
 import DeliveryStocksScreen from './DeliveryStocksScreen';
 import DeliveryExpensesScreen from './DeliveryExpensesScreen';
+import DeliveryMoreScreen from './DeliveryMoreScreen';
 import {
   Phone,
   MapPin,
@@ -69,6 +70,8 @@ export default function MainDeliveryScreen({
         <DeliveryStocksScreen />
       ) : activeBottomNav === 'EXPENSES' ? (
         <DeliveryExpensesScreen />
+      ) : activeBottomNav === 'MORE' ? (
+        <DeliveryMoreScreen onNavigateTab={setActiveBottomNav} />
       ) : (
         <>
           {/* Top Header */}
