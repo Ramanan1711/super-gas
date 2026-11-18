@@ -44,7 +44,7 @@ export default function CustomerDeliveryScreen({
   getInitials,
 }: CustomerDeliveryScreenProps) {
   const customerIndex = deliveries.findIndex((d) => d.id === selectedDelivery.id);
-  const customerCode = `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
+  const customerCode = selectedDelivery.customer.customerCode || `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
 
   // Dynamic Pending Empty Return count:
   // First-time buyers (e.g. Domestic new connections like Priya Sharma, or emptyCollected === 0) have 0 pending empties.

@@ -1,17 +1,25 @@
 import { z } from 'zod';
 
 export const deliveryItemInputSchema = z.object({
-  productId: z.string().min(1, 'Product ID is required'),
-  filledDelivered: z.number().int().min(0, 'Delivered count cannot be negative'),
-  emptyCollected: z.number().int().min(0, 'Empty collected count cannot be negative'),
-  unitPrice: z.number().min(0, 'Unit price cannot be negative'),
+  productId: z.string().optional(),
+  productCode: z.string().optional(),
+  category: z.string().optional(),
+  filledDelivered: z.number().int().min(0, 'Delivered count cannot be negative').default(1),
+  emptyCollected: z.number().int().min(0, 'Empty collected count cannot be negative').default(0),
+  unitPrice: z.number().min(0, 'Unit price cannot be negative').default(0),
 });
 
 export const completeDeliverySchema = z.object({
   taskId: z.string().min(1, 'Delivery Task ID is required'),
-  items: z.array(deliveryItemInputSchema).min(1, 'At least one cylinder item must be delivered'),
-  paymentMethod: z.enum(['CASH', 'UPI_QR', 'BANK_TRANSFER', 'CREDIT_TERMS']),
-  amountCollected: z.number().min(0, 'Collected amount cannot be negative'),
+  items: z.array(deliveryItemInputSchema).optional(),
+  paymentMethod: z.union([
+    z.enum(['CASH', 'UPI_QR', 'BANK_TRANSFER', 'CREDIT_TERMS']),
+    z.literal('UPI').transform(() => 'UPI_QR' as const),
+    z.literal('ONLINE').transform(() => 'UPI_QR' as const),
+  ]).default('CASH'),
+  amountCollected: z.number().min(0, 'Collected amount cannot be negative').default(0),
+  amount: z.number().optional(),
+  emptyCollected: z.number().optional(),
   paymentReference: z.string().optional(),
   customerSignatureOrOtp: z.string().optional(),
   notes: z.string().max(500).optional(),

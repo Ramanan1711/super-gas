@@ -45,8 +45,9 @@ export class DeliveryTransactionService {
       const now = new Date();
 
       // 2. Calculate item totals
+      const items = input.items && input.items.length > 0 ? input.items : [];
       let subtotal = 0;
-      for (const item of input.items) {
+      for (const item of items) {
         subtotal += item.filledDelivered * item.unitPrice;
       }
 
@@ -72,11 +73,12 @@ export class DeliveryTransactionService {
         where: { taskId: task.id },
       });
 
-      for (const item of input.items) {
+      for (const item of items) {
+        const productId = item.productId || '';
         await tx.deliveryItem.create({
           data: {
             taskId: task.id,
-            productId: item.productId,
+            productId,
             filledDelivered: item.filledDelivered,
             emptyCollected: item.emptyCollected,
             unitPrice: item.unitPrice,
@@ -89,7 +91,7 @@ export class DeliveryTransactionService {
           where: {
             vehicleId_productId: {
               vehicleId: task.trip.vehicleId,
-              productId: item.productId,
+              productId,
             },
           },
         });
@@ -99,7 +101,7 @@ export class DeliveryTransactionService {
             where: {
               vehicleId_productId: {
                 vehicleId: task.trip.vehicleId,
-                productId: item.productId,
+                productId,
               },
             },
             data: {

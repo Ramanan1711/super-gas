@@ -15,6 +15,7 @@ export interface Customer {
   phone: string;
   address: string | null;
   type: string;
+  customerCode?: string;
 }
 
 export interface Delivery {
@@ -32,6 +33,8 @@ export interface Delivery {
   deliveredAt: string | null;
   createdAt: string;
   updatedAt: string;
+  sequence?: number;
+  taskStatus?: string;
 }
 
 export interface DeliveryStats {
@@ -107,19 +110,45 @@ export default function DeliveryScreen({
   const [emptyStock, setEmptyStock] = useState(15);
   const [showCylinderDetails, setShowCylinderDetails] = useState(false);
 
-  // Filtered deliveries based on search query
-  const filteredDeliveries = useMemo(() => {
-    return deliveries.filter((item) => {
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const nameMatch = item.customer.name.toLowerCase().includes(query);
-        const phoneMatch = item.customer.phone.toLowerCase().includes(query);
-        const addressMatch = (item.customer.address || '').toLowerCase().includes(query);
-        const cylinderMatch = item.cylinderType.toLowerCase().includes(query);
-        return nameMatch || phoneMatch || addressMatch || cylinderMatch;
+  // Fetch live delivery tasks on mount
+  React.useEffect(() => {
+    let ignore = false;
+    async function loadTasks() {
+      try {
+        const res = await fetch('/api/deliveries?driverCode=DP-003');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!ignore && data.deliveries && Array.isArray(data.deliveries) && data.deliveries.length > 0) {
+          setDeliveries(data.deliveries);
+          if (data.stats) {
+            setStats(data.stats);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load deliveries from DB, using initial data:', err);
       }
-      return true;
-    });
+    }
+    loadTasks();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // Filtered deliveries based on search query, ordered by stop sequence
+  const filteredDeliveries = useMemo(() => {
+    return deliveries
+      .filter((item) => {
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase();
+          const nameMatch = item.customer.name.toLowerCase().includes(query);
+          const phoneMatch = item.customer.phone.toLowerCase().includes(query);
+          const addressMatch = (item.customer.address || '').toLowerCase().includes(query);
+          const cylinderMatch = item.cylinderType.toLowerCase().includes(query);
+          return nameMatch || phoneMatch || addressMatch || cylinderMatch;
+        }
+        return true;
+      })
+      .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
   }, [deliveries, searchQuery]);
 
   // Toggle category checkbox
@@ -249,25 +278,53 @@ export default function DeliveryScreen({
       const totalEmptyCollected = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
       const finalEmptyCount = totalEmptyCollected > 0 ? totalEmptyCollected : emptyCount;
 
-      const res = await fetch(`/api/deliveries/${selectedDelivery.id}`, {
-        method: 'PATCH',
+      const itemsPayload = selectedCategories.length > 0
+        ? selectedCategories.map((c) => ({
+            category: c,
+            productCode: c.includes('47') ? '47.5KG_IND' : c.includes('25') ? '25KG_COM' : '19KG_COMM',
+            filledDelivered: categoryQuantities[c] ?? 1,
+            emptyCollected: emptyCollectedCounts[c] ?? 0,
+            unitPrice: Math.round(finalAmount / (totalDelivered || 1)),
+          }))
+        : [
+            {
+              productCode: '19KG_COMM',
+              filledDelivered: totalDelivered || 1,
+              emptyCollected: finalEmptyCount,
+              unitPrice: finalAmount,
+            },
+          ];
+
+      const res = await fetch(`/api/deliveries/${selectedDelivery.id}/complete`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'DELIVERED',
+          amountCollected: finalAmount,
           emptyCollected: finalEmptyCount,
-          cylinderType: categoryStr,
-          amount: finalAmount,
-          paymentMethod: chosenMethod,
-          paymentStatus: 'PAID',
+          quantity: totalDelivered,
+          paymentMethod: chosenMethod === 'UPI' ? 'UPI_QR' : chosenMethod,
+          notes: `Customer delivery - ${categoryStr}`,
+          items: itemsPayload,
         }),
       });
 
       if (res.ok) {
-        const updatedItem = await res.json();
-        
         // Update local state
         setDeliveries((prev) =>
-          prev.map((d) => (d.id === updatedItem.id ? updatedItem : d))
+          prev.map((d) =>
+            d.id === selectedDelivery.id
+              ? {
+                  ...d,
+                  status: 'DELIVERED',
+                  emptyCollected: finalEmptyCount,
+                  cylinderType: categoryStr,
+                  amount: finalAmount,
+                  paymentMethod: chosenMethod,
+                  paymentStatus: 'PAID',
+                  deliveredAt: new Date().toISOString(),
+                }
+              : d
+          )
         );
 
         // Update stats
@@ -290,7 +347,8 @@ export default function DeliveryScreen({
 
         setStep('COMPLETED');
       } else {
-        alert('Failed to complete delivery. Please try again.');
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.error?.message || 'Failed to complete delivery. Please try again.');
       }
     } catch (err) {
       console.error(err);

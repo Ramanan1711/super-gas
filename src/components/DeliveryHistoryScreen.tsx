@@ -125,34 +125,47 @@ export default function DeliveryHistoryScreen({ onBack }: DeliveryHistoryScreenP
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'All' | 'Today' | 'Yesterday' | 'Last 7 Days' | 'Last 30 Days' | 'This Month'>('Today');
   const [selectedInvoice, setSelectedInvoice] = useState<HistoryRecord | null>(null);
+  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>(mockHistoryData);
+  const [totalDeliveriesCount, setTotalDeliveriesCount] = useState<number>(14);
+  const [cylindersGivenCount, setCylindersGivenCount] = useState<number>(22);
+  const [emptyReturnedCount, setEmptyReturnedCount] = useState<number>(14);
 
-  // Filtered deliveries
+  // Fetch live delivery history on filter/search change
+  React.useEffect(() => {
+    let ignore = false;
+    async function loadHistory() {
+      try {
+        const queryParams = new URLSearchParams({
+          filter: activeFilter,
+          search: searchQuery.trim(),
+        });
+        const res = await fetch(`/api/deliveries/history?${queryParams.toString()}`);
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && result.data) {
+          if (Array.isArray(result.data.records) && result.data.records.length > 0) {
+            setHistoryRecords(result.data.records);
+          }
+          if (result.data.metrics) {
+            setTotalDeliveriesCount(result.data.metrics.totalDeliveries);
+            setCylindersGivenCount(result.data.metrics.cylindersGiven);
+            setEmptyReturnedCount(result.data.metrics.emptyReturned);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load delivery history from database:', err);
+      }
+    }
+    loadHistory();
+    return () => {
+      ignore = true;
+    };
+  }, [activeFilter, searchQuery]);
+
+  // Filtered deliveries fallback for client-side search
   const filteredRecords = useMemo(() => {
-    let list = [...mockHistoryData];
-
-    // Filter by period
-    if (activeFilter === 'Yesterday') {
-      list = list.filter((r) => r.filterPeriod === 'yesterday');
-    } else if (activeFilter === 'Last 7 Days') {
-      list = list.filter((r) => r.filterPeriod === 'today' || r.filterPeriod === 'yesterday' || r.filterPeriod === 'week');
-    } else if (activeFilter === 'Today') {
-      list = list.filter((r) => r.filterPeriod === 'today');
-    }
-
-    // Filter by search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (r) =>
-          r.customerName.toLowerCase().includes(q) ||
-          r.customerCode.toLowerCase().includes(q) ||
-          r.invoiceNumber.toLowerCase().includes(q) ||
-          r.customerPhone.includes(q)
-      );
-    }
-
-    return list;
-  }, [searchQuery, activeFilter]);
+    return historyRecords;
+  }, [historyRecords]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC] overflow-hidden">
@@ -187,11 +200,11 @@ export default function DeliveryHistoryScreen({ onBack }: DeliveryHistoryScreenP
               </div>
             </div>
             <p className="text-3xl font-black text-slate-900 tracking-tight mt-1">
-              14
+              {totalDeliveriesCount}
             </p>
             <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500 pt-0.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 stroke-[2.2]" />
-              <span>Completed today</span>
+              <span>Completed {activeFilter.toLowerCase()}</span>
             </div>
           </div>
 
@@ -206,11 +219,11 @@ export default function DeliveryHistoryScreen({ onBack }: DeliveryHistoryScreenP
               </div>
             </div>
             <p className="text-3xl font-black text-slate-900 tracking-tight mt-1">
-              22
+              {cylindersGivenCount}
             </p>
             <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500 pt-0.5">
               <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-600 stroke-[2.2]" />
-              <span>14 Empty returned</span>
+              <span>{emptyReturnedCount} Empty returned</span>
             </div>
           </div>
         </div>

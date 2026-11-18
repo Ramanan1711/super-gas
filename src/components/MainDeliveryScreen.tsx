@@ -303,14 +303,35 @@ export default function MainDeliveryScreen({
                   key={delivery.id}
                   className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-2xs space-y-3.5 transition hover:border-slate-300"
                 >
-                  {/* Top Row: Customer Name, Code & Red Initials Avatar */}
+                  {/* Top Row: Customer Name, Code, Stop Sequence & Live Status Badge */}
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="space-y-1">
                       <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
                         {delivery.customer.name}
                       </h3>
-                      <div className="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200/90 mt-1">
-                        CUS-{String(index + 124).padStart(5, '0')}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        <span className="inline-block px-2 py-0.5 rounded-md text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200/90">
+                          {delivery.customer.customerCode || `CUS-${String(index + 124).padStart(5, '0')}`}
+                        </span>
+                        <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200/70">
+                          Stop #{delivery.sequence || index + 1}
+                        </span>
+                        {delivery.status === 'DELIVERED' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span>Delivered</span>
+                          </span>
+                        ) : delivery.taskStatus === 'RESCHEDULED' || delivery.status === 'CANCELLED' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            <span>Rescheduled</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            <span>Pending</span>
+                          </span>
+                        )}
                       </div>
                     </div>
 
