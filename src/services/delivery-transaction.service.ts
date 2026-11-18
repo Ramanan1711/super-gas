@@ -237,6 +237,11 @@ export class DeliveryTransactionService {
    * Records physical cash handover from driver to depot admin atomically
    */
   static async recordCashHandover(input: CreateHandoverEventInput) {
+    const partnerId = input.partnerId;
+    if (!partnerId) {
+      throw new Error('partnerId is required to record a cash handover.');
+    }
+
     return await prisma.$transaction(async (tx) => {
       const now = new Date();
       const todayDate = new Date(now.toISOString().slice(0, 10));
@@ -246,7 +251,7 @@ export class DeliveryTransactionService {
         where: {
           businessDate_partnerId: {
             businessDate: todayDate,
-            partnerId: input.partnerId,
+            partnerId,
           },
         },
       });
@@ -255,7 +260,7 @@ export class DeliveryTransactionService {
         settlement = await tx.dailySettlement.create({
           data: {
             businessDate: todayDate,
-            partnerId: input.partnerId,
+            partnerId,
             cashExpected: input.amount,
             cashHandedOver: 0,
             remainingBalance: input.amount,
@@ -276,7 +281,7 @@ export class DeliveryTransactionService {
         data: {
           handoverCode,
           settlementId: settlement.id,
-          partnerId: input.partnerId,
+          partnerId,
           amount: input.amount,
           dropType: input.dropType,
           receivedByName: input.receivedByName,
@@ -312,6 +317,12 @@ export class DeliveryTransactionService {
    * Executes depot-to-vehicle or vehicle-to-depot cylinder transfers atomically
    */
   static async recordStockTransfer(input: StockTransferInput) {
+    const depotId = input.depotId;
+    const vehicleId = input.vehicleId;
+    if (!depotId || !vehicleId) {
+      throw new Error('depotId and vehicleId are required for stock transfer.');
+    }
+
     return await prisma.$transaction(async (tx) => {
       const now = new Date();
       const transferDateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -322,8 +333,8 @@ export class DeliveryTransactionService {
       const transferLog = await tx.stockTransferLog.create({
         data: {
           transferCode,
-          depotId: input.depotId,
-          vehicleId: input.vehicleId,
+          depotId,
+          vehicleId,
           partnerId: input.partnerId || null,
           transferType: input.transferType,
           notes: input.notes || null,
@@ -333,10 +344,15 @@ export class DeliveryTransactionService {
 
       // 2. Process each cylinder product
       for (const item of input.items) {
+        const productId = item.productId;
+        if (!productId) {
+          throw new Error('productId is required for each transfer item.');
+        }
+
         await tx.stockTransferItem.create({
           data: {
             transferId: transferLog.id,
-            productId: item.productId,
+            productId,
             filledQuantity: item.filledQuantity,
             emptyQuantity: item.emptyQuantity,
             damagedQuantity: item.damagedQuantity,
@@ -346,8 +362,8 @@ export class DeliveryTransactionService {
         const depotInv = await tx.depotInventory.findUnique({
           where: {
             depotId_productId: {
-              depotId: input.depotId,
-              productId: item.productId,
+              depotId,
+              productId,
             },
           },
         });
@@ -355,8 +371,8 @@ export class DeliveryTransactionService {
         const vehicleInv = await tx.vehicleInventory.findUnique({
           where: {
             vehicleId_productId: {
-              vehicleId: input.vehicleId,
-              productId: item.productId,
+              vehicleId,
+              productId,
             },
           },
         });

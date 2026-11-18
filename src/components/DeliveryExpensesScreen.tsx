@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import ExpenseDetailsScreen from './ExpenseDetailsScreen';
 import {
   Plus,
@@ -115,16 +115,188 @@ export default function DeliveryExpensesScreen() {
   // New expense form state matching Figma design
   const [newCategory, setNewCategory] = useState<'Fuel / Petrol' | 'Vehicle Maintenance' | 'Food / Allowance' | 'Parking Charges' | 'Mobile / Data' | 'Other'>('Fuel / Petrol');
   const [newExpenseDate, setNewExpenseDate] = useState('24/ 10/ 2026');
-  const [assignedVehicle, setAssignedVehicle] = useState('TN 58 AX 1234');
+  const [assignedVehicle, setAssignedVehicle] = useState('TN 58 AX 4821');
   const [newAmount, setNewAmount] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch live expense claims from database
+  const fetchClaims = async () => {
+    try {
+      const res = await fetch('/api/expenses?partnerCode=DP-003');
+      if (!res.ok) return;
+      const result = await res.json();
+      if (result.success && Array.isArray(result.data?.claims) && result.data.claims.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapped: ExpenseClaim[] = result.data.claims.map((c: any) => {
+          const rawCat = (c.category || '').toLowerCase();
+          let catType: ExpenseClaim['categoryType'] = 'fuel';
+          if (rawCat.includes('maint')) catType = 'vehicle';
+          else if (rawCat.includes('food')) catType = 'food';
+          else if (rawCat.includes('park')) catType = 'parking';
+          else if (rawCat.includes('mobile')) catType = 'mobile';
+          else if (rawCat.includes('toll') || rawCat.includes('repair') || rawCat.includes('other')) catType = 'other';
+
+          const date = new Date(c.claimDate || c.createdAt);
+          const dateStr = date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          });
+
+          return {
+            id: c.id,
+            code: c.claimNumber,
+            category: c.categoryLabel || c.category?.replace(/_/g, ' ') || 'Expense',
+            categoryType: catType,
+            amount: c.amount,
+            dateStr,
+            status: c.status as ExpenseClaim['status'],
+            paymentStatus: c.paymentStatus || 'Unpaid',
+            description: c.description,
+            hasReceipt: Boolean(c.receiptUrl),
+            vanInfo: c.vehicle?.regNumber ? `Van (${c.vehicle.regNumber})` : undefined,
+          };
+        });
+        setClaims(mapped);
+      }
+    } catch (err) {
+      console.warn('Could not load live claims, keeping initial claims:', err);
+    }
+  };
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadClaims() {
+      try {
+        const res = await fetch('/api/expenses?partnerCode=DP-003');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && Array.isArray(result.data?.claims) && result.data.claims.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mapped: ExpenseClaim[] = result.data.claims.map((c: any) => {
+            const rawCat = (c.category || '').toLowerCase();
+            let catType: ExpenseClaim['categoryType'] = 'fuel';
+            if (rawCat.includes('maint')) catType = 'vehicle';
+            else if (rawCat.includes('food')) catType = 'food';
+            else if (rawCat.includes('park')) catType = 'parking';
+            else if (rawCat.includes('mobile')) catType = 'mobile';
+            else if (rawCat.includes('toll') || rawCat.includes('repair') || rawCat.includes('other')) catType = 'other';
+
+            const date = new Date(c.claimDate || c.createdAt);
+            const dateStr = date.toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            });
+
+            return {
+              id: c.id,
+              code: c.claimNumber,
+              category: c.categoryLabel || c.category?.replace(/_/g, ' ') || 'Expense',
+              categoryType: catType,
+              amount: c.amount,
+              dateStr,
+              status: c.status as ExpenseClaim['status'],
+              paymentStatus: c.paymentStatus || 'Unpaid',
+              description: c.description,
+              hasReceipt: Boolean(c.receiptUrl),
+              vanInfo: c.vehicle?.regNumber ? `Van (${c.vehicle.regNumber})` : undefined,
+            };
+          });
+          setClaims(mapped);
+        }
+      } catch (err) {
+        console.warn('Could not load live claims, keeping initial claims:', err);
+      }
+    }
+    loadClaims();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setSelectedFile(file);
       setReceiptPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Submit expense claim with receipt upload
+  const handleSubmitExpenseClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingClaim(true);
+    try {
+      let receiptUrl: string | null = null;
+
+      // 1. Upload receipt file if provided
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadJson = await uploadRes.json();
+        if (uploadRes.ok && uploadJson.success && uploadJson.data?.fileUrl) {
+          receiptUrl = uploadJson.data.fileUrl;
+        }
+      }
+
+      // 2. Map category enum
+      let categoryEnum: 'FUEL_PETROL' | 'VEHICLE_MAINTENANCE' | 'FOOD_ALLOWANCE' | 'PARKING_CHARGES' | 'MOBILE_DATA' | 'OTHER' = 'FUEL_PETROL';
+      if (newCategory === 'Vehicle Maintenance') categoryEnum = 'VEHICLE_MAINTENANCE';
+      else if (newCategory === 'Food / Allowance') categoryEnum = 'FOOD_ALLOWANCE';
+      else if (newCategory === 'Parking Charges') categoryEnum = 'PARKING_CHARGES';
+      else if (newCategory === 'Mobile / Data') categoryEnum = 'MOBILE_DATA';
+      else if (newCategory === 'Other') categoryEnum = 'OTHER';
+
+      const numericAmount = parseFloat(newAmount.replace(/[^0-9.]/g, ''));
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        throw new Error('Please enter a valid expense amount');
+      }
+
+      // 3. Post to /api/expenses
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partnerCode: 'DP-003',
+          vehicleReg: assignedVehicle,
+          category: categoryEnum,
+          categoryLabel: newCategory,
+          amount: numericAmount,
+          description: newDesc.trim() || `${newCategory} expense claim submitted by driver`,
+          receiptUrl,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error?.message || 'Failed to submit expense claim');
+      }
+
+      // Refresh claims from database
+      await fetchClaims();
+
+      // Reset form
+      setNewAmount('');
+      setNewDesc('');
+      setReceiptPreview(null);
+      setSelectedFile(null);
+      setShowAddModal(false);
+      setToastMessage(`Expense claim ${result.data?.claim?.claimNumber || ''} submitted successfully for admin review!`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error submitting expense');
+    } finally {
+      setIsSubmittingClaim(false);
     }
   };
 
@@ -187,40 +359,6 @@ export default function DeliveryExpensesScreen() {
     [claims]
   );
 
-  const handleAddExpenseSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanAmount = newAmount.replace(/[^0-9.]/g, '');
-    if (!cleanAmount || isNaN(Number(cleanAmount))) return;
-
-    const amountNum = Number(cleanAmount);
-    let catType: ExpenseClaim['categoryType'] = 'fuel';
-    if (newCategory === 'Vehicle Maintenance') catType = 'vehicle';
-    else if (newCategory === 'Food / Allowance') catType = 'food';
-    else if (newCategory === 'Parking Charges') catType = 'parking';
-    else if (newCategory === 'Mobile / Data') catType = 'mobile';
-    else if (newCategory === 'Other') catType = 'other';
-
-    const newClaim: ExpenseClaim = {
-      id: `exp-${Date.now()}`,
-      code: `EXP-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-0${claims.length + 1}`,
-      category: newCategory,
-      categoryType: catType,
-      amount: amountNum,
-      dateStr: newExpenseDate ? `Today, ${newExpenseDate}` : 'Today, Just now',
-      status: 'PENDING',
-      paymentStatus: 'Unpaid',
-      description: newDesc || undefined,
-      hasReceipt: Boolean(receiptPreview),
-      vanInfo: catType === 'fuel' ? assignedVehicle : undefined,
-    };
-
-    setClaims([newClaim, ...claims]);
-    setNewAmount('');
-    setNewDesc('');
-    setReceiptPreview(null);
-    setShowAddModal(false);
-  };
-
   if (selectedClaimForDetail) {
     return (
       <ExpenseDetailsScreen
@@ -258,12 +396,19 @@ export default function DeliveryExpensesScreen() {
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="bg-[#BC0118] hover:bg-red-800 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+          className="bg-[#BC0118] hover:bg-red-800 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Add Expense</span>
         </button>
       </div>
+
+      {toastMessage && (
+        <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 text-center flex items-center justify-center gap-1.5 shadow-md animate-in slide-in-from-top duration-200">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3.5 space-y-3.5 pb-6">
@@ -646,7 +791,7 @@ export default function DeliveryExpensesScreen() {
               </button>
             </div>
 
-            <form onSubmit={handleAddExpenseSubmit} className="mt-4 space-y-3.5">
+            <form onSubmit={handleSubmitExpenseClaim} className="mt-4 space-y-3.5">
               {/* Expense Category* */}
               <div>
                 <label className="text-xs font-bold text-slate-900 mb-1.5 block">
@@ -793,9 +938,13 @@ export default function DeliveryExpensesScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#BC0118] hover:bg-red-800 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition shadow-xs"
+                  disabled={isSubmittingClaim}
+                  className="bg-[#BC0118] hover:bg-red-800 disabled:opacity-50 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition shadow-xs flex items-center gap-1.5"
                 >
-                  Submit claim
+                  {isSubmittingClaim && (
+                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  )}
+                  <span>{isSubmittingClaim ? 'Uploading & Submitting...' : 'Submit claim'}</span>
                 </button>
               </div>
             </form>

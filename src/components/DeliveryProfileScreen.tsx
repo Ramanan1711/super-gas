@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Camera,
@@ -30,18 +30,88 @@ export default function DeliveryProfileScreen({ onBack }: DeliveryProfileScreenP
   const [showEditContactModal, setShowEditContactModal] = useState(false);
   const [showDocPreviewModal, setShowDocPreviewModal] = useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Profile information updated successfully');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Profile data from database
+  const [driverName, setDriverName] = useState('Suresh Babu');
+  const [partnerCode, setPartnerCode] = useState('DP-003');
+  const [hubName, setHubName] = useState('Madurai Central Hub');
+  const [assignedVan, setAssignedVan] = useState('Van 03 (TN-58-BZ-4412)');
+  const [bloodGroup, setBloodGroup] = useState('O+ (Rh Pos)');
 
   // Editable contact state
   const [primaryPhone, setPrimaryPhone] = useState('+91 97876 54321');
-  const [altPhone, setAltPhone] = useState('+91 94440 90765');
+  const [altPhone, setAltPhone] = useState('+91 94440 90768');
   const [addressLine1, setAddressLine1] = useState('42/B, Kamarajar Salai, East Gate');
   const [addressLine2, setAddressLine2] = useState('Madurai, Tamil Nadu - 625009');
 
-  const handleSaveContact = (e: React.FormEvent) => {
+  // Fetch live driver profile on mount
+  useEffect(() => {
+    async function loadDriverProfile() {
+      try {
+        const res = await fetch('/api/drivers/profile?partnerCode=DP-003');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (result.success && result.data) {
+          const p = result.data;
+          if (p.name) setDriverName(p.name);
+          if (p.partnerCode) setPartnerCode(p.partnerCode);
+          if (p.phone) setPrimaryPhone(p.phone);
+          if (p.altPhone) setAltPhone(p.altPhone);
+          if (p.bloodGroup) setBloodGroup(p.bloodGroup);
+          if (p.depot?.name) setHubName(p.depot.name);
+          if (p.assignedVehicle?.regNumber) {
+            setAssignedVan(`Van 03 (${p.assignedVehicle.regNumber})`);
+          }
+          if (p.address) {
+            const parts = p.address.split(',');
+            if (parts.length > 2) {
+              setAddressLine1(parts.slice(0, 2).join(',').trim());
+              setAddressLine2(parts.slice(2).join(',').trim());
+            } else {
+              setAddressLine1(p.address);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch driver profile from DB, using defaults:', err);
+      }
+    }
+
+    loadDriverProfile();
+  }, []);
+
+  const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowEditContactModal(false);
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
+    setIsSaving(true);
+    try {
+      const fullAddress = `${addressLine1}, ${addressLine2}`.replace(/,\s*,/g, ',').trim();
+      const res = await fetch('/api/drivers/profile?partnerCode=DP-003', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: primaryPhone.trim(),
+          altPhone: altPhone.trim() || null,
+          address: fullAddress,
+          bloodGroup: bloodGroup.trim(),
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error?.message || 'Failed to update profile');
+      }
+
+      setToastMessage('Profile and emergency contact updated successfully in database');
+      setShowEditContactModal(false);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error updating profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -64,7 +134,7 @@ export default function DeliveryProfileScreen({ onBack }: DeliveryProfileScreenP
       {showSuccessToast && (
         <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 text-center flex items-center justify-center gap-1.5 shadow-md animate-in slide-in-from-top duration-200">
           <CheckCircle2 className="w-4 h-4" />
-          <span>Profile information updated successfully</span>
+          <span>{toastMessage}</span>
         </div>
       )}
 
@@ -79,14 +149,14 @@ export default function DeliveryProfileScreen({ onBack }: DeliveryProfileScreenP
               <span>Active Duty</span>
             </span>
             <span className="bg-[#EEF2FF] text-slate-700 font-bold px-2.5 py-1 rounded-lg text-xs">
-              ID: DP-003
+              ID: {partnerCode}
             </span>
           </div>
 
           {/* Avatar with Camera Icon */}
           <div className="relative inline-block mt-2">
             <div className="w-20 h-20 rounded-full bg-[#B30014] text-white font-black text-2xl flex items-center justify-center shadow-sm tracking-wide mx-auto">
-              SB
+              {driverName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </div>
             <button
               type="button"
@@ -99,17 +169,17 @@ export default function DeliveryProfileScreen({ onBack }: DeliveryProfileScreenP
 
           {/* Name & Hub */}
           <h2 className="text-xl font-black text-slate-900 tracking-tight mt-2.5">
-            Suresh Babu
+            {driverName}
           </h2>
           <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
             <Building2 className="w-3.5 h-3.5 text-[#BC0118]" />
-            <span>Madurai Central Hub</span>
+            <span>{hubName}</span>
           </div>
 
           {/* Van Pill */}
           <div className="inline-flex items-center justify-center gap-1.5 bg-[#EEF2FF] text-slate-700 text-xs font-semibold px-3 py-1 rounded-full mt-2.5">
             <Truck className="w-3.5 h-3.5 text-slate-600 stroke-[2]" />
-            <span>Van 03 (TN 58 AX 4821)</span>
+            <span>{assignedVan}</span>
           </div>
         </div>
 
@@ -131,7 +201,7 @@ export default function DeliveryProfileScreen({ onBack }: DeliveryProfileScreenP
                 FULL NAME
               </span>
               <span className="text-xs font-bold text-slate-900 block mt-0.5">
-                Suresh Babu
+                {driverName}
               </span>
             </div>
 
@@ -158,7 +228,7 @@ export default function DeliveryProfileScreen({ onBack }: DeliveryProfileScreenP
                 BLOOD GROUP
               </span>
               <span className="text-xs font-bold text-red-600 block mt-0.5">
-                O+ (Rh Pos)
+                {bloodGroup}
               </span>
             </div>
           </div>
@@ -575,9 +645,13 @@ export default function DeliveryProfileScreen({ onBack }: DeliveryProfileScreenP
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 text-white font-bold transition shadow-xs"
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 disabled:opacity-50 text-white font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  Save Changes
+                  {isSaving && (
+                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  )}
+                  <span>{isSaving ? 'Saving to Database...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>

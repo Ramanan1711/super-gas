@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
 export const createExpenseSchema = z.object({
-  partnerId: z.string().min(1, 'Partner ID is required'),
-  vehicleId: z.string().min(1, 'Vehicle ID is required'),
+  partnerId: z.string().optional(),
+  partnerCode: z.string().optional(),
+  vehicleId: z.string().optional(),
+  vehicleReg: z.string().optional(),
   category: z.enum([
     'FUEL_PETROL',
     'TOLL_CHARGES',
@@ -16,8 +18,8 @@ export const createExpenseSchema = z.object({
   categoryLabel: z.string().optional(),
   amount: z.number().positive('Expense amount must be greater than zero'),
   description: z.string().min(3, 'Detailed description is required').max(500),
-  receiptUrl: z.string().url('Invalid receipt URL').optional().or(z.literal('')),
-  claimDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+  receiptUrl: z.string().optional().nullable(),
+  claimDate: z.string().optional(),
 });
 
 export const reviewExpenseSchema = z.object({

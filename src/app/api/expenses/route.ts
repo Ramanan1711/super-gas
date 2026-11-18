@@ -18,7 +18,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = { partnerId: partner.id };
-  if (status && status !== 'All') {
+  if (status && status !== 'All' && status !== 'ALL') {
     where.status = status.toUpperCase();
   }
 
@@ -33,7 +33,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     orderBy: { claimDate: 'desc' },
   });
 
-  // Calculate high-level summary cards (Submitted, Approved, Pending, Rejected)
+  // Calculate summary metrics
   let totalSubmitted = 0;
   let totalApproved = 0;
   let totalPending = 0;
@@ -61,6 +61,47 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 export const POST = withApiHandler(async (req: NextRequest) => {
   const body = await validateBody(req, createExpenseSchema);
 
+  // Resolve partner
+  let partnerId = body.partnerId;
+  const partnerCode = body.partnerCode || (partnerId && partnerId.startsWith('DP-') ? partnerId : 'DP-003');
+
+  const partner = await prisma.deliveryPartner.findFirst({
+    where: {
+      OR: [
+        ...(partnerId && !partnerId.startsWith('DP-') ? [{ id: partnerId }] : []),
+        { partnerCode },
+      ],
+    },
+    include: {
+      assignedVehicle: true,
+    },
+  });
+
+  if (!partner) {
+    return notFoundResponse('Delivery partner');
+  }
+  partnerId = partner.id;
+
+  // Resolve vehicle
+  let vehicleId = body.vehicleId;
+  if (!vehicleId || vehicleId.startsWith('TN')) {
+    if (body.vehicleReg) {
+      const v = await prisma.vehicle.findUnique({ where: { regNumber: body.vehicleReg } });
+      if (v) vehicleId = v.id;
+    }
+    if (!vehicleId && partner.assignedVehicleId) {
+      vehicleId = partner.assignedVehicleId;
+    }
+    if (!vehicleId) {
+      const defaultV = await prisma.vehicle.findFirst();
+      if (defaultV) vehicleId = defaultV.id;
+    }
+  }
+
+  if (!vehicleId) {
+    return notFoundResponse('Vehicle');
+  }
+
   // Auto-generate claim number EXP-YYYYMMDD-XXX
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -70,16 +111,19 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const claim = await prisma.expenseClaim.create({
     data: {
       claimNumber,
-      partnerId: body.partnerId,
-      vehicleId: body.vehicleId,
+      partnerId,
+      vehicleId,
       category: body.category,
-      categoryLabel: body.categoryLabel || body.category.replace('_', ' '),
+      categoryLabel: body.categoryLabel || body.category.replace(/_/g, ' '),
       amount: body.amount,
       description: body.description,
       receiptUrl: body.receiptUrl || null,
       status: 'PENDING',
       paymentStatus: 'Unpaid',
       claimDate: body.claimDate ? new Date(body.claimDate) : now,
+    },
+    include: {
+      vehicle: true,
     },
   });
 

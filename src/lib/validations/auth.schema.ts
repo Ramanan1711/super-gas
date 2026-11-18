@@ -10,7 +10,7 @@ export const updateProfileSchema = z.object({
   phone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, 'Invalid phone number format').optional(),
   altPhone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, 'Invalid alternate phone number').nullable().optional(),
   address: z.string().min(5, 'Address is too short').optional(),
-  bloodGroup: z.string().max(10).optional(),
+  bloodGroup: z.string().max(20).optional(),
 });
 
 export const updateDocumentPucSchema = z.object({

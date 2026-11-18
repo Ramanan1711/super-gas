@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ArrowLeft,
   Banknote,
@@ -11,6 +11,8 @@ import {
   X,
   FileCheck2,
   Download,
+  Plus,
+  CheckCircle2,
 } from 'lucide-react';
 
 export interface SettlementDay {
@@ -109,10 +111,207 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
   const [selectedSettlement, setSelectedSettlement] = useState<SettlementDay | null>(null);
   const [showAllHandoversModal, setShowAllHandoversModal] = useState(false);
 
-  const filteredHistory = useMemo(() => {
-    if (activeFilter === 'All') return mockSettlementHistory;
-    return mockSettlementHistory.filter((item) => item.status === activeFilter);
+  // Live today settlement state
+  const [cashExpected, setCashExpected] = useState(5000);
+  const [cashHandedOver, setCashHandedOver] = useState(3000);
+  const [remainingBalance, setRemainingBalance] = useState(2000);
+  const [todayStatus, setTodayStatus] = useState('Partially Handed Over');
+  const [progressPercent, setProgressPercent] = useState(60);
+  const [depotInstruction, setDepotInstruction] = useState('Deposit remaining cash at Madurai Depot Counter #2 before shift closing (21:30 IST).');
+  const [handoversList, setHandoversList] = useState<HandoverRecord[]>(mockHandovers);
+  const [settlementHistory, setSettlementHistory] = useState<SettlementDay[]>(mockSettlementHistory);
+
+  // Cash drop handover modal state
+  const [showDropModal, setShowDropModal] = useState(false);
+  const [dropAmount, setDropAmount] = useState('2000');
+  const [dropType, setDropType] = useState<'AFTERNOON_DROP' | 'EVENING_VAULT' | 'END_OF_SHIFT'>('EVENING_VAULT');
+  const [receivedByAdmin, setReceivedByAdmin] = useState('S. Raman (Admin)');
+  const [stampNumber, setStampNumber] = useState('');
+  const [isSubmittingDrop, setIsSubmittingDrop] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Fetch today's financial summary
+  const fetchTodaySettlement = async () => {
+    try {
+      const res = await fetch('/api/settlements/today?partnerCode=DP-003');
+      if (!res.ok) return;
+      const result = await res.json();
+      if (result.success && result.data) {
+        const d = result.data;
+        setCashExpected(d.cashExpected ?? 5000);
+        setCashHandedOver(d.cashHandedOver ?? 3000);
+        setRemainingBalance(d.remainingBalance ?? 2000);
+        setProgressPercent(d.progressPercent ?? 60);
+        if (d.status === 'VERIFIED') setTodayStatus('Verified');
+        else if (d.status === 'PARTIALLY_HANDED_OVER') setTodayStatus('Partially Handed Over');
+        else if (d.status === 'DIFFERENCE_FOUND') setTodayStatus('Difference Found');
+        else setTodayStatus('Pending Verification');
+
+        if (d.depotCounterInstruction) setDepotInstruction(d.depotCounterInstruction);
+        if (Array.isArray(d.handovers) && d.handovers.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mappedHandovers: HandoverRecord[] = d.handovers.map((h: any) => ({
+            id: h.id,
+            handoverCode: h.handoverCode,
+            dateStr: new Date(h.handoverTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+            amount: h.amount,
+            timeTag: `${h.dropType.replace(/_/g, ' ')}`,
+            status: h.status === 'VERIFIED' ? 'Verified' : 'Pending Verification',
+            receivedBy: h.receivedByName || 'S. Raman (Admin)',
+            stampOrReceipt: h.stampNumber ? `Stamp: ${h.stampNumber}` : 'Depot vault receipt',
+          }));
+          setHandoversList(mappedHandovers);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load today settlement from DB:', err);
+    }
+  };
+
+  // Fetch historical settlement records
+  const fetchSettlementHistory = async () => {
+    try {
+      const res = await fetch(`/api/settlements/history?partnerCode=DP-003&filter=${activeFilter}`);
+      if (!res.ok) return;
+      const result = await res.json();
+      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mappedHistory: SettlementDay[] = result.data.map((s: any) => ({
+          id: s.id,
+          date: s.date,
+          status: s.status as SettlementDay['status'],
+          expectedAmount: s.expectedAmount,
+          handedOverAmount: s.handedOverAmount,
+          remainingAmount: s.remainingAmount,
+          shortfall: s.shortfallAmount > 0 ? s.shortfallAmount : undefined,
+          footerStatusText: s.status === 'Verified' ? 'Fully Cleared' : (s.auditRemarks || 'Reconciliation active'),
+          isShortfallNotice: s.shortfallAmount > 0,
+        }));
+        setSettlementHistory(mappedHistory);
+      }
+    } catch (err) {
+      console.warn('Could not load settlement history from DB:', err);
+    }
+  };
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadToday() {
+      try {
+        const res = await fetch('/api/settlements/today?partnerCode=DP-003');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && result.data) {
+          const d = result.data;
+          setCashExpected(d.cashExpected ?? 5000);
+          setCashHandedOver(d.cashHandedOver ?? 3000);
+          setRemainingBalance(d.remainingBalance ?? 2000);
+          setProgressPercent(d.progressPercent ?? 60);
+          if (d.status === 'VERIFIED') setTodayStatus('Verified');
+          else if (d.status === 'PARTIALLY_HANDED_OVER') setTodayStatus('Partially Handed Over');
+          else if (d.status === 'DIFFERENCE_FOUND') setTodayStatus('Difference Found');
+          else setTodayStatus('Pending Verification');
+
+          if (d.depotCounterInstruction) setDepotInstruction(d.depotCounterInstruction);
+          if (Array.isArray(d.handovers) && d.handovers.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const mappedHandovers: HandoverRecord[] = d.handovers.map((h: any) => ({
+              id: h.id,
+              handoverCode: h.handoverCode,
+              dateStr: new Date(h.handoverTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+              amount: h.amount,
+              timeTag: `${h.dropType.replace(/_/g, ' ')}`,
+              status: h.status === 'VERIFIED' ? 'Verified' : 'Pending Verification',
+              receivedBy: h.receivedByName || 'S. Raman (Admin)',
+              stampOrReceipt: h.stampNumber ? `Stamp: ${h.stampNumber}` : 'Depot vault receipt',
+            }));
+            setHandoversList(mappedHandovers);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load today settlement from DB:', err);
+      }
+    }
+    loadToday();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadHistory() {
+      try {
+        const res = await fetch(`/api/settlements/history?partnerCode=DP-003&filter=${activeFilter}`);
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && Array.isArray(result.data) && result.data.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mappedHistory: SettlementDay[] = result.data.map((s: any) => ({
+            id: s.id,
+            date: s.date,
+            status: s.status as SettlementDay['status'],
+            expectedAmount: s.expectedAmount,
+            handedOverAmount: s.handedOverAmount,
+            remainingAmount: s.remainingAmount,
+            shortfall: s.shortfallAmount > 0 ? s.shortfallAmount : undefined,
+            footerStatusText: s.status === 'Verified' ? 'Fully Cleared' : (s.auditRemarks || 'Reconciliation active'),
+            isShortfallNotice: s.shortfallAmount > 0,
+          }));
+          setSettlementHistory(mappedHistory);
+        }
+      } catch (err) {
+        console.warn('Could not load settlement history from DB:', err);
+      }
+    }
+    loadHistory();
+    return () => {
+      ignore = true;
+    };
   }, [activeFilter]);
+
+  // Submit cash handover drop (#HND)
+  const handleHandoverDropSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingDrop(true);
+    try {
+      const amountNum = parseFloat(dropAmount.replace(/[^0-9.]/g, ''));
+      if (isNaN(amountNum) || amountNum <= 0) {
+        throw new Error('Please enter a valid cash drop amount');
+      }
+
+      const res = await fetch('/api/settlements/handover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partnerCode: 'DP-003',
+          amount: amountNum,
+          dropType,
+          receivedByName: receivedByAdmin.trim() || 'S. Raman (Admin)',
+          stampNumber: stampNumber.trim() || undefined,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error?.message || 'Failed to submit handover drop');
+      }
+
+      await Promise.all([fetchTodaySettlement(), fetchSettlementHistory()]);
+      setShowDropModal(false);
+      setToastMessage(`Cash drop ${result.data?.handoverEvent?.handoverCode || ''} submitted successfully!`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error submitting cash drop');
+    } finally {
+      setIsSubmittingDrop(false);
+    }
+  };
+
+  const filteredHistory = useMemo(() => {
+    if (activeFilter === 'All') return settlementHistory;
+    return settlementHistory.filter((item) => item.status === activeFilter);
+  }, [activeFilter, settlementHistory]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC] overflow-hidden">
@@ -130,7 +329,25 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
             My Settlements
           </h1>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setDropAmount(String(remainingBalance || 2000));
+            setShowDropModal(true);
+          }}
+          className="bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+          <span>Cash Drop</span>
+        </button>
       </div>
+
+      {toastMessage && (
+        <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 text-center flex items-center justify-center gap-1.5 shadow-md animate-in slide-in-from-top duration-200">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {/* Scrollable Screen Content */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-8">
@@ -147,7 +364,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
               </div>
             </div>
             <p className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-              ₹5,000
+              ₹{cashExpected.toLocaleString('en-IN')}
             </p>
             <p className="text-[11px] font-medium text-slate-400">
               Customer cash payments
@@ -165,7 +382,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
               </div>
             </div>
             <p className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-              ₹3,000
+              ₹{cashHandedOver.toLocaleString('en-IN')}
             </p>
             <p className="text-[11px] font-medium text-slate-400">
               Admin received cash
@@ -192,7 +409,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
               </p>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-[#E0E7FF]/80 text-[#4338CA] text-[11px] font-bold">
-              Partially Handed Over
+              {todayStatus}
             </span>
           </div>
 
@@ -208,7 +425,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
               </span>
             </div>
             <p className="text-3xl font-black text-[#BC0118] tracking-tight">
-              ₹2,000
+              ₹{remainingBalance.toLocaleString('en-IN')}
             </p>
           </div>
 
@@ -216,10 +433,15 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-medium">
               <span className="text-slate-500">Handover Progress</span>
-              <span className="text-slate-800 font-bold">60% (₹3,000 of ₹5,000)</span>
+              <span className="text-slate-800 font-bold">
+                {progressPercent}% (₹{cashHandedOver.toLocaleString('en-IN')} of ₹{cashExpected.toLocaleString('en-IN')})
+              </span>
             </div>
             <div className="h-2 w-full bg-slate-200/80 rounded-full overflow-hidden">
-              <div className="h-full bg-slate-900 rounded-full w-[60%]" />
+              <div
+                className="h-full bg-slate-900 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
           </div>
 
@@ -228,19 +450,19 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
             <div>
               <span className="text-[10px] text-slate-500 font-medium block">Expected</span>
               <span className="text-xs sm:text-sm font-black text-slate-900 mt-0.5 block">
-                ₹5,000
+                ₹{cashExpected.toLocaleString('en-IN')}
               </span>
             </div>
             <div>
               <span className="text-[10px] text-slate-500 font-medium block">Received</span>
               <span className="text-xs sm:text-sm font-black text-emerald-600 mt-0.5 block">
-                ₹3,000
+                ₹{cashHandedOver.toLocaleString('en-IN')}
               </span>
             </div>
             <div>
               <span className="text-[10px] text-slate-500 font-medium block">Remaining</span>
               <span className="text-xs sm:text-sm font-black text-[#BC0118] mt-0.5 block">
-                ₹2,000
+                ₹{remainingBalance.toLocaleString('en-IN')}
               </span>
             </div>
           </div>
@@ -249,7 +471,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
           <div className="bg-[#EEF2FF]/80 rounded-xl p-3 flex items-start gap-2 text-xs text-slate-600">
             <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
             <p className="leading-snug">
-              Deposit remaining cash at <span className="font-bold text-slate-900">Madurai Depot Counter #2</span> before shift closing <span className="font-bold text-slate-900">(21:30 IST)</span>.
+              {depotInstruction}
             </p>
           </div>
         </div>
@@ -265,12 +487,12 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
               onClick={() => setShowAllHandoversModal(true)}
               className="text-xs font-bold text-[#BC0118] hover:underline cursor-pointer"
             >
-              View All (2)
+              View All ({handoversList.length})
             </button>
           </div>
 
           <div className="space-y-2.5">
-            {mockHandovers.map((item) => (
+            {handoversList.map((item) => (
               <div
                 key={item.id}
                 className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2"
@@ -529,7 +751,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
             </div>
 
             <div className="space-y-2.5 max-h-[350px] overflow-y-auto">
-              {mockHandovers.map((h) => (
+              {handoversList.map((h) => (
                 <div key={h.id} className="p-3 bg-slate-50 rounded-xl space-y-1 text-xs">
                   <div className="flex justify-between font-bold">
                     <span>{h.handoverCode}</span>
@@ -548,6 +770,121 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cash Drop / Handover Modal */}
+      {showDropModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4">
+          <div className="w-full max-w-[390px] bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Submit Cash Drop Handover
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Deposit customer cash collections at depot counter
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDropModal(false)}
+                className="p-1 text-slate-400 hover:text-black cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleHandoverDropSubmit} className="space-y-3.5 text-xs">
+              {/* Handover Amount */}
+              <div>
+                <label className="text-slate-800 font-bold block mb-1">
+                  Cash Amount (INR) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-600 text-sm">₹</span>
+                  <input
+                    type="text"
+                    required
+                    value={dropAmount}
+                    onChange={(e) => setDropAmount(e.target.value)}
+                    placeholder="2000"
+                    className="w-full bg-[#F1F4FA] border-0 rounded-xl pl-8 pr-4 py-2.5 font-black text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 font-medium mt-1 block">
+                  Remaining in hand: ₹{remainingBalance.toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              {/* Drop Type */}
+              <div>
+                <label className="text-slate-800 font-bold block mb-1">
+                  Drop Window / Type
+                </label>
+                <select
+                  value={dropType}
+                  onChange={(e) => setDropType(e.target.value as typeof dropType)}
+                  className="w-full bg-[#F1F4FA] border-0 rounded-xl px-3.5 py-2.5 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="AFTERNOON_DROP">Afternoon Drop (Mid-day run)</option>
+                  <option value="EVENING_VAULT">Evening Vault (Shift Closing)</option>
+                  <option value="END_OF_SHIFT">End of Shift (Final Deposit)</option>
+                </select>
+              </div>
+
+              {/* Received By Admin */}
+              <div>
+                <label className="text-slate-800 font-bold block mb-1">
+                  Received by Depot Admin *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={receivedByAdmin}
+                  onChange={(e) => setReceivedByAdmin(e.target.value)}
+                  placeholder="S. Raman (Admin)"
+                  className="w-full bg-[#F1F4FA] border-0 rounded-xl px-3.5 py-2.5 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              {/* Stamp Number */}
+              <div>
+                <label className="text-slate-800 font-bold block mb-1">
+                  Depot Stamp or Receipt # (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={stampNumber}
+                  onChange={(e) => setStampNumber(e.target.value)}
+                  placeholder="e.g. #DPT-MDU-883"
+                  className="w-full bg-[#F1F4FA] border-0 rounded-xl px-3.5 py-2.5 font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={isSubmittingDrop}
+                  onClick={() => setShowDropModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingDrop}
+                  className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 text-white font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingDrop && (
+                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  )}
+                  <span>{isSubmittingDrop ? 'Verifying...' : 'Submit Cash Drop'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
