@@ -8,10 +8,15 @@ import {
   conflictResponse,
 } from './api-response';
 
-export type RouteHandler<T = unknown> = (
+export type RouteContext = {
+  params: Promise<Record<string, string | string[]>>;
+};
+
+export type RouteHandler = (
   req: NextRequest,
-  context?: { params?: Promise<Record<string, string | string[]>> }
-) => Promise<NextResponse<T>> | NextResponse<T>;
+  context: RouteContext
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+) => Promise<NextResponse<any>> | NextResponse<any>;
 
 /**
  * Higher-order function that wraps Next.js App Router API handlers with:
@@ -19,8 +24,12 @@ export type RouteHandler<T = unknown> = (
  * 2. Zod validation error formatting
  * 3. Prisma database error code mapping
  */
-export function withApiHandler<T>(handler: RouteHandler<T>): RouteHandler {
-  return async (req: NextRequest, context) => {
+export function withApiHandler(handler: RouteHandler): (
+  req: NextRequest,
+  context: RouteContext
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+) => Promise<NextResponse<any>> {
+  return async (req: NextRequest, context: RouteContext) => {
     try {
       return await handler(req, context);
     } catch (err: unknown) {
