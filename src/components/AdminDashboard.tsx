@@ -9,6 +9,8 @@ import {
   ArrowUpRight,
   RefreshCw,
   Plus,
+  PlusCircle,
+  Printer,
   CheckCircle2,
   AlertTriangle,
   AlertCircle,
@@ -38,6 +40,35 @@ export default function AdminDashboard() {
   const [emptyAvailable, setEmptyAvailable] = useState<number>(300);
   const [overallEmpty, setOverallEmpty] = useState<number>(550);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Quick Issue Card / New Dispatch Modal State
+  const [showNewDispatchModal, setShowNewDispatchModal] = useState(false);
+  const [dispatchPartner, setDispatchPartner] = useState('Rajesh Kumar (DP-001) · Anna Nagar Route');
+  const [dispatchRows, setDispatchRows] = useState([
+    { id: '1', type: '15 kg Domestic', qty: 10 },
+    { id: '2', type: '33 kg Domestic', qty: 8 },
+  ]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleUpdateRowQty = (id: string, delta: number) => {
+    setDispatchRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, qty: Math.max(0, row.qty + delta) } : row))
+    );
+  };
+
+  const handleAddCylinderRow = () => {
+    setDispatchRows((prev) => [
+      ...prev,
+      { id: String(prev.length + 1), type: '19.5 kg Commercial', qty: 5 },
+    ]);
+  };
+
+  const handleConfirmGatePass = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowNewDispatchModal(false);
+    setToastMessage(`Gate-pass #GP-1095 issued for ${dispatchPartner.split(' · ')[0]}`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -179,6 +210,7 @@ export default function AdminDashboard() {
 
               <button
                 type="button"
+                onClick={() => setShowNewDispatchModal(true)}
                 className="bg-[#E81B24] hover:bg-red-700 active:scale-95 text-white rounded-xl px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-red-600/30 cursor-pointer transition"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -1388,6 +1420,208 @@ export default function AdminDashboard() {
             </div>
           </div>
         </main>
+
+        {/* Quick Issue Card Modal (New Dispatch) */}
+        {showNewDispatchModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-2xs p-4 overflow-y-auto">
+            <div className="w-full max-w-[480px] bg-white rounded-[24px] p-6 sm:p-7 shadow-2xl border border-slate-100 my-8 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-[#FEECEC] flex items-center justify-center shrink-0">
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#BC0118"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="4" width="18" height="17" rx="3" />
+                      <path d="M10 12h7" />
+                      <path d="m14 9 3 3-3 3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 tracking-tight leading-snug">
+                      Quick Issue Card
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Floor Custody Gate Transfer
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-[#4B6B94] bg-[#EEF3FB] px-2.5 py-1 rounded-md shrink-0 tracking-wider">
+                    GATE-PASS #GP-1095
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewDispatchModal(false)}
+                    className="p-1 -mr-1 text-slate-400 hover:text-slate-700 cursor-pointer transition"
+                    title="Close"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-100 my-2" />
+
+              <form onSubmit={handleConfirmGatePass} className="space-y-4">
+                {/* Select Delivery Partner */}
+                <div>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                    SELECT DELIVERY PARTNER
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={dispatchPartner}
+                      onChange={(e) => setDispatchPartner(e.target.value)}
+                      className="w-full bg-[#F1F4FA] rounded-2xl px-4 py-3 pr-10 text-xs sm:text-sm font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+                    >
+                      <option value="Rajesh Kumar (DP-001) · Anna Nagar Route">
+                        Rajesh Kumar (DP-001) · Anna Nagar Route
+                      </option>
+                      <option value="Mohamed Irfan (DP-002) · KK Nagar Route">
+                        Mohamed Irfan (DP-002) · KK Nagar Route
+                      </option>
+                      <option value="Suresh Babu (DP-003) · Tallakulam Route">
+                        Suresh Babu (DP-003) · Tallakulam Route
+                      </option>
+                      <option value="Karthik Raja (DP-004) · Bypass Road Route">
+                        Karthik Raja (DP-004) · Bypass Road Route
+                      </option>
+                      <option value="Vignesh V (DP-005) · Mattuthavani Route">
+                        Vignesh V (DP-005) · Mattuthavani Route
+                      </option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                  </div>
+                </div>
+
+                {/* 3-Column Custody Summary */}
+                <div className="bg-[#F1F4FA] rounded-2xl p-3.5 sm:p-4 grid grid-cols-3 gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      AGENCY FILLED
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-[#047857] block">
+                      180 units ready
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      PARTNER CUSTODY
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight block">
+                      10 Filled · 8<br />Empty
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      TODAY&apos;S PREV<br />ISSUED
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-[#BC0118] block mt-0.5">
+                      25 units
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dynamic Cylinder Rows */}
+                <div className="space-y-3">
+                  {dispatchRows.map((row) => (
+                    <div key={row.id} className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                          CYLINDER TYPE
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={row.type}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setDispatchRows((prev) =>
+                                prev.map((r) => (r.id === row.id ? { ...r, type: val } : r))
+                              );
+                            }}
+                            className="w-full bg-[#F1F4FA] rounded-2xl px-4 py-3 pr-8 text-xs sm:text-sm font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer truncate"
+                          >
+                            <option value="15 kg Domestic">15 kg Domestic</option>
+                            <option value="33 kg Domestic">33 kg Domestic</option>
+                            <option value="19.5 kg Commercial">19.5 kg Commercial</option>
+                            <option value="47.5 kg Industrial">47.5 kg Industrial</option>
+                            <option value="5 kg Domestic">5 kg Domestic</option>
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                          FILLED CYLINDERS ISSUED
+                        </label>
+                        <div className="bg-[#F1F4FA] rounded-2xl px-4 py-2.5 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateRowQty(row.id, -1)}
+                            className="text-slate-900 font-extrabold text-xl hover:text-red-600 px-2 cursor-pointer transition select-none"
+                          >
+                            −
+                          </button>
+                          <span className="text-sm sm:text-base font-extrabold text-slate-900">
+                            {row.qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateRowQty(row.id, 1)}
+                            className="text-slate-900 font-extrabold text-xl hover:text-red-600 px-2 cursor-pointer transition select-none"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Cylinder Type Button */}
+                <button
+                  type="button"
+                  onClick={handleAddCylinderRow}
+                  className="w-full bg-[#F1F4FA] hover:bg-slate-200 active:scale-98 text-slate-900 font-bold text-xs sm:text-sm py-3.5 rounded-2xl flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  <PlusCircle className="w-4 h-4 text-slate-900 stroke-[2.2]" />
+                  <span>Add Cylinder Type</span>
+                </button>
+
+                <p className="text-[11px] italic text-slate-500 font-medium leading-relaxed">
+                  * Gate handover requires driver physical signature upon loading into delivery three-wheeler/van.
+                </p>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-sm py-3.5 rounded-2xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-white stroke-[2.2]" />
+                  <span>Confirm &amp; Issue Gate Pass</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Action Toast Alert */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm font-semibold border border-slate-700 animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
       </div>
     </div>
   );
