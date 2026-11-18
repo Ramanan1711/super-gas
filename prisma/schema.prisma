@@ -6,30 +6,527 @@ datasource db {
   provider = "postgresql"
 }
 
-model Customer {
-  id         String     @id @default(cuid())
-  name       String
-  phone      String     @unique
-  address    String?
-  type       String     @default("Commercial") // Commercial, Domestic, Restaurant
-  deliveries Delivery[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  DELIVERY_PARTNER
 }
 
+enum PartnerStatus {
+  ACTIVE
+  ON_DUTY
+  OFF_DUTY
+  SUSPENDED
+}
+
+enum DocumentType {
+  AADHAAR
+  DRIVING_LICENSE
+  HAZARDOUS_LPG
+  VEHICLE_RC
+  FLEET_INSURANCE
+  PUC_CERTIFICATE
+  INDEMNITY_BOND
+}
+
+enum VerificationStatus {
+  VERIFIED
+  PENDING_VERIFICATION
+  EXPIRING_SOON
+  EXPIRED
+  ACTION_REQUIRED
+  REJECTED
+}
+
+enum CustomerType {
+  COMMERCIAL
+  DOMESTIC
+  INDUSTRIAL
+}
+
+enum LedgerEntryType {
+  INVOICE
+  PAYMENT
+  DEPOSIT_HOLD
+  ADJUSTMENT
+  RETURN_CREDIT
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  RESCHEDULED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI_QR
+  BANK_TRANSFER
+  CREDIT_TERMS
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIALLY_PAID
+  UNPAID
+}
+
+enum ExpenseCategory {
+  FUEL_PETROL
+  TOLL_CHARGES
+  VEHICLE_MAINTENANCE
+  PARKING_CHARGES
+  VEHICLE_REPAIR
+  FOOD_ALLOWANCE
+  MOBILE_DATA
+  OTHER
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SettlementStatus {
+  VERIFIED
+  PENDING_VERIFICATION
+  PARTIALLY_HANDED_OVER
+  DIFFERENCE_FOUND
+}
+
+enum DropType {
+  AFTERNOON_DROP
+  EVENING_VAULT
+  END_OF_SHIFT
+}
+
+// ==========================================
+// USERS & IDENTITY
+// ==========================================
+
+model User {
+  id               String              @id @default(cuid())
+  email            String?             @unique
+  phone            String              @unique
+  passwordHash     String
+  name             String
+  role             UserRole            @default(DELIVERY_PARTNER)
+  isActive         Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  partnerProfile   DeliveryPartner?
+  reviewedExpenses ExpenseClaim[]      @relation("ReviewedByAdmin")
+  receivedDrops    CashHandoverEvent[] @relation("ReceivedByAdmin")
+}
+
+// ==========================================
+// FLEET & DEPOT INFRASTRUCTURE
+// ==========================================
+
+model Depot {
+  id               String              @id @default(cuid())
+  code             String              @unique // e.g. "MDU-HQ"
+  name             String              // e.g. "Madurai Central Hub"
+  address          String?
+  city             String              @default("Madurai")
+  phone            String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  partners         DeliveryPartner[]
+  vehicles         Vehicle[]
+  inventory        DepotInventory[]
+  transfers        StockTransferLog[]
+}
+
+model Vehicle {
+  id               String              @id @default(cuid())
+  regNumber        String              @unique // e.g. "TN 58 AX 4821"
+  model            String              // e.g. "Tata Ace Gold Diesel"
+  capacity         Int                 @default(30)
+  isActive         Boolean             @default(true)
+  depotId          String?
+  depot            Depot?              @relation(fields: [depotId], references: [id])
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  assignedPartners DeliveryPartner[]
+  inventory        VehicleInventory[]
+  trips            DeliveryTrip[]
+  expenseClaims    ExpenseClaim[]
+  transfers        StockTransferLog[]
+}
+
+// ==========================================
+// DELIVERY PARTNERS & KYC DOCUMENTS
+// ==========================================
+
+model DeliveryPartner {
+  id                String              @id @default(cuid())
+  partnerCode       String              @unique // e.g. "DP-003"
+  name              String              // e.g. "Suresh Babu"
+  phone             String              @unique // e.g. "+91 97876 54321"
+  altPhone          String?             // e.g. "+91 94440 90768"
+  address           String?             // "45/B, Kamarajar Salai, East Gate, Madurai"
+  bloodGroup        String?             // "O+ (Rh Pos)"
+  dateOfBirth       DateTime?
+  joiningDate       DateTime?           @default(now())
+  status            PartnerStatus       @default(ACTIVE)
+
+  userId            String?             @unique
+  user              User?               @relation(fields: [userId], references: [id])
+
+  depotId           String?
+  depot             Depot?              @relation(fields: [depotId], references: [id])
+
+  assignedVehicleId String?
+  assignedVehicle   Vehicle?            @relation(fields: [assignedVehicleId], references: [id])
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  documents         PartnerDocument[]
+  trips             DeliveryTrip[]
+  expenseClaims     ExpenseClaim[]
+  dailySettlements  DailySettlement[]
+  cashHandovers     CashHandoverEvent[]
+  paymentsCollected PaymentTransaction[]
+  transfers         StockTransferLog[]
+}
+
+model PartnerDocument {
+  id                String              @id @default(cuid())
+  partnerId         String
+  partner           DeliveryPartner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  type              DocumentType
+  title             String              // "Identity Proof (Aadhaar)", "Commercial DL (LMV/HMV)"
+  docNumber         String              // "•••• •••• 2754", "TN-58-2015-0048219"
+  issuedBy          String?             // "Parivahan", "HDFC ERGO", "Madurai South (TN-58)"
+  validUntil        DateTime?
+  status            VerificationStatus  @default(VERIFIED)
+  fileUrl           String?
+  remarks           String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+// ==========================================
+// CUSTOMERS & LEDGER
+// ==========================================
+
+model Customer {
+  id               String               @id @default(cuid())
+  customerCode     String?              @unique // e.g. "CUS-00088"
+  name             String               // compatibility with legacy
+  businessName     String?              // "Sri Krishna Sweets"
+  contactPerson    String?
+  phone            String               @unique
+  altPhone         String?
+  address          String?
+  latitude         Float?
+  longitude        Float?
+  type             String               @default("Commercial") // legacy
+  customerType     CustomerType         @default(COMMERCIAL)
+  creditDays       Int                  @default(0) // e.g. 15 days
+  creditLimit      Float                @default(0.0)
+  currentBalance   Float                @default(0.0)
+  securityDeposit  Float                @default(0.0)
+  route            String?              // "Madurai North Route 4"
+  notes            String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  deliveries       Delivery[]           // legacy relation
+  ledgerEntries    CustomerLedgerEntry[]
+  deliveryTasks    DeliveryTask[]
+  invoices         Invoice[]
+  payments         PaymentTransaction[]
+}
+
+model CustomerLedgerEntry {
+  id               String               @id @default(cuid())
+  customerId       String
+  customer         Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type             LedgerEntryType
+  referenceNumber  String               // e.g. "INV-20261024-085", "PAY-984210"
+  debit            Float                @default(0.0) // Bill amount
+  credit           Float                @default(0.0) // Payment made
+  runningBalance   Float                @default(0.0)
+  notes            String?
+  createdAt        DateTime             @default(now())
+}
+
+// ==========================================
+// CYLINDER PRODUCTS & INVENTORY
+// ==========================================
+
+model CylinderProduct {
+  id               String               @id @default(cuid())
+  code             String               @unique // "19KG_COMM", "47.5KG_IND", "25KG_COMM", "14.2KG_DOM"
+  label            String               // "19kg Commercial", "47.5kg Industrial"
+  weightKg         Float
+  tareWeightKg     Float?
+  unitPrice        Float
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  deliveryItems    DeliveryItem[]
+  depotInventory   DepotInventory[]
+  vehicleInventory VehicleInventory[]
+  transferItems    StockTransferItem[]
+}
+
+model DepotInventory {
+  id               String               @id @default(cuid())
+  depotId          String
+  depot            Depot                @relation(fields: [depotId], references: [id], onDelete: Cascade)
+  productId        String
+  product          CylinderProduct      @relation(fields: [productId], references: [id])
+  filledCount      Int                  @default(0)
+  emptyCount       Int                  @default(0)
+  damagedCount     Int                  @default(0)
+  updatedAt        DateTime             @updatedAt
+
+  @@unique([depotId, productId])
+}
+
+model VehicleInventory {
+  id               String               @id @default(cuid())
+  vehicleId        String
+  vehicle          Vehicle              @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  productId        String
+  product          CylinderProduct      @relation(fields: [productId], references: [id])
+  filledCount      Int                  @default(0)
+  emptyCount       Int                  @default(0)
+  damagedCount     Int                  @default(0)
+  updatedAt        DateTime             @updatedAt
+
+  @@unique([vehicleId, productId])
+}
+
+model StockTransferLog {
+  id               String               @id @default(cuid())
+  transferCode     String               @unique // "TRF-20261102-01"
+  depotId          String
+  depot            Depot                @relation(fields: [depotId], references: [id])
+  vehicleId        String
+  vehicle          Vehicle              @relation(fields: [vehicleId], references: [id])
+  partnerId        String?
+  partner          DeliveryPartner?     @relation(fields: [partnerId], references: [id])
+  transferType     String               // "LOAD_VEHICLE", "UNLOAD_VEHICLE", "DEPOT_REFILL"
+  notes            String?
+  transferDate     DateTime             @default(now())
+  createdAt        DateTime             @default(now())
+
+  items            StockTransferItem[]
+}
+
+model StockTransferItem {
+  id               String               @id @default(cuid())
+  transferId       String
+  transfer         StockTransferLog     @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId        String
+  product          CylinderProduct      @relation(fields: [productId], references: [id])
+  filledQuantity   Int                  @default(0)
+  emptyQuantity    Int                  @default(0)
+  damagedQuantity  Int                  @default(0)
+}
+
+// ==========================================
+// TRIPS, DELIVERY TASKS & ITEMS
+// ==========================================
+
+model DeliveryTrip {
+  id               String               @id @default(cuid())
+  tripNumber       String               @unique // "TRIP-20261024-01"
+  shiftDate        DateTime
+  partnerId        String
+  partner          DeliveryPartner      @relation(fields: [partnerId], references: [id])
+  vehicleId        String
+  vehicle          Vehicle              @relation(fields: [vehicleId], references: [id])
+  routeName        String               // "Madurai North Commercial"
+  status           TripStatus           @default(IN_PROGRESS)
+  startedAt        DateTime             @default(now())
+  completedAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  tasks            DeliveryTask[]
+}
+
+model DeliveryTask {
+  id                String              @id @default(cuid())
+  tripId            String
+  trip              DeliveryTrip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  customerId        String
+  customer          Customer            @relation(fields: [customerId], references: [id])
+  sequence          Int                 @default(1)
+  status            TaskStatus          @default(PENDING)
+  notes             String?
+  deliveredAt       DateTime?
+  rescheduledReason String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  items             DeliveryItem[]
+  invoice           Invoice?
+}
+
+model DeliveryItem {
+  id               String               @id @default(cuid())
+  taskId           String
+  task             DeliveryTask         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  productId        String
+  product          CylinderProduct      @relation(fields: [productId], references: [id])
+  filledDelivered  Int                  @default(0)
+  emptyCollected   Int                  @default(0)
+  unitPrice        Float                @default(0.0)
+  totalPrice       Float                @default(0.0)
+}
+
+// ==========================================
+// INVOICES & PAYMENTS
+// ==========================================
+
+model Invoice {
+  id               String               @id @default(cuid())
+  invoiceNumber    String               @unique // "INV-20261024-085"
+  customerId       String
+  customer         Customer             @relation(fields: [customerId], references: [id])
+  taskId           String?              @unique
+  task             DeliveryTask?        @relation(fields: [taskId], references: [id])
+  subtotal         Float                @default(0.0)
+  taxAmount        Float                @default(0.0)
+  totalAmount      Float                @default(0.0)
+  paidAmount       Float                @default(0.0)
+  balanceDue       Float                @default(0.0)
+  paymentStatus    PaymentStatus        @default(UNPAID)
+  creditDueDate    DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  payments         PaymentTransaction[]
+}
+
+model PaymentTransaction {
+  id               String               @id @default(cuid())
+  invoiceId        String?
+  invoice          Invoice?             @relation(fields: [invoiceId], references: [id])
+  customerId       String
+  customer         Customer             @relation(fields: [customerId], references: [id])
+  partnerId        String?
+  partner          DeliveryPartner?     @relation(fields: [partnerId], references: [id])
+  amount           Float
+  paymentMethod    PaymentMethod        @default(CASH)
+  paymentStatus    PaymentStatus        @default(PAID)
+  referenceNumber  String?              // "UPI-98421092"
+  transactionDate  DateTime             @default(now())
+  notes            String?
+  createdAt        DateTime             @default(now())
+}
+
+// ==========================================
+// PARTNER EXPENSE CLAIMS
+// ==========================================
+
+model ExpenseClaim {
+  id               String               @id @default(cuid())
+  claimNumber      String               @unique // "EXP-20261024-009"
+  partnerId        String
+  partner          DeliveryPartner      @relation(fields: [partnerId], references: [id])
+  vehicleId        String
+  vehicle          Vehicle              @relation(fields: [vehicleId], references: [id])
+  category         ExpenseCategory
+  categoryLabel    String?              // "Diesel / Fuel", "Vehicle Maintenance"
+  amount           Float
+  description      String
+  receiptUrl       String?
+  status           ExpenseStatus        @default(PENDING)
+  adminRemark      String?
+  reviewedById     String?
+  reviewedBy       User?                @relation("ReviewedByAdmin", fields: [reviewedById], references: [id])
+  reviewedAt       DateTime?
+  paymentStatus    String               @default("Unpaid") // "Unpaid", "Paid in Full", "Partially Paid", "N/A"
+  disbursedAmount  Float                @default(0.0)
+  referenceNumber  String?              // "Ref: UPI-992104"
+  claimDate        DateTime             @default(now())
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+// ==========================================
+// CASH SETTLEMENTS & VAULT RECONCILIATION
+// ==========================================
+
+model DailySettlement {
+  id               String               @id @default(cuid())
+  businessDate     DateTime             // e.g. 2026-11-02
+  partnerId        String
+  partner          DeliveryPartner      @relation(fields: [partnerId], references: [id])
+  cashExpected     Float                @default(0.0)
+  cashHandedOver   Float                @default(0.0)
+  remainingBalance Float                @default(0.0)
+  shortfallAmount  Float                @default(0.0)
+  status           SettlementStatus     @default(PARTIALLY_HANDED_OVER)
+  auditRemarks     String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  handovers        CashHandoverEvent[]
+
+  @@unique([businessDate, partnerId])
+}
+
+model CashHandoverEvent {
+  id                String              @id @default(cuid())
+  handoverCode      String              @unique // "#HND-20261102-01"
+  settlementId      String
+  settlement        DailySettlement     @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  partnerId         String
+  partner           DeliveryPartner     @relation(fields: [partnerId], references: [id])
+  amount            Float
+  dropType          DropType            @default(AFTERNOON_DROP)
+  receivedByAdminId String?
+  receivedByAdmin   User?               @relation("ReceivedByAdmin", fields: [receivedByAdminId], references: [id])
+  receivedByName    String              @default("S. Raman (Admin)")
+  stampNumber       String?             // "#DPT-MDU-882"
+  status            String              @default("Verified") // "Verified", "Pending Verification"
+  handoverTime      DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+}
+
+// ==========================================
+// LEGACY COMPATIBILITY
+// ==========================================
+
 model Delivery {
-  id             String    @id @default(cuid())
+  id             String                 @id @default(cuid())
   customerId     String
-  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  status         String    @default("PENDING") // PENDING, DELIVERED, CANCELLED
-  cylinderType   String    @default("19kg Commercial")
-  quantity       Int       @default(1)
-  emptyCollected Int       @default(0)
-  amount         Float     @default(0.0)
-  paymentMethod  String    @default("CASH") // CASH, UPI, ONLINE
-  paymentStatus  String    @default("PENDING") // PENDING, PAID
+  customer       Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status         String                 @default("PENDING") // PENDING, DELIVERED, CANCELLED
+  cylinderType   String                 @default("19kg Commercial")
+  quantity       Int                    @default(1)
+  emptyCollected Int                    @default(0)
+  amount         Float                  @default(0.0)
+  paymentMethod  String                 @default("CASH") // CASH, UPI, ONLINE
+  paymentStatus  String                 @default("PENDING") // PENDING, PAID
   notes          String?
   deliveredAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 }
