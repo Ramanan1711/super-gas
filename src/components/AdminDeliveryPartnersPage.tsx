@@ -139,6 +139,7 @@ export default function AdminDeliveryPartnersPage({
       filledCylinders?: number;
       emptyCylinders?: number;
       todayDeliveries?: number;
+      customersCount?: number;
     }
 
     fetch('/api/drivers')
@@ -173,7 +174,7 @@ export default function AdminDeliveryPartnersPage({
                 : 'Joined 2024',
               phone: p.phone,
               area: p.address?.split(',')?.[0] || 'Central Madurai',
-              customersCount: 30,
+              customersCount: p.customersCount || 0,
               filledCylinders: p.filledCylinders || 0,
               emptyCylinders: p.emptyCylinders || 0,
               status: p.status === 'SUSPENDED' ? 'On Leave' : (p.status === 'OFF_DUTY' ? 'Standby' : 'Active'),
@@ -364,8 +365,8 @@ export default function AdminDeliveryPartnersPage({
           avatarText: 'text-[#BC0118]',
           joinedDate: 'Joined Just Now',
           phone: p.phone,
-          area: 'Simmakkal',
-          customersCount: 24,
+          area: onboardBeat ? onboardBeat.split('(')[0].trim() : (onboardAddress?.split(',')?.[0] || 'Central Area'),
+          customersCount: 0,
           filledCylinders: 0,
           emptyCylinders: 0,
           status: 'Active',
@@ -423,8 +424,8 @@ export default function AdminDeliveryPartnersPage({
       avatarText: 'text-[#BC0118]',
       joinedDate: 'Joined Just Now',
       phone: `+91 ${onboardPrimaryPhone.trim()}`,
-      area: 'Simmakkal',
-      customersCount: 24,
+      area: onboardBeat ? onboardBeat.split('(')[0].trim() : (onboardAddress?.split(',')?.[0] || 'Central Area'),
+      customersCount: 0,
       filledCylinders: 0,
       emptyCylinders: 0,
       status: 'Active',

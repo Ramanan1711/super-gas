@@ -41,6 +41,14 @@ export const GET = withApiHandler(async () => {
     const todayTrip = p.trips?.[0];
     const todayDeliveries = todayTrip?.tasks?.length || 0;
 
+    // Calculate unique customers count assigned/served by this partner
+    const customerIdSet = new Set<string>();
+    for (const trip of p.trips || []) {
+      for (const task of trip.tasks || []) {
+        if (task.customerId) customerIdSet.add(task.customerId);
+      }
+    }
+
     return {
       id: p.id,
       code: p.partnerCode,
@@ -61,6 +69,7 @@ export const GET = withApiHandler(async () => {
       filledCylinders,
       emptyCylinders,
       todayDeliveries,
+      customersCount: customerIdSet.size,
       documentsCount: p.documents?.length || 0,
       documents: p.documents || [],
     };
