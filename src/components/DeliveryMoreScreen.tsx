@@ -33,6 +33,28 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
   const [showExpensesPage, setShowExpensesPage] = useState(false);
   const [activeModal, setActiveModal] = useState<'LANGUAGE' | 'END_SHIFT' | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ta'>('ta');
+  const [shiftSummary, setShiftSummary] = useState({
+    completedDeliveries: 0,
+    totalDeliveries: 0,
+    emptyCylinders: 0,
+    cashOnHand: 0,
+  });
+
+  React.useEffect(() => {
+    fetch('/api/deliveries')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.stats) {
+          setShiftSummary({
+            completedDeliveries: data.stats.completedDeliveries ?? 0,
+            totalDeliveries: data.stats.totalDeliveries ?? 0,
+            emptyCylinders: data.stats.emptyCylindersCollected ?? 0,
+            cashOnHand: data.stats.cashInHand ?? 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (showProfilePage) {
     return <DeliveryProfileScreen onBack={() => setShowProfilePage(false)} />;
@@ -339,15 +361,17 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Completed Deliveries:</span>
-                <span className="font-bold text-slate-900">10 / 15 Deliveries</span>
+                <span className="font-bold text-slate-900">
+                  {shiftSummary.completedDeliveries} / {shiftSummary.totalDeliveries} Deliveries
+                </span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Empty Cylinders in Custody:</span>
-                <span className="font-bold text-slate-900">8 Units</span>
+                <span className="font-bold text-slate-900">{shiftSummary.emptyCylinders} Units</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Cash to be Handed Over:</span>
-                <span className="font-bold text-emerald-700">₹10,500.00</span>
+                <span className="font-bold text-emerald-700">₹{shiftSummary.cashOnHand.toLocaleString('en-IN')}</span>
               </div>
             </div>
 

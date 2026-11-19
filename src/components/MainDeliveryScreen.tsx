@@ -168,14 +168,14 @@ export default function MainDeliveryScreen({
               {showCylinderDetails && (
                 <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200/80 space-y-2 mb-2 text-xs">
                   <div className="flex justify-between items-center text-slate-600">
-                    <span className="font-medium">19kg Commercial (Filled / Empty)</span>
+                    <span className="font-medium">14.2kg Domestic (Filled / Empty)</span>
                     <span className="font-bold text-slate-900">
-                      {Math.max(0, filledStock - 4)} / {Math.max(0, emptyStock - 6)}
+                      {filledStock} / {emptyStock}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-600">
-                    <span className="font-medium">14.2kg Domestic (Filled / Empty)</span>
-                    <span className="font-bold text-slate-900">4 / 6</span>
+                    <span className="font-medium">19kg Commercial (Filled / Empty)</span>
+                    <span className="font-bold text-slate-900">0 / 0</span>
                   </div>
                   <div className="pt-1.5 border-t border-slate-200 flex justify-between items-center font-bold text-slate-800">
                     <span>Total Custody Count</span>
@@ -195,7 +195,7 @@ export default function MainDeliveryScreen({
             <div className="grid grid-cols-2 gap-4 items-center pt-1">
               <div>
                 <p className="text-4xl font-black text-[#17A44B] tracking-tight">
-                  {stats.completedDeliveries || 8}
+                  {stats.completedDeliveries ?? 0}
                 </p>
                 <p className="text-[11px] font-bold tracking-wider text-[#17A44B] uppercase mt-1.5">
                   COMPLETED
@@ -203,7 +203,7 @@ export default function MainDeliveryScreen({
               </div>
               <div>
                 <p className="text-4xl font-black text-[#17A44B] tracking-tight whitespace-nowrap">
-                  ₹ {(stats.totalCollected || 12000).toLocaleString('en-IN')}
+                  ₹ {(stats.totalCollected ?? 0).toLocaleString('en-IN')}
                 </p>
                 <p className="text-[11px] font-bold tracking-wider text-[#17A44B] uppercase mt-1.5">
                   TOTAL AMOUNT
@@ -221,7 +221,7 @@ export default function MainDeliveryScreen({
             <div className="pt-1">
               <p className="text-xs font-semibold text-slate-500">Total Collected</p>
               <p className="text-4xl font-black text-slate-900 tracking-tight mt-1">
-                ₹{(stats.totalCollected || 10500).toLocaleString('en-IN')}
+                ₹{(stats.totalCollected ?? 0).toLocaleString('en-IN')}
               </p>
             </div>
             <div className="space-y-2 pt-1">
@@ -231,7 +231,7 @@ export default function MainDeliveryScreen({
                   <span className="text-sm font-bold text-slate-900">Cash</span>
                 </div>
                 <span className="text-base font-black text-slate-900">
-                  ₹{(stats.cashInHand || 8000).toLocaleString('en-IN')}
+                  ₹{(stats.cashInHand ?? 0).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200/80">
@@ -240,7 +240,7 @@ export default function MainDeliveryScreen({
                   <span className="text-sm font-bold text-slate-900">UPI</span>
                 </div>
                 <span className="text-base font-black text-slate-900">
-                  ₹{(stats.onlineCollected || 2500).toLocaleString('en-IN')}
+                  ₹{(stats.onlineCollected ?? 0).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
