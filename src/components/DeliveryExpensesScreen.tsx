@@ -179,8 +179,8 @@ export default function DeliveryExpensesScreen() {
           body: formData,
         });
         const uploadJson = await uploadRes.json();
-        if (uploadRes.ok && uploadJson.success && uploadJson.data?.fileUrl) {
-          receiptUrl = uploadJson.data.fileUrl;
+        if (uploadRes.ok && uploadJson.success && (uploadJson.data?.url || uploadJson.data?.fileUrl)) {
+          receiptUrl = uploadJson.data.url || uploadJson.data.fileUrl;
         }
       }
 

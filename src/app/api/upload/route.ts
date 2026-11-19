@@ -65,24 +65,35 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     .slice(0, 30);
   const uniqueFilename = `${safeBaseName}_${timestamp}_${randomSuffix}${finalExt}`;
 
-  // 5. Ensure target directory exists in public/uploads/
+  // 5. Read file buffer
+  const buffer = Buffer.from(await file.arrayBuffer());
   const targetSubfolder = ['receipts', 'documents', 'kyc', 'general'].includes(folder)
     ? folder
     : 'general';
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', targetSubfolder);
-  await fs.mkdir(uploadDir, { recursive: true });
 
-  // 6. Write file buffer
-  const filePath = path.join(uploadDir, uniqueFilename);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(filePath, buffer);
+  let publicUrl = '';
 
-  // 7. Formulate public access URL
-  const publicUrl = `/uploads/${targetSubfolder}/${uniqueFilename}`;
+  // In production on Vercel or serverless environments, /var/task is read-only.
+  // We seamlessly store the file as a robust data URL so it displays and persists anywhere.
+  if (process.env.VERCEL) {
+    publicUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+  } else {
+    try {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', targetSubfolder);
+      await fs.mkdir(uploadDir, { recursive: true });
+      const filePath = path.join(uploadDir, uniqueFilename);
+      await fs.writeFile(filePath, buffer);
+      publicUrl = `/uploads/${targetSubfolder}/${uniqueFilename}`;
+    } catch {
+      // Fallback if local filesystem write fails (e.g. read-only container)
+      publicUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+    }
+  }
 
   return successResponse(
     {
       url: publicUrl,
+      fileUrl: publicUrl,
       filename: uniqueFilename,
       originalName,
       mimeType,
