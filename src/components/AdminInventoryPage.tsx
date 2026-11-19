@@ -65,219 +65,7 @@ interface AuditRecord {
   status: 'COMPLETED' | 'PENDING';
 }
 
-// Initial movements dataset matching mockup
-const initialMovements: PartnerMovement[] = [
-  {
-    id: '1',
-    name: 'Rajesh Kumar',
-    code: 'DP-01',
-    route: 'Anna Nagar',
-    filledIssued: 25,
-    filledReturned: 0,
-    emptyCollected: 14,
-    emptyDeposited: 0,
-    currentFilled: 10,
-    currentEmpty: 14,
-    lastDispatch: '07:30 AM',
-    status: 'In Field',
-  },
-  {
-    id: '2',
-    name: 'Mohamed Irfan',
-    code: 'DP-02',
-    route: 'KK Nagar',
-    filledIssued: 20,
-    filledReturned: 0,
-    emptyCollected: 8,
-    emptyDeposited: 0,
-    currentFilled: 5,
-    currentEmpty: 8,
-    lastDispatch: '08:15 AM',
-    status: 'In Field',
-  },
-  {
-    id: '3',
-    name: 'Suresh Babu',
-    code: 'DP-03',
-    route: 'Tallakulam',
-    filledIssued: 22,
-    filledReturned: 0,
-    emptyCollected: 9,
-    emptyDeposited: 5,
-    currentFilled: 12,
-    currentEmpty: 4,
-    lastDispatch: '07:45 AM',
-    status: 'In Field',
-  },
-  {
-    id: '4',
-    name: 'Karthik Raja',
-    code: 'DP-04',
-    route: 'Bypass Road',
-    filledIssued: 11,
-    filledReturned: 0,
-    emptyCollected: 11,
-    emptyDeposited: 10,
-    currentFilled: 0,
-    currentEmpty: 1,
-    lastDispatch: '08:45 AM',
-    status: 'In Field',
-  },
-  {
-    id: '5',
-    name: 'Vignesh V',
-    code: 'DP-05',
-    route: 'Mattuthavani',
-    filledIssued: 0,
-    filledReturned: 0,
-    emptyCollected: 0,
-    emptyDeposited: 0,
-    currentFilled: 0,
-    currentEmpty: 0,
-    lastDispatch: '--',
-    status: 'Not Started',
-  },
-];
 
-// Master stock items matching mockup
-const initialStockItems: StockItem[] = [
-  {
-    id: 's1',
-    type: '14.2 kg Domestic',
-    category: 'Domestic',
-    state: 'FILLED',
-    openingBalance: 140,
-    stockReceived: 0,
-    issuedToPartners: -40,
-    returnedByPartners: 0,
-    adjustments: 0,
-    availableQuantity: 100,
-    minReserveLevel: '200 units',
-    status: 'Low Stock',
-  },
-  {
-    id: 's2',
-    type: '14.2 kg Domestic',
-    category: 'Domestic',
-    state: 'EMPTY',
-    openingBalance: 77,
-    stockReceived: 0,
-    issuedToPartners: 0,
-    returnedByPartners: 18,
-    adjustments: 0,
-    availableQuantity: 95,
-    minReserveLevel: 'Max 250',
-    status: 'Available',
-  },
-  {
-    id: 's3',
-    type: '19.5 kg Commercial',
-    category: 'Commercial',
-    state: 'FILLED',
-    openingBalance: 74,
-    stockReceived: 20,
-    issuedToPartners: -52,
-    returnedByPartners: 0,
-    adjustments: 0,
-    availableQuantity: 42,
-    minReserveLevel: '40 units',
-    status: 'Healthy',
-  },
-  {
-    id: 's4',
-    type: '19.5 kg Commercial',
-    category: 'Commercial',
-    state: 'EMPTY',
-    openingBalance: 29,
-    stockReceived: 0,
-    issuedToPartners: 0,
-    returnedByPartners: 8,
-    adjustments: 0,
-    availableQuantity: 37,
-    minReserveLevel: 'Max 120',
-    status: 'Available',
-  },
-  {
-    id: 's5',
-    type: '47.5 kg Industrial',
-    category: 'Industrial',
-    state: 'FILLED',
-    openingBalance: 15,
-    stockReceived: 0,
-    issuedToPartners: -3,
-    returnedByPartners: 0,
-    adjustments: 0,
-    availableQuantity: 12,
-    minReserveLevel: '10 units',
-    status: 'Adequate',
-  },
-  {
-    id: 's6',
-    type: '47.5 kg Industrial',
-    category: 'Industrial',
-    state: 'EMPTY',
-    openingBalance: 4,
-    stockReceived: 0,
-    issuedToPartners: 0,
-    returnedByPartners: 2,
-    adjustments: 0,
-    availableQuantity: 6,
-    minReserveLevel: 'Max 40',
-    status: 'Available',
-  },
-];
-
-// Audit ledger entries
-const initialAuditRecords: AuditRecord[] = [
-  {
-    id: 'a1',
-    ref: '#MV-20261016-04',
-    dateTime: 'Oct 16, 08:45 AM',
-    type: 'Issue to Partner',
-    condition: 'FILLED',
-    quantity: '11 units',
-    source: 'Depot Bay A',
-    destination: 'Karthik Raja (DP-004)',
-    recordedBy: 'Agency Admin',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'a2',
-    ref: '#MV-20261016-03',
-    dateTime: 'Oct 16, 08:15 AM',
-    type: 'Issue to Partner',
-    condition: 'FILLED',
-    quantity: '20 units',
-    source: 'Depot Bay A',
-    destination: 'Suresh Babu (DP-003)',
-    recordedBy: 'Agency Admin',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'a3',
-    ref: '#MV-20261016-02',
-    dateTime: 'Oct 16, 07:55 AM',
-    type: 'Empty Return',
-    condition: 'EMPTY',
-    quantity: '+5 units',
-    source: 'Mohamed Irfan (DP-002)',
-    destination: 'Depot Yard Empties',
-    recordedBy: 'Agency Admin',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'a4',
-    ref: '#MV-20261016-01',
-    dateTime: 'Oct 16, 07:30 AM',
-    type: 'Refill Arrival',
-    condition: 'FILLED',
-    quantity: '+20 units',
-    source: 'Indian Oil Plant Bottling Truck',
-    destination: 'Depot Bay C',
-    recordedBy: 'Plant Logistics Handover',
-    status: 'COMPLETED',
-  },
-];
 
 export default function AdminInventoryPage() {
   const [showAlertBanner, setShowAlertBanner] = useState(true);
@@ -398,14 +186,14 @@ export default function AdminInventoryPage() {
     setCylinderItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleCommitMovementEntry = (e: React.FormEvent) => {
+  const handleCommitMovementEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     const totalQty = cylinderItems.reduce(
       (sum, item) => sum + (parseInt(item.quantity, 10) || 0),
       0
     );
     const refNum = truckBillNumber.trim() || `TNO:${10000 + (auditRecords.length + 1) * 73}`;
-    const newRef = `#MV-20261016-${(auditRecords.length + 1).toString().padStart(2, '0')}`;
+    const newRef = `#MV-${(auditRecords.length + 1).toString().padStart(6, '0')}`;
 
     const primaryState = cylinderItems[0]?.state || 'Filled (Sealed & Checked)';
     const isFilled = primaryState.includes('Filled');
@@ -416,11 +204,29 @@ export default function AdminInventoryPage() {
         ? 'Issue to Partner'
         : 'Empty Return';
 
+    // Persist to Neon DB
+    try {
+      await fetch('/api/inventory/depot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          depotCode: 'MDU-HQ',
+          items: cylinderItems.map((ci) => ({
+            size: ci.size,
+            quantity: ci.quantity,
+            isFilled,
+          })),
+        }),
+      });
+    } catch (err) {
+      console.warn('Could not persist inventory inward to database:', err);
+    }
+
     setAuditRecords((prev) => [
       {
-        id: `a-${prev.length + 1}`,
+        id: `a-${Date.now()}`,
         ref: newRef,
-        dateTime: 'Oct 16, Just Now',
+        dateTime: 'Just Now',
         type: recordType,
         condition: isFilled ? 'FILLED' : 'EMPTY',
         quantity: isFilled ? `${totalQty} units` : `+${totalQty} units`,
@@ -432,8 +238,58 @@ export default function AdminInventoryPage() {
       ...prev,
     ]);
 
+    // Re-fetch live inventory from database
+    try {
+      const depotRes = await fetch('/api/inventory/depot?depotCode=MDU-HQ');
+      if (depotRes.ok) {
+        const json = await depotRes.json();
+        if (json.success && Array.isArray(json.data?.inventory)) {
+          const mappedStock: StockItem[] = [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          json.data.inventory.forEach((inv: any, idx: number) => {
+            const isDomestic = inv.code.includes('DOM') || inv.code.includes('14.2');
+            const isInd = inv.code.includes('IND') || inv.code.includes('47.5');
+            const category: StockItem['category'] = isDomestic ? 'Domestic' : (isInd ? 'Industrial' : 'Commercial');
+
+            mappedStock.push({
+              id: `stock-f-${idx}`,
+              type: inv.label,
+              category,
+              state: 'FILLED',
+              openingBalance: inv.filled,
+              stockReceived: inv.filled,
+              issuedToPartners: 0,
+              returnedByPartners: 0,
+              adjustments: 0,
+              availableQuantity: inv.filled,
+              minReserveLevel: '100 units',
+              status: inv.filled < 20 ? 'Low Stock' : 'Healthy',
+            });
+
+            mappedStock.push({
+              id: `stock-e-${idx}`,
+              type: inv.label,
+              category,
+              state: 'EMPTY',
+              openingBalance: inv.empty,
+              stockReceived: 0,
+              issuedToPartners: 0,
+              returnedByPartners: 0,
+              adjustments: 0,
+              availableQuantity: inv.empty,
+              minReserveLevel: 'Max 250',
+              status: 'Available',
+            });
+          });
+          setStockItems(mappedStock);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     triggerToast(
-      `Movement committed: ${totalQty} units across ${cylinderItems.length} categories under ref ${refNum}`
+      `Inward movement saved: ${totalQty} units recorded under ref ${refNum}`
     );
     setShowStockMovementModal(false);
   };
@@ -527,9 +383,9 @@ export default function AdminInventoryPage() {
   };
 
   // Datasets state
-  const [movements, setMovements] = useState<PartnerMovement[]>(initialMovements);
-  const [stockItems, setStockItems] = useState<StockItem[]>(initialStockItems);
-  const [auditRecords, setAuditRecords] = useState<AuditRecord[]>(initialAuditRecords);
+  const [movements, setMovements] = useState<PartnerMovement[]>([]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [auditRecords, setAuditRecords] = useState<AuditRecord[]>([]);
 
   // Fetch live depot inventory & partner movements from database on mount
   useEffect(() => {
@@ -552,14 +408,14 @@ export default function AdminInventoryPage() {
                 type: inv.label,
                 category,
                 state: 'FILLED',
-                openingBalance: inv.filled + 20,
-                stockReceived: 20,
-                issuedToPartners: -20,
+                openingBalance: inv.filled,
+                stockReceived: inv.filled,
+                issuedToPartners: 0,
                 returnedByPartners: 0,
                 adjustments: 0,
                 availableQuantity: inv.filled,
                 minReserveLevel: '100 units',
-                status: inv.filled < 50 ? 'Low Stock' : 'Healthy',
+                status: inv.filled < 20 ? 'Low Stock' : 'Healthy',
               });
 
               mappedStock.push({
@@ -567,10 +423,10 @@ export default function AdminInventoryPage() {
                 type: inv.label,
                 category,
                 state: 'EMPTY',
-                openingBalance: inv.empty + 10,
+                openingBalance: inv.empty,
                 stockReceived: 0,
                 issuedToPartners: 0,
-                returnedByPartners: 10,
+                returnedByPartners: 0,
                 adjustments: 0,
                 availableQuantity: inv.empty,
                 minReserveLevel: 'Max 250',
@@ -578,9 +434,7 @@ export default function AdminInventoryPage() {
               });
             });
 
-            if (mappedStock.length > 0) {
-              setStockItems(mappedStock);
-            }
+            setStockItems(mappedStock);
           }
         }
 
@@ -594,7 +448,7 @@ export default function AdminInventoryPage() {
               name: p.name,
               code: p.partnerCode || `DP-00${i + 1}`,
               route: p.address?.split(',')?.[0] || 'Central Route',
-              filledIssued: (p.filledCylinders || 0) + 15,
+              filledIssued: p.filledCylinders || 0,
               filledReturned: 0,
               emptyCollected: p.emptyCylinders || 0,
               emptyDeposited: 0,
@@ -603,9 +457,7 @@ export default function AdminInventoryPage() {
               lastDispatch: '08:00 AM',
               status: p.status === 'SUSPENDED' ? 'Not Started' : 'In Field',
             }));
-            if (mappedMovements.length > 0) {
-              setMovements(mappedMovements);
-            }
+            setMovements(mappedMovements);
           }
         }
       } catch (err) {
@@ -617,6 +469,51 @@ export default function AdminInventoryPage() {
       ignore = true;
     };
   }, []);
+
+  const inventoryStats = useMemo(() => {
+    const totalFilled = stockItems
+      .filter((s) => s.state === 'FILLED')
+      .reduce((sum, s) => sum + (s.availableQuantity || 0), 0);
+
+    const totalEmpty = stockItems
+      .filter((s) => s.state === 'EMPTY')
+      .reduce((sum, s) => sum + (s.availableQuantity || 0), 0);
+
+    const partnerFilled = movements.reduce(
+      (sum, m) => sum + (m.currentFilled || 0),
+      0
+    );
+    const partnerEmpty = movements.reduce(
+      (sum, m) => sum + (m.currentEmpty || 0),
+      0
+    );
+    const totalPartnerTransit = partnerFilled + partnerEmpty;
+
+    const lowStockCount = stockItems.filter(
+      (s) => s.state === 'FILLED' && s.availableQuantity <= 10 && s.availableQuantity > 0
+    ).length;
+
+    let safetyStatus = 'No Stock (Awaiting Inward Entry)';
+    let safetyColor = 'text-amber-600 bg-amber-50';
+    if (totalFilled > 100) {
+      safetyStatus = 'Well Stocked';
+      safetyColor = 'text-emerald-600 bg-emerald-50';
+    } else if (totalFilled > 0) {
+      safetyStatus = 'Adequate';
+      safetyColor = 'text-blue-600 bg-blue-50';
+    }
+
+    return {
+      totalFilled,
+      totalEmpty,
+      partnerFilled,
+      partnerEmpty,
+      totalPartnerTransit,
+      lowStockCount,
+      safetyStatus,
+      safetyColor,
+    };
+  }, [stockItems, movements]);
 
   const triggerToast = (msg: string) => {
     setActionToast(msg);
@@ -839,7 +736,7 @@ export default function AdminInventoryPage() {
           </div>
 
           {/* Critical Warning Alert Banner */}
-          {showAlertBanner && (
+          {showAlertBanner && inventoryStats.lowStockCount > 0 && (
             <div className="bg-[#FEF2F2] border border-red-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs animate-in fade-in duration-200">
               <div className="flex items-start gap-3.5">
                 <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
@@ -847,10 +744,10 @@ export default function AdminInventoryPage() {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-extrabold text-red-950">
-                    Low Stock Level Alert: 14.2 kg Domestic Filled
+                    Low Stock Level Alert: {inventoryStats.lowStockCount} Cylinder Category Below Threshold
                   </h3>
                   <p className="text-xs text-red-700 font-medium mt-0.5">
-                    Current balance is 100 units (Safety floor: 200 units). 100 units below reserve threshold.
+                    Depot stock is running low. Please schedule an inward bottling plant delivery.
                   </p>
                 </div>
               </div>
@@ -858,10 +755,10 @@ export default function AdminInventoryPage() {
               <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
                 <button
                   type="button"
-                  onClick={() => setShowRefillModal(true)}
+                  onClick={() => setShowStockMovementModal(true)}
                   className="bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition cursor-pointer"
                 >
-                  Request Stock Refill
+                  Record Stock Inward
                 </button>
                 <button
                   type="button"
@@ -888,15 +785,15 @@ export default function AdminInventoryPage() {
               </div>
               <div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-slate-900 tracking-tight">180</span>
+                  <span className="text-3xl font-black text-slate-900 tracking-tight">{inventoryStats.totalFilled}</span>
                   <span className="text-xs font-bold text-slate-400">units</span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">Available in warehouse</p>
               </div>
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                 <span className="text-slate-400 font-medium">Safety Stock Status:</span>
-                <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  Well Stocked
+                <span className={`font-bold px-2 py-0.5 rounded-md ${inventoryStats.safetyColor}`}>
+                  {inventoryStats.safetyStatus}
                 </span>
               </div>
             </div>
@@ -913,15 +810,15 @@ export default function AdminInventoryPage() {
               </div>
               <div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-slate-900 tracking-tight">95</span>
+                  <span className="text-3xl font-black text-slate-900 tracking-tight">{inventoryStats.totalEmpty}</span>
                   <span className="text-xs font-bold text-slate-400">units</span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">Available at depot ready to refill</p>
               </div>
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                 <span className="text-slate-400 font-medium">Return to Bottling Plant:</span>
-                <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  95 units
+                <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                  {inventoryStats.totalEmpty} units
                 </span>
               </div>
             </div>
@@ -938,14 +835,14 @@ export default function AdminInventoryPage() {
               </div>
               <div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-slate-900 tracking-tight">56</span>
+                  <span className="text-3xl font-black text-slate-900 tracking-tight">{inventoryStats.totalPartnerTransit}</span>
                   <span className="text-xs font-bold text-slate-400">units</span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">Currently in partner custody</p>
               </div>
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                 <span className="text-slate-400 font-medium">Custody Breakdown:</span>
-                <span className="font-bold text-slate-700">27 Filled | 29 Empty</span>
+                <span className="font-bold text-slate-700">{inventoryStats.partnerFilled} Filled | {inventoryStats.partnerEmpty} Empty</span>
               </div>
             </div>
 
@@ -955,19 +852,25 @@ export default function AdminInventoryPage() {
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Low Stock Alerts
                 </span>
-                <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-md">
-                  At Reserve
+                <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
+                  {inventoryStats.lowStockCount > 0 ? 'At Reserve' : 'Normal'}
                 </span>
               </div>
               <div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-red-600 tracking-tight">1 Active Alert</span>
+                  <span className={`text-3xl font-black tracking-tight ${inventoryStats.lowStockCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                    {inventoryStats.lowStockCount} Active Alert{inventoryStats.lowStockCount !== 1 ? 's' : ''}
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">14.2 kg Domestic is below threshold</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  {inventoryStats.lowStockCount > 0 ? 'Cylinders below safety floor threshold' : 'All cylinder types within normal levels'}
+                </p>
               </div>
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 font-medium">Action Required:</span>
-                <span className="font-extrabold text-red-600">Order 100 units</span>
+                <span className="text-slate-400 font-medium">Status:</span>
+                <span className={`font-extrabold ${inventoryStats.lowStockCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {inventoryStats.lowStockCount > 0 ? 'Action Required' : 'Optimal Reserve'}
+                </span>
               </div>
             </div>
           </div>

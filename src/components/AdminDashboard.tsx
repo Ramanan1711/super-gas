@@ -43,16 +43,26 @@ export default function AdminDashboard() {
 
   // Quick Issue Card / New Dispatch Modal State
   const [showNewDispatchModal, setShowNewDispatchModal] = useState(false);
-  const [dispatchDrivers, setDispatchDrivers] = useState<Array<{ name: string; code: string; route: string }>>([
-    { name: 'Suresh Babu', code: 'DP-003', route: 'Tallakulam Route' },
-    { name: 'Varman', code: 'DP-002', route: 'Simmakkal Route' },
-  ]);
-  const [dispatchPartner, setDispatchPartner] = useState('Suresh Babu (DP-003) · Tallakulam Route');
+  const [dispatchDrivers, setDispatchDrivers] = useState<
+    Array<{ name: string; code: string; route: string; filled?: number; empty?: number; todayIssued?: number }>
+  >([]);
+  const [dispatchPartner, setDispatchPartner] = useState('');
   const [dispatchRows, setDispatchRows] = useState([
-    { id: '1', type: '15 kg Domestic', qty: 10 },
-    { id: '2', type: '33 kg Domestic', qty: 8 },
+    { id: '1', type: '14.2 kg Domestic', qty: 10 },
   ]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  interface RecentInvoiceItem {
+    id: string;
+    invoiceNumber: string;
+    customerName: string;
+    customerCode: string;
+    amount: number;
+    paid: number;
+    balance: number;
+    status: string;
+  }
+  const [recentInvoices, setRecentInvoices] = useState<RecentInvoiceItem[]>([]);
 
   const handleUpdateRowQty = (id: string, delta: number) => {
     setDispatchRows((prev) =>
@@ -67,8 +77,37 @@ export default function AdminDashboard() {
     ]);
   };
 
-  const handleConfirmGatePass = (e: React.FormEvent) => {
+  const handleConfirmGatePass = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!dispatchPartner) {
+      setToastMessage('Please select or onboard a delivery partner first.');
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    const curDriver = dispatchDrivers.find(
+      (d) => `${d.name} (${d.code}) · ${d.route}` === dispatchPartner
+    );
+    try {
+      if (curDriver) {
+        await fetch('/api/inventory/handover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            partnerCode: curDriver.code,
+            transferType: 'DEPOT_TO_VEHICLE',
+            notes: 'Gate pass dispatch issued via Quick Issue Card',
+            items: dispatchRows.map((r) => ({
+              productCode: r.type.includes('19') ? 'COMM_19KG' : r.type.includes('47') ? 'IND_47KG' : 'DOM_14KG',
+              filledQuantity: r.qty,
+              emptyQuantity: 0,
+            })),
+          }),
+        });
+        await fetchMetrics();
+      }
+    } catch (err) {
+      console.warn('Could not record dispatch handover in DB:', err);
+    }
     setShowNewDispatchModal(false);
     setToastMessage(`Gate-pass #GP-1095 issued for ${dispatchPartner.split(' · ')[0]}`);
     setTimeout(() => setToastMessage(null), 3500);
@@ -111,16 +150,42 @@ export default function AdminDashboard() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mapped = result.data.partners.map((p: any) => ({
             name: p.name,
-            code: p.partnerCode || p.id,
+            code: p.partnerCode || p.code || p.id,
             route: p.address?.split(',')?.[0] || 'Central Route Beat',
+            filled: p.filledCylinders || 0,
+            empty: p.emptyCylinders || 0,
+            todayIssued: p.todayDeliveries || 0,
           }));
+          setDispatchDrivers(mapped);
           if (mapped.length > 0) {
-            setDispatchDrivers(mapped);
             setDispatchPartner(`${mapped[0].name} (${mapped[0].code}) · ${mapped[0].route}`);
           }
         }
       } catch (err) {
         console.warn('Could not load drivers for dispatch:', err);
+      }
+
+      try {
+        const invRes = await fetch('/api/admin/invoices');
+        if (invRes.ok) {
+          const invJson = await invRes.json();
+          if (!ignore && invJson.success && Array.isArray(invJson.data?.invoices)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const mappedInvoices = invJson.data.invoices.slice(0, 5).map((inv: any) => ({
+              id: inv.id,
+              invoiceNumber: inv.invoiceNumber || inv.id,
+              customerName: inv.customer?.name || inv.customerName || 'Customer',
+              customerCode: inv.customer?.customerCode || 'Registered',
+              amount: inv.totalAmount || inv.amount || 0,
+              paid: inv.paidAmount || (inv.status === 'PAID' ? inv.totalAmount : 0) || 0,
+              balance: inv.balanceAmount || (inv.status === 'PAID' ? 0 : inv.totalAmount) || 0,
+              status: inv.status || 'UNPAID',
+            }));
+            setRecentInvoices(mappedInvoices);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load recent invoices:', err);
       }
     }
     loadData();
@@ -1074,25 +1139,31 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-4 gap-2 bg-[#F8FAFC] rounded-xl p-3 border border-slate-100 text-center">
                 <div>
                   <span className="text-[9px] font-bold text-slate-400 uppercase block">INVOICES TODAY</span>
-                  <span className="text-base font-black text-slate-900 block mt-0.5">86</span>
+                  <span className="text-base font-black text-slate-900 block mt-0.5">{recentInvoices.length}</span>
                 </div>
                 <div>
                   <div className="flex items-center justify-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]"></span>
                     <span className="text-[9px] font-bold text-slate-400 uppercase">PAID</span>
                   </div>
-                  <span className="text-base font-black text-[#16A34A] block mt-0.5">64</span>
+                  <span className="text-base font-black text-[#16A34A] block mt-0.5">
+                    {recentInvoices.filter((i) => i.status === 'PAID').length}
+                  </span>
                 </div>
                 <div>
                   <div className="flex items-center justify-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                     <span className="text-[9px] font-bold text-slate-400 uppercase">PARTIALLY PAID</span>
                   </div>
-                  <span className="text-base font-black text-amber-600 block mt-0.5">14</span>
+                  <span className="text-base font-black text-amber-600 block mt-0.5">
+                    {recentInvoices.filter((i) => i.status === 'PARTIALLY_PAID').length}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[9px] font-bold text-slate-400 uppercase block">CUSTOMER DUES</span>
-                  <span className="text-base font-black text-slate-900 block mt-0.5">₹1,42,800</span>
+                  <span className="text-base font-black text-slate-900 block mt-0.5">
+                    ₹{recentInvoices.reduce((sum, i) => sum + (i.balance || 0), 0).toLocaleString('en-IN')}
+                  </span>
                 </div>
               </div>
 
@@ -1110,56 +1181,37 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {/* Invoice 1 */}
-                    <tr>
-                      <td className="py-2.5 font-bold text-slate-900">INV-20261024-086</td>
-                      <td className="py-2.5">
-                        <span className="font-bold text-slate-800 block">Rajesh Kumar</span>
-                        <span className="text-[10px] text-slate-400">CUS-00124</span>
-                      </td>
-                      <td className="py-2.5 font-semibold text-slate-900">₹1,200</td>
-                      <td className="py-2.5 font-semibold text-[#16A34A]">₹1,000</td>
-                      <td className="py-2.5 font-bold text-amber-600">₹200</td>
-                      <td className="py-2.5 text-right">
-                        <span className="bg-[#FEF3C7] text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded">
-                          Partially Paid
-                        </span>
-                      </td>
-                    </tr>
-
-                    {/* Invoice 2 */}
-                    <tr>
-                      <td className="py-2.5 font-bold text-slate-900">INV-20261023-085</td>
-                      <td className="py-2.5">
-                        <span className="font-bold text-slate-800 block">Sri Krishna Sweets</span>
-                        <span className="text-[10px] text-slate-400">CUS-00088 · Commercial</span>
-                      </td>
-                      <td className="py-2.5 font-semibold text-slate-900">₹3,750</td>
-                      <td className="py-2.5 font-semibold text-[#16A34A]">₹3,750</td>
-                      <td className="py-2.5 font-semibold text-slate-500">₹0</td>
-                      <td className="py-2.5 text-right">
-                        <span className="bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold px-2 py-0.5 rounded">
-                          Paid
-                        </span>
-                      </td>
-                    </tr>
-
-                    {/* Invoice 3 */}
-                    <tr>
-                      <td className="py-2.5 font-bold text-slate-900">INV-20261024-084</td>
-                      <td className="py-2.5">
-                        <span className="font-bold text-slate-800 block">Hotel Annapoorna</span>
-                        <span className="text-[10px] text-slate-400">CUS-00042 · Bulk 19kg</span>
-                      </td>
-                      <td className="py-2.5 font-semibold text-slate-900">₹5,550</td>
-                      <td className="py-2.5 font-semibold text-slate-500">₹0</td>
-                      <td className="py-2.5 font-bold text-[#DC2626]">₹5,550</td>
-                      <td className="py-2.5 text-right">
-                        <span className="bg-[#FEE2E2] text-[#DC2626] text-[10px] font-bold px-2 py-0.5 rounded">
-                          Unpaid
-                        </span>
-                      </td>
-                    </tr>
+                    {recentInvoices.length > 0 ? (
+                      recentInvoices.map((inv) => (
+                        <tr key={inv.id}>
+                          <td className="py-2.5 font-bold text-slate-900">{inv.invoiceNumber}</td>
+                          <td className="py-2.5">
+                            <span className="font-bold text-slate-800 block">{inv.customerName}</span>
+                            <span className="text-[10px] text-slate-400">{inv.customerCode}</span>
+                          </td>
+                          <td className="py-2.5 font-semibold text-slate-900">₹{inv.amount.toLocaleString('en-IN')}</td>
+                          <td className="py-2.5 font-semibold text-[#16A34A]">₹{inv.paid.toLocaleString('en-IN')}</td>
+                          <td className="py-2.5 font-bold text-amber-600">₹{inv.balance.toLocaleString('en-IN')}</td>
+                          <td className="py-2.5 text-right">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                              inv.status === 'PAID'
+                                ? 'bg-[#DCFCE7] text-[#16A34A]'
+                                : inv.status === 'PARTIALLY_PAID'
+                                ? 'bg-[#FEF3C7] text-amber-700'
+                                : 'bg-[#FEE2E2] text-[#DC2626]'
+                            }`}>
+                              {inv.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                          No customer invoices recorded yet. Start by dispatching cylinders and completing customer deliveries.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1506,14 +1558,18 @@ export default function AdminDashboard() {
                       onChange={(e) => setDispatchPartner(e.target.value)}
                       className="w-full bg-[#F1F4FA] rounded-2xl px-4 py-3 pr-10 text-xs sm:text-sm font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
                     >
-                      {dispatchDrivers.map((d) => {
-                        const val = `${d.name} (${d.code}) · ${d.route}`;
-                        return (
-                          <option key={d.code} value={val}>
-                            {val}
-                          </option>
-                        );
-                      })}
+                      {dispatchDrivers.length === 0 ? (
+                        <option value="">No Active Partners - Onboard Partner First</option>
+                      ) : (
+                        dispatchDrivers.map((d) => {
+                          const val = `${d.name} (${d.code}) · ${d.route}`;
+                          return (
+                            <option key={d.code} value={val}>
+                              {val}
+                            </option>
+                          );
+                        })
+                      )}
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
                   </div>
@@ -1526,7 +1582,7 @@ export default function AdminDashboard() {
                       AGENCY FILLED
                     </span>
                     <span className="text-xs sm:text-sm font-extrabold text-[#047857] block">
-                      180 units ready
+                      {cylindersInCirculation > 0 ? `${cylindersInCirculation} units ready` : '0 units ready'}
                     </span>
                   </div>
                   <div>
@@ -1534,7 +1590,12 @@ export default function AdminDashboard() {
                       PARTNER CUSTODY
                     </span>
                     <span className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight block">
-                      10 Filled · 8<br />Empty
+                      {(() => {
+                        const curDriver = dispatchDrivers.find(
+                          (d) => `${d.name} (${d.code}) · ${d.route}` === dispatchPartner
+                        );
+                        return `${curDriver?.filled || 0} Filled · ${curDriver?.empty || 0}\nEmpty`;
+                      })()}
                     </span>
                   </div>
                   <div className="text-right">
@@ -1542,7 +1603,12 @@ export default function AdminDashboard() {
                       TODAY&apos;S PREV<br />ISSUED
                     </span>
                     <span className="text-xs sm:text-sm font-extrabold text-[#BC0118] block mt-0.5">
-                      25 units
+                      {(() => {
+                        const curDriver = dispatchDrivers.find(
+                          (d) => `${d.name} (${d.code}) · ${d.route}` === dispatchPartner
+                        );
+                        return `${curDriver?.todayIssued || 0} units`;
+                      })()}
                     </span>
                   </div>
                 </div>

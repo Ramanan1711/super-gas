@@ -103,20 +103,18 @@ export default function AdminDeliveryPartnersPage({
   const [issueSize, setIssueSize] = useState('14.2 kg Domestic (Red)');
   const [issueQuantity, setIssueQuantity] = useState(10);
 
-  // Full Onboard Partner Form State (Prefilled matching exact attached design)
-  const [onboardFullName, setOnboardFullName] = useState('Ramsen Varma');
-  const [onboardPrimaryPhone, setOnboardPrimaryPhone] = useState('98401 54321');
-  const [onboardEmergencyPhone, setOnboardEmergencyPhone] = useState('94432 98765');
-  const [onboardDob, setOnboardDob] = useState('06/14/1989');
-  const [onboardAadhaar, setOnboardAadhaar] = useState('5421-8902-7314');
-  const [onboardLicense, setOnboardLicense] = useState('TN-59-2019-003819');
-  const [onboardAddress, setOnboardAddress] = useState(
-    '14/23 West Veli Street, Near Old Bus Stand, Simmakkal, Madurai - 625001'
-  );
-  const [onboardBeat, setOnboardBeat] = useState('Simmakkal Route (Old City Commercial)');
-  const [onboardEffectiveDate, setOnboardEffectiveDate] = useState('08/16/2026');
+  // Full Onboard Partner Form State
+  const [onboardFullName, setOnboardFullName] = useState('');
+  const [onboardPrimaryPhone, setOnboardPrimaryPhone] = useState('');
+  const [onboardEmergencyPhone, setOnboardEmergencyPhone] = useState('');
+  const [onboardDob, setOnboardDob] = useState('');
+  const [onboardAadhaar, setOnboardAadhaar] = useState('');
+  const [onboardLicense, setOnboardLicense] = useState('');
+  const [onboardAddress, setOnboardAddress] = useState('');
+  const [onboardBeat, setOnboardBeat] = useState('');
+  const [onboardEffectiveDate, setOnboardEffectiveDate] = useState('');
   const [onboardVehicleType, setOnboardVehicleType] = useState('Commercial Van (30 cyl capacity)');
-  const [onboardPlateNumber, setOnboardPlateNumber] = useState('TN 58 AX 4821');
+  const [onboardPlateNumber, setOnboardPlateNumber] = useState('');
   const [onboardCustodyLimit, setOnboardCustodyLimit] = useState('30');
   const [onboardHandoverDock, setOnboardHandoverDock] = useState(
     'Madurai Central Depot - Bay A (Three-wheeler)'
@@ -147,7 +145,12 @@ export default function AdminDeliveryPartnersPage({
       .then((res) => res.json())
       .then((json) => {
         if (!isMounted) return;
-        if (json?.success && json?.data?.partners?.length) {
+        if (json?.success && Array.isArray(json?.data?.partners)) {
+          if (json.data.partners.length === 0) {
+            setPartners([]);
+            setSelectedPartnerId('');
+            return;
+          }
           const apiPartners: PartnerRecord[] = json.data.partners.map((p: DriverApiRecord) => {
             const initials = p.name
               ? p.name
@@ -161,7 +164,7 @@ export default function AdminDeliveryPartnersPage({
             return {
               id: p.code || p.id,
               name: p.name,
-              code: p.code,
+              code: p.code || p.id,
               initials,
               avatarBg: 'bg-red-100',
               avatarText: 'text-[#BC0118]',
@@ -177,7 +180,7 @@ export default function AdminDeliveryPartnersPage({
               hasWarning: false,
               todayDeliveries: p.todayDeliveries || 0,
               activeGatePass: {
-                code: `#GP-${p.code.replace('DP-', '')}01`,
+                code: `#GP-${(p.code || 'DP-001').replace('DP-', '')}01`,
                 issuedAt: 'Gate Pass Active',
                 loadedUnits: p.filledCylinders || 0,
                 operator: 'Gate Operator: S. Raman',
@@ -215,6 +218,23 @@ export default function AdminDeliveryPartnersPage({
   const selectedPartner = useMemo(() => {
     return partners.find((p) => p.id === selectedPartnerId || p.code === selectedPartnerId) || partners[0] || null;
   }, [partners, selectedPartnerId]);
+
+  const partnerStats = useMemo(() => {
+    const total = partners.length;
+    const active = partners.filter((p) => p.status === 'Active').length;
+    const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
+    const holdingPartners = partners.filter((p) => (p.filledCylinders || 0) > 0 || (p.emptyCylinders || 0) > 0).length;
+    const totalFilledHolding = partners.reduce((sum, p) => sum + (p.filledCylinders || 0), 0);
+    const totalEmptyHolding = partners.reduce((sum, p) => sum + (p.emptyCylinders || 0), 0);
+    return {
+      total,
+      active,
+      activePct,
+      holdingPartners,
+      totalFilledHolding,
+      totalEmptyHolding,
+    };
+  }, [partners]);
 
   // Filtering Logic
   const filteredPartners = useMemo(() => {
@@ -1299,13 +1319,13 @@ export default function AdminDeliveryPartnersPage({
                   </div>
                 </div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-slate-900">5</span>
-                  <span className="text-xs font-medium text-slate-400">/ 8 registered</span>
+                  <span className="text-3xl font-black text-slate-900">{partnerStats.total}</span>
+                  <span className="text-xs font-medium text-slate-400">registered</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1 text-xs">
-                  <span className="text-slate-500 font-medium">Active partner</span>
+                  <span className="text-slate-500 font-medium">Active partners</span>
                   <span className="bg-emerald-100 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                    +1 this month
+                    {partnerStats.active} on-duty
                   </span>
                 </div>
               </div>
@@ -1321,10 +1341,10 @@ export default function AdminDeliveryPartnersPage({
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-slate-900">5</span>
+                  <span className="text-3xl font-black text-slate-900">{partnerStats.active}</span>
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                    100% Authorized
+                    {partnerStats.activePct}% Authorized
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium pt-1">
@@ -1343,13 +1363,13 @@ export default function AdminDeliveryPartnersPage({
                   </div>
                 </div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-slate-900">4</span>
+                  <span className="text-3xl font-black text-slate-900">{partnerStats.holdingPartners}</span>
                   <span className="text-xs font-medium text-slate-500">partners holding</span>
                 </div>
                 <div className="flex items-center gap-1.5 pt-1 text-xs font-bold">
-                  <span className="text-[#BC0118]">27 Filled</span>
+                  <span className="text-[#BC0118]">{partnerStats.totalFilledHolding} Filled</span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-slate-700">29 Empty</span>
+                  <span className="text-slate-700">{partnerStats.totalEmptyHolding} Empty</span>
                 </div>
               </div>
 
@@ -1359,20 +1379,20 @@ export default function AdminDeliveryPartnersPage({
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     Settlements Review
                   </span>
-                  <div className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                     <Wallet className="w-4 h-4 stroke-[2.2]" />
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-slate-900">2</span>
-                  <span className="bg-red-100 text-red-700 text-[11px] font-bold px-2 py-0.5 rounded-md">
-                    Action Req.
+                  <span className="text-3xl font-black text-slate-900">0</span>
+                  <span className="bg-emerald-100 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                    All Clear
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 pt-1 text-xs font-bold">
-                  <span className="text-[#BC0118]">1 Discrepancy</span>
+                  <span className="text-slate-500 font-medium">0 Discrepancy</span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-slate-500 font-medium">1 Pending Closing</span>
+                  <span className="text-slate-500 font-medium">0 Pending Closing</span>
                 </div>
               </div>
             </div>

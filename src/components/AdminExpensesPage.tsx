@@ -894,7 +894,7 @@ export default function AdminExpensesPage() {
                   <Truck className="w-3.5 h-3.5" />
                   <span>Delivery Partner Expenses</span>
                   <span className="bg-red-100/80 text-[#BC0118] text-[10px] font-bold px-2 py-0.5 rounded-full ml-0.5">
-                    18 Total
+                    {expenseRecords.filter((r) => r.type === 'delivery').length} Total
                   </span>
                 </button>
 
@@ -910,7 +910,7 @@ export default function AdminExpensesPage() {
                   <Building2 className="w-3.5 h-3.5" />
                   <span>Agency Expenses</span>
                   <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full ml-0.5">
-                    12 Total
+                    {expenseRecords.filter((r) => r.type === 'agency').length} Total
                   </span>
                 </button>
 
@@ -926,7 +926,7 @@ export default function AdminExpensesPage() {
                   <Receipt className="w-3.5 h-3.5" />
                   <span>Other Expenses</span>
                   <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full ml-0.5">
-                    5 Total
+                    {expenseRecords.filter((r) => r.type === 'other').length} Total
                   </span>
                 </button>
               </div>

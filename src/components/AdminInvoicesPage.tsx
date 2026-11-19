@@ -380,6 +380,54 @@ export default function AdminInvoicesPage({
     }
   };
 
+  const invoiceStats = useMemo(() => {
+    const invoicesCount = invoicesList.length;
+    const totalCylinders = invoicesList.reduce((sum, inv) => sum + (inv.cylinders?.length || 0), 0);
+
+    const totalCollected = paymentsList.reduce((sum, p) => sum + (p.receivedAmount || 0), 0);
+    const cashCollected = paymentsList
+      .filter((p) => p.method === 'Cash')
+      .reduce((sum, p) => sum + (p.receivedAmount || 0), 0);
+    const upiCollected = paymentsList
+      .filter((p) => p.method === 'UPI')
+      .reduce((sum, p) => sum + (p.receivedAmount || 0), 0);
+
+    const cashPct = totalCollected > 0 ? Math.round((cashCollected / totalCollected) * 100) : 0;
+    const upiPct = totalCollected > 0 ? 100 - cashPct : 0;
+
+    const outstandingAccounts = customerLedgerList.filter(
+      (c) => (c.outstandingBalance || 0) > 0
+    );
+    const outstandingCount = outstandingAccounts.length;
+    const totalOutstanding = outstandingAccounts.reduce(
+      (sum, c) => sum + (c.outstandingBalance || 0),
+      0
+    );
+
+    const advanceAccounts = customerLedgerList.filter(
+      (c) => (c.availableAdvance || 0) > 0
+    );
+    const advanceCount = advanceAccounts.length;
+    const totalAdvances = advanceAccounts.reduce(
+      (sum, c) => sum + (c.availableAdvance || 0),
+      0
+    );
+
+    return {
+      invoicesCount,
+      totalCylinders,
+      totalCollected,
+      cashCollected,
+      upiCollected,
+      cashPct,
+      upiPct,
+      outstandingCount,
+      totalOutstanding,
+      advanceCount,
+      totalAdvances,
+    };
+  }, [invoicesList, paymentsList, customerLedgerList]);
+
   const filteredInvoices = useMemo(() => {
     return invoicesList.filter((inv) => {
       if (searchQuery.trim()) {
@@ -1284,7 +1332,7 @@ export default function AdminInvoicesPage({
                       Total Outstanding Balance
                     </span>
                     <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                      ₹1,85,000.00
+                      ₹{invoiceStats.totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
@@ -1295,7 +1343,7 @@ export default function AdminInvoicesPage({
                       !
                     </span>
                     <span>
-                      Pending across <strong className="text-slate-800">32</strong> active customer accounts
+                      Pending across <strong className="text-slate-800">{invoiceStats.outstandingCount}</strong> active customer accounts
                     </span>
                   </div>
                   <span className="text-slate-300 hidden sm:inline">|</span>
@@ -1803,15 +1851,15 @@ export default function AdminInvoicesPage({
                         <Receipt className="w-4 h-4" />
                       </div>
                     </div>
-                    <div className="text-3xl font-black text-slate-900 mt-2">24</div>
+                    <div className="text-3xl font-black text-slate-900 mt-2">{invoiceStats.invoicesCount}</div>
                     <div className="text-xs text-slate-500 font-medium mt-0.5">
                       Invoices created today
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
-                    <span className="text-slate-600 font-bold">Total: 48 Cylinders</span>
+                    <span className="text-slate-600 font-bold">Total: {invoiceStats.totalCylinders} Cylinders</span>
                     <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1 text-[11px]">
-                      <span>↑</span> +3 vs yesterday
+                      <span>↑</span> live sync
                     </span>
                   </div>
                 </div>
@@ -1826,14 +1874,14 @@ export default function AdminInvoicesPage({
                         <Wallet className="w-4 h-4" />
                       </div>
                     </div>
-                    <div className="text-3xl font-black text-slate-900 mt-2">₹42,500</div>
+                    <div className="text-3xl font-black text-slate-900 mt-2">₹{invoiceStats.totalCollected.toLocaleString('en-IN')}</div>
                     <div className="text-xs text-slate-500 font-medium mt-0.5">
                       Payments received today
                     </div>
                   </div>
                   <div className="flex items-center gap-2 pt-4 mt-4 border-t border-slate-100 text-[11px] font-bold">
-                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">• ₹28,000 Cash</span>
-                    <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md">• ₹14,500 UPI</span>
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">• ₹{invoiceStats.cashCollected.toLocaleString('en-IN')} Cash</span>
+                    <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md">• ₹{invoiceStats.upiCollected.toLocaleString('en-IN')} UPI</span>
                   </div>
                 </div>
 
@@ -1847,16 +1895,16 @@ export default function AdminInvoicesPage({
                         <Clock className="w-4 h-4" />
                       </div>
                     </div>
-                    <div className="text-3xl font-black text-slate-900 mt-2">₹1,85,000</div>
+                    <div className="text-3xl font-black text-slate-900 mt-2">₹{invoiceStats.totalOutstanding.toLocaleString('en-IN')}</div>
                     <div className="text-xs text-slate-500 font-medium mt-0.5">
-                      Pending across 42 accounts
+                      Pending across {invoiceStats.outstandingCount} accounts
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
-                    <span className="text-slate-600 font-bold">16 Overdue</span>
+                    <span className="text-slate-600 font-bold">{invoiceStats.outstandingCount} Pending</span>
                     <span className="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1 text-[11px]">
                       <AlertTriangle className="w-3 h-3 text-red-600" />
-                      <span>₹58,200 &gt; 7 days</span>
+                      <span>Ledger Active</span>
                     </span>
                   </div>
                 </div>
@@ -1871,7 +1919,7 @@ export default function AdminInvoicesPage({
                         <CreditCard className="w-4 h-4" />
                       </div>
                     </div>
-                    <div className="text-3xl font-black text-[#10B981] mt-2">₹12,500</div>
+                    <div className="text-3xl font-black text-[#10B981] mt-2">₹{invoiceStats.totalAdvances.toLocaleString('en-IN')}</div>
                     <div className="text-xs text-slate-500 font-medium mt-0.5">
                       Available customer credit pool
                     </div>
@@ -1879,7 +1927,7 @@ export default function AdminInvoicesPage({
                   <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-xs">
                     <span className="text-slate-600 font-bold">Auto-FIFO Ready</span>
                     <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md text-[11px]">
-                      • 8 active credits
+                      • {invoiceStats.advanceCount} active credits
                     </span>
                   </div>
                 </div>
@@ -2283,20 +2331,20 @@ export default function AdminInvoicesPage({
                   <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-extrabold text-slate-900">Payment Methods Today</h3>
-                      <span className="text-xs font-black text-[#BC0118]">Total: ₹42,500</span>
+                      <span className="text-xs font-black text-[#BC0118]">Total: ₹{invoiceStats.totalCollected.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs font-bold">
-                        <span className="text-slate-700">Cash Collections (66%)</span>
-                        <span className="text-slate-900 font-black">₹28,000</span>
+                        <span className="text-slate-700">Cash Collections ({invoiceStats.cashPct}%)</span>
+                        <span className="text-slate-900 font-black">₹{invoiceStats.cashCollected.toLocaleString('en-IN')}</span>
                       </div>
                       <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden flex">
-                        <div className="h-full bg-slate-800" style={{ width: '66%' }}></div>
-                        <div className="h-full bg-[#E81B24]" style={{ width: '34%' }}></div>
+                        <div className="h-full bg-slate-800" style={{ width: `${invoiceStats.cashPct}%` }}></div>
+                        <div className="h-full bg-[#E81B24]" style={{ width: `${invoiceStats.upiPct}%` }}></div>
                       </div>
                       <div className="flex items-center justify-between text-xs font-bold pt-1">
-                        <span className="text-slate-700">UPI / Digital QR (34%)</span>
-                        <span className="text-slate-900 font-black">₹14,500</span>
+                        <span className="text-slate-700">UPI / Digital QR ({invoiceStats.upiPct}%)</span>
+                        <span className="text-slate-900 font-black">₹{invoiceStats.upiCollected.toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>
@@ -2305,7 +2353,7 @@ export default function AdminInvoicesPage({
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-sm font-extrabold text-slate-900">Customer Advances Pool</h3>
-                        <p className="text-[11px] text-slate-400 font-medium">₹12,500 available across 8 accounts</p>
+                        <p className="text-[11px] text-slate-400 font-medium">₹{invoiceStats.totalAdvances.toLocaleString('en-IN')} available across {invoiceStats.advanceCount} accounts</p>
                       </div>
                       <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md">
                         Auto-Apply
@@ -3483,7 +3531,7 @@ export default function AdminInvoicesPage({
                       Customer Accounts
                     </h2>
                     <span className="bg-[#EEF2FF] text-[#3730A3] font-bold text-xs px-2.5 py-0.5 rounded-full border border-indigo-100">
-                      1,250 Registered
+                      {customerLedgerList.length} Registered
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 font-medium">
@@ -3639,7 +3687,9 @@ export default function AdminInvoicesPage({
                 {/* Pagination */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-slate-500">
                   <div className="flex items-center gap-2">
-                    <span>Showing 1 to 7 of 1,250 customers</span>
+                    <span>
+                      Showing {filteredLedgerCustomers.length > 0 ? 1 : 0} to {filteredLedgerCustomers.length} of {customerLedgerList.length} customers
+                    </span>
                     <span>•</span>
                     <div className="flex items-center gap-1.5">
                       <span>Rows per page:</span>

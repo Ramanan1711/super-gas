@@ -48,21 +48,13 @@ interface CustomerRecord {
   statusDot: 'green' | 'grey';
 }
 
-// Delivery partners fallback list
-const defaultDeliveryPartners = [
-  {
-    id: 'DP-003',
-    name: 'Suresh Babu',
-    phone: '+91 97876 54321',
-    deliveries: 8,
-  },
-  {
-    id: 'DP-002',
-    name: 'Varman',
-    phone: '+91 98401 55555',
-    deliveries: 5,
-  },
-];
+// Delivery partners dynamic list
+const defaultDeliveryPartners: Array<{
+  id: string;
+  name: string;
+  phone: string;
+  deliveries: number;
+}> = [];
 
 // Helper to convert database customer payload to CustomerRecord format
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,9 +166,7 @@ export default function AdminCustomersPage() {
             phone: p.phone,
             deliveries: p._count?.assignedTrips || p.todayDeliveries || 0,
           }));
-          if (mapped.length > 0) {
-            setAuthorizedDeliveryPartners(mapped);
-          }
+          setAuthorizedDeliveryPartners(mapped);
         }
       } catch (err) {
         console.warn('Could not load partners for assignment:', err);
@@ -210,7 +200,7 @@ export default function AdminCustomersPage() {
     const matched = authorizedDeliveryPartners.find((p) =>
       cust.deliveryPartner.name.includes(p.name) || p.name.includes(cust.deliveryPartner.name)
     );
-    setSelectedPartnerId(matched ? matched.id : 'DP-02');
+    setSelectedPartnerId(matched ? matched.id : authorizedDeliveryPartners[0]?.id || null);
   };
 
   const handleOpenEditModal = (cust: CustomerRecord) => {
@@ -410,6 +400,23 @@ export default function AdminCustomersPage() {
     );
   }, [partnerSearchQuery, authorizedDeliveryPartners]);
 
+  const customerStats = useMemo(() => {
+    const total = customerList.length;
+    const withOutstanding = customerList.filter((c) => (c.balance || 0) > 0);
+    const withOutstandingCount = withOutstanding.length;
+    const pct = total > 0 ? ((withOutstandingCount / total) * 100).toFixed(1) : '0';
+    const totalOutstanding = withOutstanding.reduce(
+      (sum, c) => sum + (c.balance || 0),
+      0
+    );
+    return {
+      total,
+      withOutstandingCount,
+      pct,
+      totalOutstanding,
+    };
+  }, [customerList]);
+
   const handleResetFilters = () => {
     setSearchQuery('');
     setStatusFilter('All');
@@ -545,7 +552,7 @@ export default function AdminCustomersPage() {
                   <Users className="w-4 h-4 stroke-[2.2]" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">1,250</p>
+              <p className="text-3xl font-black text-slate-900 tracking-tight">{customerStats.total.toLocaleString('en-IN')}</p>
               <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium pt-1">
                 <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                 <span>Registered accounts</span>
@@ -563,9 +570,9 @@ export default function AdminCustomersPage() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-slate-900 tracking-tight">342</span>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">{customerStats.withOutstandingCount}</span>
                 <span className="bg-[#FEE2E2] text-[#DC2626] font-bold text-[11px] px-2 py-0.5 rounded-md">
-                  27.3% of total
+                  {customerStats.pct}% of total
                 </span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium pt-1">
@@ -585,7 +592,7 @@ export default function AdminCustomersPage() {
                 </div>
               </div>
               <p className="text-3xl font-black text-[#DC2626] tracking-tight">
-                ₹1,42,800
+                ₹{customerStats.totalOutstanding.toLocaleString('en-IN')}
               </p>
               <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium pt-1">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500 stroke-[2.2]" />
@@ -962,7 +969,9 @@ export default function AdminCustomersPage() {
             {/* Pagination Controls Footer */}
             <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 font-medium">
               <div className="flex items-center gap-3">
-                <p>Showing 1 to 6 of 1,250 customers</p>
+                <p>
+                  Showing {filteredCustomers.length > 0 ? 1 : 0} to {filteredCustomers.length} of {customerStats.total.toLocaleString('en-IN')} customers
+                </p>
                 <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200">
                   <span>Rows per page:</span>
                   <span className="bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 font-bold text-slate-800">
@@ -1148,9 +1157,11 @@ export default function AdminCustomersPage() {
                     className="appearance-none w-full bg-[#F1F4FA] border-0 rounded-xl px-4 py-3 pr-9 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
                   >
                     <option value="Leave unassign">Leave unassign</option>
-                    <option value="Rajesh · DP- 001">Rajesh · DP- 001</option>
-                    <option value="Mohamed Irfan · DP-002">Mohamed Irfan · DP-002</option>
-                    <option value="Suresh · DP- 003">Suresh · DP- 003</option>
+                    {authorizedDeliveryPartners.map((p) => (
+                      <option key={p.id} value={`${p.name} · ${p.id}`}>
+                        {p.name} · {p.id}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
                 </div>
@@ -1548,9 +1559,11 @@ export default function AdminCustomersPage() {
                   className="w-full bg-[#F1F4FA] rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 >
                   <option value="Leave unassign">Leave unassign</option>
-                  <option value="Rajesh · DP- 001">Rajesh · DP- 001</option>
-                  <option value="Mohamed Irfan · DP-002">Mohamed Irfan · DP-002</option>
-                  <option value="Suresh · DP- 003">Suresh · DP- 003</option>
+                  {authorizedDeliveryPartners.map((p) => (
+                    <option key={p.id} value={`${p.name} · ${p.id}`}>
+                      {p.name} · {p.id}
+                    </option>
+                  ))}
                 </select>
               </div>
 

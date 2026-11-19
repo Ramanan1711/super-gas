@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from './AdminSidebar';
 import {
@@ -117,6 +117,31 @@ export default function AdminReportsPage() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [reportMetrics, setReportMetrics] = useState({
+    customers: 0,
+    deliveries: 0,
+    invoices: 0,
+    revenue: 0,
+    receivables: 0,
+  });
+
+  useEffect(() => {
+    fetch('/api/admin/metrics')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setReportMetrics({
+            customers: json.data.totalCustomers || 0,
+            deliveries: json.data.deliveries?.completed || 0,
+            invoices: json.data.deliveries?.completed || 0,
+            revenue: json.data.totalRevenue || 0,
+            receivables: 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -349,10 +374,10 @@ export default function AdminReportsPage() {
                 </div>
               </div>
               <div className="mt-2.5">
-                <p className="text-2xl font-black text-slate-900 tracking-tight">1,250</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight">{reportMetrics.customers.toLocaleString('en-IN')}</p>
                 <p className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 mt-1">
                   <TrendingUp className="w-3 h-3" />
-                  <span>+4.2% MoM</span>
+                  <span>Real DB accounts</span>
                 </p>
               </div>
             </div>
@@ -368,10 +393,10 @@ export default function AdminReportsPage() {
                 </div>
               </div>
               <div className="mt-2.5">
-                <p className="text-2xl font-black text-slate-900 tracking-tight">846</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight">{reportMetrics.deliveries.toLocaleString('en-IN')}</p>
                 <p className="text-[11px] font-bold text-emerald-600 flex items-center gap-1 mt-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>98.4% on-time rate</span>
+                  <span>Fulfillment tasks</span>
                 </p>
               </div>
             </div>
@@ -387,10 +412,10 @@ export default function AdminReportsPage() {
                 </div>
               </div>
               <div className="mt-2.5">
-                <p className="text-2xl font-black text-slate-900 tracking-tight">812</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight">{reportMetrics.invoices.toLocaleString('en-IN')}</p>
                 <p className="text-[11px] font-medium text-slate-500 flex items-center gap-1 mt-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                  <span>42 Pending Billing</span>
+                  <span>Generated invoices</span>
                 </p>
               </div>
             </div>
@@ -406,7 +431,7 @@ export default function AdminReportsPage() {
                 </div>
               </div>
               <div className="mt-2.5">
-                <p className="text-2xl font-black text-slate-900 tracking-tight">₹11,48,250</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight">₹{reportMetrics.revenue.toLocaleString('en-IN')}</p>
                 <p className="text-[11px] font-bold text-emerald-600 flex items-center gap-1 mt-1">
                   <CheckCircle2 className="w-3 h-3" />
                   <span>Zero Double Counting</span>
@@ -425,10 +450,10 @@ export default function AdminReportsPage() {
                 </div>
               </div>
               <div className="mt-2.5">
-                <p className="text-2xl font-black text-slate-900 tracking-tight">₹1,85,000</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight">₹{reportMetrics.receivables.toLocaleString('en-IN')}</p>
                 <p className="text-[11px] font-bold text-rose-600 flex items-center gap-1 mt-1">
                   <AlertCircle className="w-3 h-3" />
-                  <span>Across 42 Accounts</span>
+                  <span>Across {reportMetrics.customers} Accounts</span>
                 </p>
               </div>
             </div>
