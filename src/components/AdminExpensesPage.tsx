@@ -64,201 +64,13 @@ export interface ExpenseRecord {
   type: 'delivery' | 'agency' | 'other';
 }
 
-const initialPendingClaims: PendingClaim[] = [
-  {
-    id: 'claim-1',
-    claimId: 'EXP-DP-PENDING-01',
-    partnerName: 'Rajesh Kumar',
-    partnerCode: 'DP-001',
-    initials: 'RK',
-    avatarBg: 'bg-red-100 text-[#BC0118]',
-    category: 'Fuel',
-    description: 'Diesel Top-up for Van 04',
-    subDescription: 'Trip #SG-8812',
-    amount: 1200,
-    time: '24 Oct, 09:30 AM',
-    status: 'Pending Approval',
-    stationName: 'HINDUSTAN PETROLEUM',
-    stationOutlet: 'Outlet #88219 - North Bypass',
-    fuelQuantity: '13.36 Litres',
-    terminalTimestamp: '24 Oct 2026, 09:28:44 IST',
-    receiptType: 'Fuel Dispenser POS Slip',
-  },
-  {
-    id: 'claim-2',
-    claimId: 'EXP-DP-PENDING-02',
-    partnerName: 'Suresh Babu',
-    partnerCode: 'DP-003',
-    initials: 'SB',
-    avatarBg: 'bg-amber-100 text-amber-800',
-    category: 'Vehicle Repair',
-    description: 'Puncture Repair & Valve Replacement',
-    subDescription: 'Rear Tyre #2',
-    amount: 450,
-    time: '24 Oct, 11:15 AM',
-    status: 'Pending Approval',
-    stationName: 'SIMMAKKAL TYRE CARE',
-    stationOutlet: 'Shop #14, West Veli Street',
-    terminalTimestamp: '24 Oct 2026, 11:12:10 IST',
-    receiptType: 'Manual Bill / Cash Memo',
-  },
-  {
-    id: 'claim-3',
-    claimId: 'EXP-DP-PENDING-03',
-    partnerName: 'Mohamed Irfan',
-    partnerCode: 'DP-002',
-    initials: 'MI',
-    avatarBg: 'bg-blue-100 text-blue-800',
-    category: 'Parking',
-    description: 'Commercial Toll & Depot Pass',
-    subDescription: 'Highway Express Gate',
-    amount: 250,
-    time: '24 Oct, 01:20 PM',
-    status: 'Pending Approval',
-    stationName: 'FASTAG TOLL PLAZA',
-    stationOutlet: 'Madurai Ring Road Plaza #03',
-    terminalTimestamp: '24 Oct 2026, 01:18:05 IST',
-    receiptType: 'Digital Toll Receipt',
-  },
-  {
-    id: 'claim-4',
-    claimId: 'EXP-DP-PENDING-04',
-    partnerName: 'Ramesh Varma',
-    partnerCode: 'DP-006',
-    initials: 'RV',
-    avatarBg: 'bg-rose-100 text-rose-800',
-    category: 'Maintenance',
-    description: 'Engine Oil Top-Up & Brake Inspection',
-    subDescription: 'Castrol 20W40 1L',
-    amount: 1300,
-    time: '24 Oct, 02:45 PM',
-    status: 'Pending Approval',
-    stationName: 'SRI BALAJI AUTO SPARES',
-    stationOutlet: 'Depot Link Road, Madurai',
-    terminalTimestamp: '24 Oct 2026, 02:42:30 IST',
-    receiptType: 'Tax Invoice / GST Memo',
-  },
-];
+const initialPendingClaims: PendingClaim[] = [];
 
-const initialExpenseRecords: ExpenseRecord[] = [
-  {
-    id: 'exp-01',
-    expenseId: 'EXP-DP-20261024-01',
-    partnerName: 'Rajesh Kumar',
-    partnerCode: 'DP-001',
-    category: 'Fuel',
-    description: 'Diesel 15L Van 04',
-    amount: 1450,
-    expenseDate: '24 Oct 2026',
-    source: 'App Submission',
-    approvalStatus: 'Approved',
-    paymentStatus: 'Reimbursed (Bank)',
-    type: 'delivery',
-  },
-  {
-    id: 'exp-02',
-    expenseId: 'EXP-DP-20261024-02',
-    partnerName: 'Suresh Babu',
-    partnerCode: 'DP-003',
-    category: 'Vehicle Repair',
-    description: 'Hydraulic Lift Grease & Cable',
-    amount: 650,
-    expenseDate: '24 Oct 2026',
-    source: 'Admin Recorded',
-    approvalStatus: 'Approved',
-    paymentStatus: 'Paid (Cash)',
-    type: 'delivery',
-  },
-  {
-    id: 'exp-03',
-    expenseId: 'EXP-DP-20261023-04',
-    partnerName: 'Mohamed Irfan',
-    partnerCode: 'DP-002',
-    category: 'Fuel',
-    description: 'Diesel Top-up #SG-9011',
-    amount: 1200,
-    expenseDate: '23 Oct 2026',
-    source: 'App Submission',
-    approvalStatus: 'Approved',
-    paymentStatus: 'Reimbursed (UPI)',
-    type: 'delivery',
-  },
-  {
-    id: 'exp-04',
-    expenseId: 'EXP-DP-20261023-08',
-    partnerName: 'Ravi Shanker',
-    partnerCode: 'DP-004',
-    category: 'Other',
-    description: 'Unauthorized route detour lunch',
-    amount: 500,
-    isRedAmount: true,
-    expenseDate: '23 Oct 2026',
-    source: 'App Submission',
-    approvalStatus: 'Rejected (Policy)',
-    paymentStatus: 'Disallowed',
-    type: 'delivery',
-  },
-  {
-    id: 'exp-05',
-    expenseId: 'EXP-DP-20261024-09',
-    partnerName: 'Ramesh Varma',
-    partnerCode: 'DP-006',
-    category: 'Maintenance',
-    description: 'Brake Pad Adjustment',
-    amount: 1100,
-    expenseDate: '24 Oct 2026',
-    source: 'App Submission',
-    approvalStatus: 'Pending Approval',
-    paymentStatus: 'Unpaid',
-    type: 'delivery',
-  },
-  {
-    id: 'exp-06',
-    expenseId: 'EXP-AG-20261024-11',
-    partnerName: 'Agency Central',
-    partnerCode: 'HQ-HUB',
-    category: 'Utilities',
-    description: 'Depot 3-Phase Electricity Bill Sub-meter',
-    amount: 5790,
-    expenseDate: '24 Oct 2026',
-    source: 'Admin Recorded',
-    approvalStatus: 'Approved',
-    paymentStatus: 'Paid (Cash)',
-    type: 'agency',
-  },
-  {
-    id: 'exp-07',
-    expenseId: 'EXP-AG-20261022-03',
-    partnerName: 'HQ Facility',
-    partnerCode: 'HQ-HUB',
-    category: 'Supplies',
-    description: 'Safety Seals & Brass Valve Rings (Pack of 500)',
-    amount: 6610,
-    expenseDate: '22 Oct 2026',
-    source: 'Admin Recorded',
-    approvalStatus: 'Approved',
-    paymentStatus: 'Reimbursed (Bank)',
-    type: 'agency',
-  },
-  {
-    id: 'exp-08',
-    expenseId: 'EXP-OT-20261020-01',
-    partnerName: 'Office Admin',
-    partnerCode: 'ADMIN-01',
-    category: 'Other',
-    description: 'Dispatch Room Tea, Coffee & Drinking Water',
-    amount: 1250,
-    expenseDate: '20 Oct 2026',
-    source: 'Admin Recorded',
-    approvalStatus: 'Approved',
-    paymentStatus: 'Paid (Cash)',
-    type: 'other',
-  },
-];
+const initialExpenseRecords: ExpenseRecord[] = [];
 
 export default function AdminExpensesPage() {
   const [pendingClaims, setPendingClaims] = useState<PendingClaim[]>(initialPendingClaims);
-  const [selectedClaimId, setSelectedClaimId] = useState<string>('claim-1');
+  const [selectedClaimId, setSelectedClaimId] = useState<string>('');
   const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>(initialExpenseRecords);
   const [activeSubTab, setActiveSubTab] = useState<'delivery' | 'agency' | 'other'>('delivery');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -387,9 +199,11 @@ export default function AdminExpensesPage() {
               };
             });
 
+          setPendingClaims(pending);
           if (pending.length > 0) {
-            setPendingClaims(pending);
             setSelectedClaimId(pending[0].id);
+          } else {
+            setSelectedClaimId('');
           }
 
           // Full expense table records
@@ -428,9 +242,7 @@ export default function AdminExpensesPage() {
             };
           });
 
-          if (records.length > 0) {
-            setExpenseRecords(records);
-          }
+          setExpenseRecords(records);
         }
       } catch (err) {
         console.warn('Could not load live expenses:', err);

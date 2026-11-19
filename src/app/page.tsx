@@ -5,14 +5,14 @@ import DeliveryScreen, { DeliveryStats, Delivery } from '@/components/DeliverySc
 
 async function DeliveryContainer() {
   let stats: DeliveryStats = {
-    totalDeliveries: 15,
-    completedDeliveries: 10,
-    pendingDeliveries: 5,
+    totalDeliveries: 0,
+    completedDeliveries: 0,
+    pendingDeliveries: 0,
     cancelledDeliveries: 0,
-    emptyCylindersCollected: 8,
-    totalCollected: 12000,
-    cashInHand: 10500,
-    onlineCollected: 1500,
+    emptyCylindersCollected: 0,
+    totalCollected: 0,
+    cashInHand: 0,
+    onlineCollected: 0,
   };
   let deliveries: Delivery[] = [];
 

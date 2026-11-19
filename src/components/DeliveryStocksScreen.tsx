@@ -81,8 +81,8 @@ const mockMovements: MovementRecord[] = [
 export default function DeliveryStocksScreen() {
   const [filterType, setFilterType] = useState<'all' | 'issued' | 'delivered' | 'empty'>('all');
   const [showAllMovements, setShowAllMovements] = useState(false);
-  const [totalFilled, setTotalFilled] = useState(10);
-  const [totalEmpty, setTotalEmpty] = useState(15);
+  const [totalFilled, setTotalFilled] = useState(0);
+  const [totalEmpty, setTotalEmpty] = useState(0);
   const [showHandoverModal, setShowHandoverModal] = useState(false);
   const [transferType, setTransferType] = useState<'LOAD_VEHICLE' | 'UNLOAD_VEHICLE'>('LOAD_VEHICLE');
   const [selectedProductCode, setSelectedProductCode] = useState('19KG_COMM');

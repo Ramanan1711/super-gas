@@ -32,18 +32,22 @@ export default function AdminDashboard() {
   const [fuelClaimStatus, setFuelClaimStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
   // Live KPI counters
-  const [totalRevenue, setTotalRevenue] = useState<number>(125000);
-  const [todayCollection, setTodayCollection] = useState<number>(45000);
-  const [activeVehicles, setActiveVehicles] = useState<number>(6);
-  const [cylindersInCirculation, setCylindersInCirculation] = useState<number>(1250);
-  const [completedDeliveries, setCompletedDeliveries] = useState<number>(72);
-  const [emptyAvailable, setEmptyAvailable] = useState<number>(300);
-  const [overallEmpty, setOverallEmpty] = useState<number>(550);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [todayCollection, setTodayCollection] = useState<number>(0);
+  const [activeVehicles, setActiveVehicles] = useState<number>(0);
+  const [cylindersInCirculation, setCylindersInCirculation] = useState<number>(0);
+  const [completedDeliveries, setCompletedDeliveries] = useState<number>(0);
+  const [emptyAvailable, setEmptyAvailable] = useState<number>(0);
+  const [overallEmpty, setOverallEmpty] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Quick Issue Card / New Dispatch Modal State
   const [showNewDispatchModal, setShowNewDispatchModal] = useState(false);
-  const [dispatchPartner, setDispatchPartner] = useState('Rajesh Kumar (DP-001) · Anna Nagar Route');
+  const [dispatchDrivers, setDispatchDrivers] = useState<Array<{ name: string; code: string; route: string }>>([
+    { name: 'Suresh Babu', code: 'DP-003', route: 'Tallakulam Route' },
+    { name: 'Varman', code: 'DP-002', route: 'Simmakkal Route' },
+  ]);
+  const [dispatchPartner, setDispatchPartner] = useState('Suresh Babu (DP-003) · Tallakulam Route');
   const [dispatchRows, setDispatchRows] = useState([
     { id: '1', type: '15 kg Domestic', qty: 10 },
     { id: '2', type: '33 kg Domestic', qty: 8 },
@@ -95,12 +99,31 @@ export default function AdminDashboard() {
   // Fetch live metrics from database on mount
   React.useEffect(() => {
     let ignore = false;
-    async function loadMetrics() {
+    async function loadData() {
       if (!ignore) {
         await fetchMetrics();
       }
+      try {
+        const res = await fetch('/api/drivers');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && Array.isArray(result.data?.partners)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mapped = result.data.partners.map((p: any) => ({
+            name: p.name,
+            code: p.partnerCode || p.id,
+            route: p.address?.split(',')?.[0] || 'Central Route Beat',
+          }));
+          if (mapped.length > 0) {
+            setDispatchDrivers(mapped);
+            setDispatchPartner(`${mapped[0].name} (${mapped[0].code}) · ${mapped[0].route}`);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load drivers for dispatch:', err);
+      }
     }
-    loadMetrics();
+    loadData();
     return () => {
       ignore = true;
     };
@@ -202,7 +225,7 @@ export default function AdminDashboard() {
                 type="button"
                 onClick={handleForceSync}
                 disabled={isSyncing}
-                className="bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs sm:text-[13px] font-bold text-slate-900 flex items-center gap-2 shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer transition disabled:opacity-75"
+                className="bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2 text-sm font-bold text-slate-900 flex items-center gap-2 shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer transition disabled:opacity-75"
               >
                 <RefreshCw className={`w-4 h-4 text-slate-900 stroke-[2.4] ${isSyncing ? 'animate-spin' : ''}`} />
                 <span>Force Sync</span>
@@ -1483,21 +1506,14 @@ export default function AdminDashboard() {
                       onChange={(e) => setDispatchPartner(e.target.value)}
                       className="w-full bg-[#F1F4FA] rounded-2xl px-4 py-3 pr-10 text-xs sm:text-sm font-bold text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer"
                     >
-                      <option value="Rajesh Kumar (DP-001) · Anna Nagar Route">
-                        Rajesh Kumar (DP-001) · Anna Nagar Route
-                      </option>
-                      <option value="Mohamed Irfan (DP-002) · KK Nagar Route">
-                        Mohamed Irfan (DP-002) · KK Nagar Route
-                      </option>
-                      <option value="Suresh Babu (DP-003) · Tallakulam Route">
-                        Suresh Babu (DP-003) · Tallakulam Route
-                      </option>
-                      <option value="Karthik Raja (DP-004) · Bypass Road Route">
-                        Karthik Raja (DP-004) · Bypass Road Route
-                      </option>
-                      <option value="Vignesh V (DP-005) · Mattuthavani Route">
-                        Vignesh V (DP-005) · Mattuthavani Route
-                      </option>
+                      {dispatchDrivers.map((d) => {
+                        const val = `${d.name} (${d.code}) · ${d.route}`;
+                        return (
+                          <option key={d.code} value={val}>
+                            {val}
+                          </option>
+                        );
+                      })}
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
                   </div>

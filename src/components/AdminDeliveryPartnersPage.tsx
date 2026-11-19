@@ -71,166 +71,7 @@ export interface PartnerRecord {
   }>;
 }
 
-const initialPartners: PartnerRecord[] = [
-  {
-    id: 'DP-001',
-    name: 'Rajesh Kumar',
-    code: 'DP-001',
-    initials: 'RK',
-    avatarBg: 'bg-red-100',
-    avatarText: 'text-[#BC0118]',
-    joinedDate: 'Joined 14 Jan 2023',
-    phone: '+91 98401 22340',
-    area: 'Anna Nagar',
-    customersCount: 45,
-    filledCylinders: 10,
-    emptyCylinders: 8,
-    status: 'Active',
-    hasWarning: false,
-    todayDeliveries: 15,
-    activeGatePass: {
-      code: '#GP-1094',
-      issuedAt: 'Issued today at 08:15 AM',
-      loadedUnits: 25,
-      operator: 'Gate Operator: S. Raman',
-      status: 'Confirmed',
-    },
-    custodyLogs: [
-      {
-        id: 'log-1',
-        action: 'Delivered 2x Commercial',
-        customer: 'Sri Krishna Sweets',
-        time: '12:40 PM',
-        changeText: '-2 Filled / +2 Empty',
-      },
-      {
-        id: 'log-2',
-        action: 'Delivered 1x Commercial',
-        customer: 'Priya Bakery',
-        time: '11:20 AM',
-        changeText: '-1 Filled / +1 Empty',
-      },
-    ],
-  },
-  {
-    id: 'DP-002',
-    name: 'Mohamed Irfan',
-    code: 'DP-002',
-    initials: 'MI',
-    avatarBg: 'bg-blue-100',
-    avatarText: 'text-blue-700',
-    joinedDate: 'Joined 03 Mar 2023',
-    phone: '+91 97890 55412',
-    area: 'K.K. Nagar',
-    customersCount: 38,
-    filledCylinders: 5,
-    emptyCylinders: 6,
-    status: 'Active',
-    hasWarning: false,
-    todayDeliveries: 12,
-    activeGatePass: {
-      code: '#GP-1092',
-      issuedAt: 'Issued today at 08:00 AM',
-      loadedUnits: 20,
-      operator: 'Gate Operator: S. Raman',
-      status: 'Confirmed',
-    },
-    custodyLogs: [
-      {
-        id: 'log-3',
-        action: 'Delivered 1x Domestic',
-        customer: 'Kavitha R',
-        time: '11:45 AM',
-        changeText: '-1 Filled / +1 Empty',
-      },
-    ],
-  },
-  {
-    id: 'DP-003',
-    name: 'Suresh Babu',
-    code: 'DP-003',
-    initials: 'SB',
-    avatarBg: 'bg-amber-100',
-    avatarText: 'text-amber-800',
-    joinedDate: 'Joined 19 Aug 2022',
-    phone: '+91 94432 10987',
-    area: 'Simmakkal',
-    customersCount: 52,
-    filledCylinders: 12,
-    emptyCylinders: 9,
-    status: 'Active',
-    hasWarning: true,
-    todayDeliveries: 18,
-    activeGatePass: {
-      code: '#GP-1090',
-      issuedAt: 'Issued today at 07:45 AM',
-      loadedUnits: 28,
-      operator: 'Gate Operator: M. Pandian',
-      status: 'Confirmed',
-    },
-    custodyLogs: [
-      {
-        id: 'log-4',
-        action: 'Discrepancy Reported',
-        customer: 'Depot Yard Audit',
-        time: '01:10 PM',
-        changeText: '1 Empty Pending Reconciliation',
-      },
-    ],
-  },
-  {
-    id: 'DP-004',
-    name: 'Karthik Raja',
-    code: 'DP-004',
-    initials: 'KR',
-    avatarBg: 'bg-purple-100',
-    avatarText: 'text-purple-700',
-    joinedDate: 'Joined 02 Nov 2023',
-    phone: '+91 98940 33441',
-    area: 'Commercial Hub',
-    customersCount: 30,
-    filledCylinders: 0,
-    emptyCylinders: 4,
-    status: 'Active',
-    hasWarning: false,
-    todayDeliveries: 8,
-    activeGatePass: {
-      code: '#GP-1088',
-      issuedAt: 'Issued today at 09:00 AM',
-      loadedUnits: 15,
-      operator: 'Gate Operator: S. Raman',
-      status: 'Confirmed',
-    },
-    custodyLogs: [
-      {
-        id: 'log-5',
-        action: 'Delivered 3x Industrial',
-        customer: 'Apollo Fabrications',
-        time: '10:30 AM',
-        changeText: '-3 Filled / +3 Empty',
-      },
-    ],
-  },
-  {
-    id: 'DP-005',
-    name: 'Vignesh V',
-    code: 'DP-005',
-    initials: 'VV',
-    avatarBg: 'bg-slate-100',
-    avatarText: 'text-slate-700',
-    joinedDate: 'Joined 10 Dec 2023',
-    phone: '+91 98432 88710',
-    area: 'Standby / Buffer',
-    isStandbyArea: true,
-    customersCount: 0,
-    filledCylinders: 0,
-    emptyCylinders: 0,
-    status: 'Standby',
-    hasWarning: false,
-    todayDeliveries: 0,
-    custodyLogs: [],
-  },
-];
+const initialPartners: PartnerRecord[] = [];
 
 interface AdminDeliveryPartnersPageProps {
   initialViewMode?: 'list' | 'add';
@@ -241,7 +82,7 @@ export default function AdminDeliveryPartnersPage({
 }: AdminDeliveryPartnersPageProps) {
   const [viewMode, setViewMode] = useState<'list' | 'add'>(initialViewMode);
   const [partners, setPartners] = useState<PartnerRecord[]>(initialPartners);
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('DP-001');
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -346,30 +187,15 @@ export default function AdminDeliveryPartnersPage({
             };
           });
 
-          setPartners((prev) => {
-            const seen = new Set<string>();
-            const merged: PartnerRecord[] = [];
-
-            // 1. Prioritize live database partners
-            for (const p of apiPartners) {
-              const key = (p.code || p.id).toUpperCase();
-              if (!seen.has(key)) {
-                seen.add(key);
-                merged.push({ ...p, id: key, code: key });
+          setPartners(apiPartners);
+          if (apiPartners.length > 0) {
+            setSelectedPartnerId((prevId) => {
+              if (prevId && apiPartners.some((p) => p.id === prevId || p.code === prevId)) {
+                return prevId;
               }
-            }
-
-            // 2. Add fallback initial partners that aren't already loaded
-            for (const p of prev) {
-              const key = (p.code || p.id).toUpperCase();
-              if (!seen.has(key)) {
-                seen.add(key);
-                merged.push({ ...p, id: key, code: key });
-              }
-            }
-
-            return merged;
-          });
+              return apiPartners[0].id;
+            });
+          }
         }
       })
       .catch((err) => {
@@ -387,7 +213,7 @@ export default function AdminDeliveryPartnersPage({
   };
 
   const selectedPartner = useMemo(() => {
-    return partners.find((p) => p.id === selectedPartnerId) || partners[0];
+    return partners.find((p) => p.id === selectedPartnerId || p.code === selectedPartnerId) || partners[0] || null;
   }, [partners, selectedPartnerId]);
 
   // Filtering Logic
@@ -613,6 +439,7 @@ export default function AdminDeliveryPartnersPage({
 
   const handleIssueSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPartner) return;
     const qty = issueQuantity || 0;
     if (qty <= 0) return;
 
@@ -1829,200 +1656,209 @@ export default function AdminDeliveryPartnersPage({
 
               {/* Right Column: Selected Partner Detail Drawer */}
               <div className="lg:col-span-4 bg-white rounded-[24px] p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-5 sticky top-24">
-                {/* Partner Card Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className={`w-12 h-12 rounded-2xl ${selectedPartner.avatarBg} ${selectedPartner.avatarText} font-black text-lg flex items-center justify-center shrink-0 shadow-2xs`}
-                    >
-                      {selectedPartner.initials}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                          {selectedPartner.name}
-                        </h3>
-                        <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-extrabold px-2 py-0.5 rounded-md">
-                          {selectedPartner.code}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{selectedPartner.area}</span>
-                        <span className="text-slate-300">·</span>
-                        <span className="inline-flex items-center gap-1 font-bold text-emerald-600">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                          {selectedPartner.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => triggerToast(`Opening profile for ${selectedPartner.name}`)}
-                    className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer transition"
-                    title="Open Partner Details"
-                  >
-                    <ExternalLink className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Today's Delivery Stat Banner */}
-                <div className="bg-[#EDF4FF] rounded-2xl p-4">
-                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                    Today&apos;s Delivery
-                  </span>
-                  <span className="text-3xl font-black text-slate-900 mt-0.5 block">
-                    {selectedPartner.todayDeliveries}
-                  </span>
-                </div>
-
-                {/* 3 Tab Switcher */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDetailTab('Custody Ledger')}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
-                      detailTab === 'Custody Ledger'
-                        ? 'bg-[#101828] text-white shadow-xs'
-                        : 'bg-[#F1F4FA] text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    Custody Ledger
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDetailTab('Customers')}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
-                      detailTab === 'Customers'
-                        ? 'bg-[#101828] text-white shadow-xs'
-                        : 'bg-[#F1F4FA] text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    Customers ({selectedPartner.customersCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDetailTab('Settlement')}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
-                      detailTab === 'Settlement'
-                        ? 'bg-[#101828] text-white shadow-xs'
-                        : 'bg-[#F1F4FA] text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    Settlement
-                  </button>
-                </div>
-
-                {/* 2 Side-by-Side Van Custody Cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Left Card: Current Filled In Van */}
-                  <div className="bg-[#FFF5F5] border border-red-100 rounded-2xl p-4 space-y-1">
-                    <span className="text-xs font-bold text-red-500 block">Current Filled In Van</span>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-black text-[#BC0118]">
-                        {selectedPartner.filledCylinders}
-                      </span>
-                      <span className="text-sm font-bold text-slate-900">Cylinders</span>
-                    </div>
-                    <span className="text-[11px] text-slate-500 font-medium block">
-                      19kg Commercial
-                    </span>
-                  </div>
-
-                  {/* Right Card: Picked Empty In Van */}
-                  <div className="bg-[#F4F7FB] border border-slate-100 rounded-2xl p-4 space-y-1">
-                    <span className="text-xs font-bold text-slate-500 block">Picked Empty In Van</span>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-black text-slate-900">
-                        {selectedPartner.emptyCylinders}
-                      </span>
-                      <span className="text-sm font-bold text-slate-900">Cylinders</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 font-medium block">
-                      Pending Depot Unload
-                    </span>
-                  </div>
-                </div>
-
-                {/* Active Gate Pass Card */}
-                <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">
-                      Active Gate Pass
-                    </span>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">
-                      Confirmed
-                    </span>
-                  </div>
-
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-sm font-black text-slate-900 block">
-                        {selectedPartner.activeGatePass?.code || '#GP-1094'}
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium block mt-0.5">
-                        {selectedPartner.activeGatePass?.issuedAt || 'Issued today at 08:15 AM'}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-black text-slate-900 block">
-                        {selectedPartner.activeGatePass?.loadedUnits || 25} Loaded
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium block mt-0.5">
-                        {selectedPartner.activeGatePass?.operator || 'Gate Operator: S. Raman'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent Custody Logs */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
-                    Recent Custody Logs
-                  </span>
-
-                  {selectedPartner.custodyLogs.length > 0 ? (
-                    selectedPartner.custodyLogs.map((log) => (
-                      <div
-                        key={log.id}
-                        className="bg-[#F4F8FA] rounded-xl p-3 flex items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                            <Package className="w-3.5 h-3.5" />
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-900 block text-xs">
-                              {log.action}
+                {selectedPartner ? (
+                  <>
+                    {/* Partner Card Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3.5">
+                        <div
+                          className={`w-12 h-12 rounded-2xl ${selectedPartner.avatarBg} ${selectedPartner.avatarText} font-black text-lg flex items-center justify-center shrink-0 shadow-2xs`}
+                        >
+                          {selectedPartner.initials}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                              {selectedPartner.name}
+                            </h3>
+                            <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-extrabold px-2 py-0.5 rounded-md">
+                              {selectedPartner.code}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-medium">
-                              {log.customer} · {log.time}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{selectedPartner.area}</span>
+                            <span className="text-slate-300">·</span>
+                            <span className="inline-flex items-center gap-1 font-bold text-emerald-600">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                              {selectedPartner.status}
                             </span>
                           </div>
                         </div>
-                        <span className="text-emerald-700 font-extrabold text-xs text-right shrink-0">
-                          {log.changeText}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => triggerToast(`Opening profile for ${selectedPartner.name}`)}
+                        className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer transition"
+                        title="Open Partner Details"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Today's Delivery Stat Banner */}
+                    <div className="bg-[#EDF4FF] rounded-2xl p-4">
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                        Today&apos;s Delivery
+                      </span>
+                      <span className="text-3xl font-black text-slate-900 mt-0.5 block">
+                        {selectedPartner.todayDeliveries}
+                      </span>
+                    </div>
+
+                    {/* 3 Tab Switcher */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDetailTab('Custody Ledger')}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
+                          detailTab === 'Custody Ledger'
+                            ? 'bg-[#101828] text-white shadow-xs'
+                            : 'bg-[#F1F4FA] text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        Custody Ledger
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailTab('Customers')}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
+                          detailTab === 'Customers'
+                            ? 'bg-[#101828] text-white shadow-xs'
+                            : 'bg-[#F1F4FA] text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        Customers ({selectedPartner.customersCount})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailTab('Settlement')}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
+                          detailTab === 'Settlement'
+                            ? 'bg-[#101828] text-white shadow-xs'
+                            : 'bg-[#F1F4FA] text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        Settlement
+                      </button>
+                    </div>
+
+                    {/* 2 Side-by-Side Van Custody Cards */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Left Card: Current Filled In Van */}
+                      <div className="bg-[#FFF5F5] border border-red-100 rounded-2xl p-4 space-y-1">
+                        <span className="text-xs font-bold text-red-500 block">Current Filled In Van</span>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-2xl font-black text-[#BC0118]">
+                            {selectedPartner.filledCylinders}
+                          </span>
+                          <span className="text-sm font-bold text-slate-900">Cylinders</span>
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-medium block">
+                          19kg Commercial
                         </span>
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
-                      No recent custody transactions recorded for this partner today.
-                    </div>
-                  )}
-                </div>
 
-                {/* Bottom Issue New Gate Pass Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowIssueModal(true)}
-                  className="w-full bg-[#101828] hover:bg-slate-800 active:scale-98 text-white font-bold text-sm py-3.5 rounded-2xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Printer className="w-4 h-4 stroke-[2.2]" />
-                  <span>Issue New Gate Pass</span>
-                </button>
+                      {/* Right Card: Picked Empty In Van */}
+                      <div className="bg-[#F4F7FB] border border-slate-100 rounded-2xl p-4 space-y-1">
+                        <span className="text-xs font-bold text-slate-500 block">Picked Empty In Van</span>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-2xl font-black text-slate-900">
+                            {selectedPartner.emptyCylinders}
+                          </span>
+                          <span className="text-sm font-bold text-slate-900">Cylinders</span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium block">
+                          Pending Depot Unload
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Active Gate Pass Card */}
+                    <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-2xl p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                          Active Gate Pass
+                        </span>
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">
+                          Confirmed
+                        </span>
+                      </div>
+
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="text-sm font-black text-slate-900 block">
+                            {selectedPartner.activeGatePass?.code || '#GP-1094'}
+                          </span>
+                          <span className="text-xs text-slate-400 font-medium block mt-0.5">
+                            {selectedPartner.activeGatePass?.issuedAt || 'Issued today at 08:15 AM'}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-black text-slate-900 block">
+                            {selectedPartner.activeGatePass?.loadedUnits || 25} Loaded
+                          </span>
+                          <span className="text-xs text-slate-400 font-medium block mt-0.5">
+                            {selectedPartner.activeGatePass?.operator || 'Gate Operator: S. Raman'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent Custody Logs */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
+                        Recent Custody Logs
+                      </span>
+
+                      {selectedPartner.custodyLogs.length > 0 ? (
+                        selectedPartner.custodyLogs.map((log) => (
+                          <div
+                            key={log.id}
+                            className="bg-[#F4F8FA] rounded-xl p-3 flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                <Package className="w-3.5 h-3.5" />
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-900 block text-xs">
+                                  {log.action}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                  {log.customer} · {log.time}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="text-emerald-700 font-extrabold text-xs text-right shrink-0">
+                              {log.changeText}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
+                          No recent custody transactions recorded for this partner today.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Issue New Gate Pass Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowIssueModal(true)}
+                      className="w-full bg-[#101828] hover:bg-slate-800 active:scale-98 text-white font-bold text-sm py-3.5 rounded-2xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4 stroke-[2.2]" />
+                      <span>Issue New Gate Pass</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="py-16 text-center space-y-2">
+                    <p className="text-sm font-semibold text-slate-500">No partner selected</p>
+                    <p className="text-xs text-slate-400">Select a delivery partner from the list to view custody details.</p>
+                  </div>
+                )}
               </div>
             </div>
           </main>
@@ -2039,7 +1875,7 @@ export default function AdminDeliveryPartnersPage({
                   Issue Cylinders to Partner
                 </h3>
                 <p className="text-xs sm:text-[13px] text-slate-500 font-medium mt-1">
-                  Assign filled stock and generate gate pass for {selectedPartner.name}
+                  Assign filled stock and generate gate pass for {selectedPartner?.name || 'Partner'}
                 </p>
               </div>
               <button
@@ -2060,7 +1896,7 @@ export default function AdminDeliveryPartnersPage({
                   Delivery Partner
                 </label>
                 <div className="bg-[#F1F4FA] rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-900">
-                  {selectedPartner.name} ({selectedPartner.code}) · {selectedPartner.area}
+                  {selectedPartner ? `${selectedPartner.name} (${selectedPartner.code}) · ${selectedPartner.area}` : 'No partner selected'}
                 </div>
               </div>
 

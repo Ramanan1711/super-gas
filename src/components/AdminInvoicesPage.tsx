@@ -104,432 +104,7 @@ export interface PaymentRecord {
   auditTrail?: string[];
 }
 
-const detailedInvoicesList: InvoiceRecord[] = [
-  {
-    id: 'inv-101',
-    invoiceNo: 'INV-20261015-001',
-    date: '15 Oct 2026',
-    time: '15 Oct 2026, 09:15 AM',
-    customerName: 'Rajesh Kumar',
-    customerCode: 'CUS-00124',
-    category: 'Domestic',
-    deliveryPartnerName: 'DP-001 Rajesh',
-    deliveryPartnerCode: 'DP-001',
-    vehicle: 'Van 01',
-    cylinders: ['10x 14.2kg'],
-    invoiceAmount: 2200,
-    paidAmount: 2200,
-    balanceDue: 0,
-    status: 'Paid',
-    phone: '+91 98401 22340',
-    address: '12 North Masi St, Madurai',
-    deliveryPass: '#DEL-20261015-04',
-    unitRate: '10 @ ₹220.00 / cylinder refill',
-    emptyCollected: 10,
-    allocationHistory: [
-      {
-        amount: 2200,
-        time: '15 Oct, 09:30 AM',
-        note: 'Settled via Customer UPI (#PAY-8821). Full payment received at delivery.',
-        type: 'settled',
-      },
-    ],
-  },
-  {
-    id: 'inv-102',
-    invoiceNo: 'INV-20261015-002',
-    date: '15 Oct 2026',
-    time: '15 Oct 2026, 11:24 AM',
-    customerName: 'Mohammed Ali',
-    customerCode: 'CUS-00125',
-    category: 'Commercial',
-    deliveryPartnerName: 'DP-003 Suresh',
-    deliveryPartnerCode: 'DP-003',
-    vehicle: 'Truck 01',
-    cylinders: ['5x 19kg'],
-    invoiceAmount: 1200,
-    paidAmount: 500,
-    balanceDue: 700,
-    status: 'Partially Paid',
-    phone: '+91 98421 56789',
-    address: '14/2, KK Nagar 4th Street, Madurai',
-    deliveryPass: '#DEL-20261015-88',
-    unitRate: '5 @ ₹240.00 / cylinder refill',
-    emptyCollected: 5,
-    allocationHistory: [
-      {
-        amount: 500,
-        time: '15 Oct, 11:35 AM',
-        note: 'Settled via Customer UPI (#PAY-9921). Oldest pending invoice prioritized.',
-        type: 'settled',
-      },
-      {
-        amount: 700,
-        time: 'Due Next Cycle',
-        note: 'Assigned to next settlement batch for DP-003 Suresh Babu.',
-        type: 'pending',
-      },
-    ],
-  },
-  {
-    id: 'inv-103',
-    invoiceNo: 'INV-20261014-003',
-    date: '14 Oct 2026',
-    time: '14 Oct 2026, 16:20 PM',
-    customerName: 'Priya Stores',
-    customerCode: 'CUS-00126 · Commercial',
-    category: 'Commercial',
-    deliveryPartnerName: 'DP-001 Rajesh',
-    deliveryPartnerCode: 'DP-001',
-    vehicle: 'Van 01',
-    cylinders: ['8x 19kg'],
-    invoiceAmount: 1800,
-    paidAmount: 0,
-    balanceDue: 1800,
-    status: 'Unpaid',
-    phone: '+91 94432 10987',
-    address: '88 East Veli St, Simmakkal, Madurai',
-    deliveryPass: '#DEL-20261014-41',
-    unitRate: '8 @ ₹225.00 / cylinder refill',
-    emptyCollected: 8,
-    allocationHistory: [
-      {
-        amount: 1800,
-        time: 'Payment Overdue',
-        note: 'Awaiting cashier bank deposit confirmation.',
-        type: 'pending',
-      },
-    ],
-  },
-  {
-    id: 'inv-104',
-    invoiceNo: 'INV-20261014-004',
-    date: '14 Oct 2026',
-    time: '14 Oct 2026, 14:10 PM',
-    customerName: 'Lakshmi Agencies',
-    customerCode: 'CUS-00128 · Bulk',
-    category: 'Bulk Commercial',
-    deliveryPartnerName: 'DP-002 Mohamed',
-    deliveryPartnerCode: 'DP-002',
-    vehicle: 'Van 02',
-    cylinders: ['6x 19kg'],
-    invoiceAmount: 1400,
-    paidAmount: 1400,
-    balanceDue: 0,
-    status: 'Paid',
-    phone: '+91 97890 55412',
-    address: '42 South Gate Industrial Estate, Madurai',
-    deliveryPass: '#DEL-20261014-19',
-    unitRate: '6 @ ₹233.33 / cylinder refill',
-    emptyCollected: 6,
-    allocationHistory: [
-      {
-        amount: 1400,
-        time: '14 Oct, 14:40 PM',
-        note: 'Full settlement processed via Counter Cash Handover.',
-        type: 'settled',
-      },
-    ],
-  },
-  {
-    id: 'inv-105',
-    invoiceNo: 'INV-20261013-005',
-    date: '13 Oct 2026',
-    time: '13 Oct 2026, 12:45 PM',
-    customerName: 'Kumar Traders',
-    customerCode: 'CUS-00130',
-    category: 'Commercial',
-    deliveryPartnerName: 'DP-003 Suresh',
-    deliveryPartnerCode: 'DP-003',
-    vehicle: 'Truck 01',
-    cylinders: ['12x 14.2kg'],
-    invoiceAmount: 2700,
-    paidAmount: 1000,
-    balanceDue: 1700,
-    status: 'Partially Paid',
-    phone: '+91 98940 33441',
-    address: '56 Goods Shed Street, Madurai',
-    deliveryPass: '#DEL-20261013-72',
-    unitRate: '12 @ ₹225.00 / cylinder refill',
-    emptyCollected: 12,
-    allocationHistory: [
-      {
-        amount: 1000,
-        time: '13 Oct, 13:00 PM',
-        note: 'Partial cash handover to driver DP-003 Suresh Babu.',
-        type: 'settled',
-      },
-      {
-        amount: 1700,
-        time: 'Next Settlement Batch',
-        note: 'Invoice balance queued for follow-up.',
-        type: 'pending',
-      },
-    ],
-  },
-  {
-    id: 'inv-106',
-    invoiceNo: 'INV-20261013-006',
-    date: '13 Oct 2026',
-    time: '13 Oct 2026, 10:15 AM',
-    customerName: 'Sri Krishna Sweets',
-    customerCode: 'CUS-00088',
-    category: 'Commercial',
-    deliveryPartnerName: 'DP-002 Mohamed',
-    deliveryPartnerCode: 'DP-002',
-    vehicle: 'Van 02',
-    cylinders: ['4x 19kg'],
-    invoiceAmount: 3700,
-    paidAmount: 3700,
-    balanceDue: 0,
-    status: 'Paid',
-    phone: '+91 98401 54321',
-    address: '77 Town Hall Road, Madurai',
-    deliveryPass: '#DEL-20261013-11',
-    unitRate: '4 @ ₹925.00 / cylinder refill',
-    emptyCollected: 4,
-    allocationHistory: [
-      {
-        amount: 3700,
-        time: '13 Oct, 10:30 AM',
-        note: 'Full settlement via Automated FIFO pool.',
-        type: 'settled',
-      },
-    ],
-  },
-];
-
-const initialPaymentsList: PaymentRecord[] = [
-  {
-    id: 'pay-001',
-    paymentRef: 'PAY-20261015-001',
-    date: '15 Oct 2026',
-    time: '15 Oct 2026, 10:30 AM',
-    customerName: 'Rajesh Kumar',
-    customerCode: 'CUS-00124',
-    relatedInvoicesText: 'INV-20261015-001',
-    deliveryPartner: 'DP-001 Rajesh',
-    receivedAmount: 2200,
-    method: 'Cash',
-    allocatedAmount: 2200,
-    advanceAmount: 0,
-    verification: 'Pending Verif.',
-    phone: '+91 98401 22340',
-    route: 'West Veli St, Madurai',
-    cashDepotVerified: false,
-    fifoSteps: [
-      {
-        title: 'Step 1 · Oldest Invoice',
-        invoiceNo: 'INV-20261015-001 (15 Oct 2026)',
-        amount: 2200,
-        statusBadge: 'Paid',
-        note: 'Cleared full invoice balance; zero pending balance remaining.',
-      },
-    ],
-    auditTrail: [
-      'Field Collection: Handed over in cash to Rajesh at 10:30 AM via Driver App #SG-M01.',
-      'FIFO Allocation: Automated clearance executed in real time by the Super Gas Core Billing engine.',
-      'Depot Physical Audit: Awaiting physical counter cash verification at HQ Depot.',
-    ],
-  },
-  {
-    id: 'pay-002',
-    paymentRef: 'PAY-20261015-002',
-    date: '15 Oct 2026',
-    time: '15 Oct 2026, 11:15 AM',
-    customerName: 'Mohammed Ali',
-    customerCode: 'CUS-00125',
-    relatedInvoicesText: '2 Invoices Settled',
-    deliveryPartner: 'DP-003 Suresh',
-    receivedAmount: 1200,
-    method: 'UPI',
-    allocatedAmount: 1200,
-    advanceAmount: 0,
-    verification: 'Not Applicable',
-    phone: '+91 98421 56789',
-    route: 'KK Nagar 4th St, Madurai',
-    cashDepotVerified: false,
-    fifoSteps: [
-      {
-        title: 'Step 1 · Oldest Invoice',
-        invoiceNo: 'INV-20261012-044 (12 Oct 2026)',
-        amount: 500,
-        statusBadge: 'Paid',
-        note: 'Cleared historical balance in chronological priority.',
-      },
-      {
-        title: 'Step 2 · Subsequent Invoice',
-        invoiceNo: 'INV-20261015-002 (15 Oct 2026)',
-        amount: 700,
-        statusBadge: 'Paid',
-        note: 'Settled delivery bill upon gate handover.',
-      },
-    ],
-    auditTrail: [
-      'Digital Gateway: Received via BharatPe / UPI Terminal Ref #BH-98213.',
-      'FIFO Allocation: Automated clearance executed in real time by Super Gas Core.',
-      'Bank Reconciliation: Verified against HDFC Current Account statement.',
-    ],
-  },
-  {
-    id: 'pay-003',
-    paymentRef: 'PAY-20261015-003',
-    date: '15 Oct 2026',
-    time: '15 Oct 2026, 12:05 PM',
-    customerName: 'Priya Stores',
-    customerCode: 'CUS-00126 · Retail',
-    relatedInvoicesText: '2 Cleared + Advance',
-    isSpecialRelated: true,
-    deliveryPartner: 'DP-002 Mohamed',
-    receivedAmount: 3000,
-    method: 'Cash',
-    allocatedAmount: 2500,
-    advanceAmount: 500,
-    verification: 'Verified',
-    phone: '+91 98945 12345',
-    route: 'Bypass Rd, Madurai',
-    cashDepotVerified: true,
-    fifoSteps: [
-      {
-        title: 'Step 1 · Oldest Invoice',
-        invoiceNo: 'INV-20261010-078 (10 Oct 2026)',
-        amount: 1500,
-        statusBadge: 'Paid',
-        note: 'Cleared full outstanding invoice balance in sequence.',
-      },
-      {
-        title: 'Step 2 · Subsequent Invoice',
-        invoiceNo: 'INV-20261012-081 (12 Oct 2026)',
-        amount: 1000,
-        statusBadge: 'Paid',
-        note: 'Cleared full invoice balance; zero pending balance remaining.',
-      },
-      {
-        title: 'Step 3 · Surplus Customer Advance',
-        invoiceNo: 'Customer Advance Pool (#ADV-20261015-09)',
-        amount: 500,
-        statusBadge: 'Credited',
-        note: 'All past invoices are satisfied. Excess funds retained as pre-payment credit.',
-        isSurplus: true,
-      },
-    ],
-    auditTrail: [
-      'Field Collection: Handed over in cash to Mohamed Irfan at 12:05 PM via Driver App #SG-M04.',
-      'FIFO Allocation: Automated clearance executed in real time by the Super Gas Core Billing engine.',
-      'Depot Physical Audit: Cash physically deposited and verified at HQ Depot at 05:30 PM by Admin S. Raman.',
-    ],
-  },
-  {
-    id: 'pay-004',
-    paymentRef: 'PAY-20261014-004',
-    date: '14 Oct 2026',
-    time: '14 Oct 2026, 04:20 PM',
-    customerName: 'Lakshmi Agencies',
-    customerCode: 'CUS-00128',
-    relatedInvoicesText: 'INV-20261014-004',
-    deliveryPartner: 'DP-001 Rajesh',
-    receivedAmount: 1400,
-    method: 'UPI',
-    allocatedAmount: 1400,
-    advanceAmount: 0,
-    verification: 'Not Applicable',
-    phone: '+91 97890 55412',
-    route: 'South Gate Industrial, Madurai',
-    cashDepotVerified: false,
-    fifoSteps: [
-      {
-        title: 'Step 1 · Oldest Invoice',
-        invoiceNo: 'INV-20261014-004 (14 Oct 2026)',
-        amount: 1400,
-        statusBadge: 'Paid',
-        note: 'Cleared complete dispatch order total.',
-      },
-    ],
-    auditTrail: [
-      'Digital Collection: Customer scanned QR on delivery confirmation receipt.',
-      'FIFO Allocation: Automated clearance executed in real time by Super Gas Core.',
-      'Bank Reconciliation: Verified and tagged to HDFC Settlement ledger.',
-    ],
-  },
-  {
-    id: 'pay-005',
-    paymentRef: 'PAY-20261014-005',
-    date: '14 Oct 2026',
-    time: '14 Oct 2026, 02:10 PM',
-    customerName: 'Hotel Annapoorna',
-    customerCode: 'CUS-00542 · Commercial',
-    relatedInvoicesText: 'INV-20261011-065',
-    deliveryPartner: 'DP-003 Suresh',
-    receivedAmount: 4500,
-    method: 'Cash',
-    allocatedAmount: 4500,
-    advanceAmount: 0,
-    verification: 'Verified',
-    phone: '+91 94432 98765',
-    route: 'Simmakkal Route, Madurai',
-    cashDepotVerified: true,
-    fifoSteps: [
-      {
-        title: 'Step 1 · Oldest Invoice',
-        invoiceNo: 'INV-20261011-065 (11 Oct 2026)',
-        amount: 4500,
-        statusBadge: 'Paid',
-        note: 'High-volume commercial dispatch invoice cleared.',
-      },
-    ],
-    auditTrail: [
-      'Field Collection: Bulk cash handover logged by DP-003 Suresh Babu.',
-      'FIFO Allocation: Real-time invoice liquidation completed.',
-      'Depot Physical Audit: Physical cash verified and sealed in depot night vault.',
-    ],
-  },
-  {
-    id: 'pay-006',
-    paymentRef: 'PAY-20261013-006',
-    date: '13 Oct 2026',
-    time: '13 Oct 2026, 05:45 PM',
-    customerName: 'Sri Krishna Sweets',
-    customerCode: 'CUS-00088',
-    relatedInvoicesText: '3 Invoices Settled',
-    deliveryPartner: 'DP-002 Mohamed',
-    receivedAmount: 4000,
-    method: 'UPI',
-    allocatedAmount: 4000,
-    advanceAmount: 0,
-    verification: 'Not Applicable',
-    phone: '+91 98401 54321',
-    route: 'Town Hall Road, Madurai',
-    cashDepotVerified: false,
-    fifoSteps: [
-      {
-        title: 'Step 1 · Oldest Invoice',
-        invoiceNo: 'INV-20261009-021 (09 Oct 2026)',
-        amount: 1500,
-        statusBadge: 'Paid',
-        note: 'Prioritized oldest outstanding invoice balance.',
-      },
-      {
-        title: 'Step 2 · Intermediate Invoice',
-        invoiceNo: 'INV-20261011-039 (11 Oct 2026)',
-        amount: 2200,
-        statusBadge: 'Paid',
-        note: 'Full invoice cleared.',
-      },
-      {
-        title: 'Step 3 · Current Invoice',
-        invoiceNo: 'INV-20261013-006 (13 Oct 2026)',
-        amount: 300,
-        statusBadge: 'Paid',
-        note: 'Partial invoice balance settled.',
-      },
-    ],
-    auditTrail: [
-      'Digital Gateway: Instant UPI clearance ref #UPI-880291.',
-      'FIFO Allocation: Real-time automated liquidation executed.',
-      'Depot Audit: Ledger confirmed atomically.',
-    ],
-  },
-];
+const detailedInvoicesList: InvoiceRecord[] = [];
 
 export interface CashBreakdownItem {
   paymentRef: string;
@@ -576,381 +151,6 @@ export interface CashReconciliationRecord {
   statusBadgeText: string;
 }
 
-const initialCashReconciliationsList: CashReconciliationRecord[] = [
-  {
-    id: 'cash-001',
-    reconciliationId: 'CASH-20261016-001',
-    collectionDate: '16 Oct 2026',
-    partnerName: 'Rajesh Kumar',
-    partnerCode: 'DP-001',
-    partnerInitials: 'RK',
-    partnerAvatarBg: 'bg-slate-100',
-    partnerAvatarText: 'text-slate-700',
-    cashReported: 12000,
-    cashReceived: null,
-    difference: null,
-    status: 'Pending Verification',
-    settlementRef: '#SET-20261016-01',
-    vehicle: 'Tata Ace (Van 01)',
-    route: 'Anna Nagar Route 1A',
-    timestamp: '16 Oct 2026, 05:30 PM',
-    depot: 'HQ Central Vault',
-    invoicesBatchText: '2 Commercial Invoices',
-    breakdown: [
-      {
-        paymentRef: 'PAY-20261016-001',
-        invoiceNo: 'INV-099',
-        customerName: 'Hotel Saravana',
-        time: '02:15 PM',
-        amount: 6500,
-      },
-      {
-        paymentRef: 'PAY-20261016-002',
-        invoiceNo: 'INV-100',
-        customerName: 'A1 Bakery',
-        time: '04:45 PM',
-        amount: 5500,
-      },
-    ],
-    totalReportedCash: 12000,
-    cashCounted: 0,
-    shortfall: 0,
-    discrepancyNotes: 'Awaiting driver physical cash drop at depot vault.',
-    cashierName: 'Admin S. Raman (Staff ID #8841)',
-    investigationSteps: [
-      {
-        title: 'Field App Synchronized',
-        subtitle: '16 Oct, 05:15 PM • DP Mobile App v3.4',
-      },
-      {
-        title: 'Cash Tray Physical Count Pending',
-        subtitle: 'Awaiting Partner Arrival',
-      },
-    ],
-    statusBadgeText: 'Pending Depot Verification',
-  },
-  {
-    id: 'cash-002',
-    reconciliationId: 'CASH-20261016-002',
-    collectionDate: '16 Oct 2026',
-    partnerName: 'Suresh Babu',
-    partnerCode: 'DP-003',
-    partnerInitials: 'SB',
-    partnerAvatarBg: 'bg-slate-100',
-    partnerAvatarText: 'text-slate-700',
-    cashReported: 8500,
-    cashReceived: 8500,
-    difference: 0,
-    status: 'Verified',
-    settlementRef: '#SET-20261016-02',
-    vehicle: 'Mahindra Bolero (Van 03)',
-    route: 'Simmakkal Central 2B',
-    timestamp: '16 Oct 2026, 05:45 PM',
-    depot: 'HQ Central Vault',
-    invoicesBatchText: '2 Commercial Invoices',
-    breakdown: [
-      {
-        paymentRef: 'PAY-20261016-005',
-        invoiceNo: 'INV-095',
-        customerName: 'Madurai Mess',
-        time: '01:40 PM',
-        amount: 4500,
-      },
-      {
-        paymentRef: 'PAY-20261016-008',
-        invoiceNo: 'INV-096',
-        customerName: 'Annapoorna Express',
-        time: '04:10 PM',
-        amount: 4000,
-      },
-    ],
-    totalReportedCash: 8500,
-    cashCounted: 8500,
-    shortfall: 0,
-    discrepancyNotes: 'Cash physically counted and verified matching report.',
-    cashierName: 'Admin S. Raman (Staff ID #8841)',
-    investigationSteps: [
-      {
-        title: 'Field App Synchronized',
-        subtitle: '16 Oct, 05:20 PM • DP Mobile App v3.4',
-      },
-      {
-        title: 'Cash Tray Physical Count Completed',
-        subtitle: '16 Oct, 05:50 PM • Cashier S. Raman',
-      },
-    ],
-    statusBadgeText: 'Audit Clearance Passed',
-  },
-  {
-    id: 'cash-003',
-    reconciliationId: 'CASH-20261015-003',
-    collectionDate: '15 Oct 2026',
-    partnerName: 'Ravi Shanker',
-    partnerCode: 'DP-004',
-    partnerInitials: 'RS',
-    partnerAvatarBg: 'bg-[#FFE4E6]',
-    partnerAvatarText: 'text-[#BE123C]',
-    cashReported: 15000,
-    cashReceived: 14000,
-    difference: -1000,
-    status: 'Discrepancy Found',
-    settlementRef: '#SET-20261015-04',
-    vehicle: 'Tata Ace (Van 01)',
-    route: 'South City Route 4B',
-    timestamp: '15 Oct 2026, 06:10 PM',
-    depot: 'HQ Central Vault',
-    invoicesBatchText: '3 Commercial Invoices',
-    breakdown: [
-      {
-        paymentRef: 'PAY-20261015-012',
-        invoiceNo: 'INV-091',
-        customerName: 'Hotel Annapoorna',
-        time: '01:20 PM',
-        amount: 5550,
-      },
-      {
-        paymentRef: 'PAY-20261015-015',
-        invoiceNo: 'INV-094',
-        customerName: 'Sri Krishna Sweets',
-        time: '03:45 PM',
-        amount: 4500,
-      },
-      {
-        paymentRef: 'PAY-20261015-018',
-        invoiceNo: 'INV-098',
-        customerName: 'Priya Enterprises',
-        time: '05:10 PM',
-        amount: 4950,
-      },
-    ],
-    totalReportedCash: 15000,
-    cashCounted: 14000,
-    shortfall: -1000,
-    discrepancyNotes: 'Physical handover short by ₹1,000. Driver Ravi reported that customer Hotel Annapoorna paid ₹4,550 instead of ₹5,550 due to a pending dispute on tare weight deduction.',
-    cashierName: 'Admin S. Raman (Staff ID #8841)',
-    investigationSteps: [
-      {
-        title: 'Field App Synchronized',
-        subtitle: '15 Oct, 05:40 PM • DP Mobile App v3.4',
-      },
-      {
-        title: 'Cash Tray Physical Count Completed',
-        subtitle: '15 Oct, 06:15 PM • Cashier S. Raman',
-      },
-      {
-        title: 'Shortfall Flagged & Dispute Logged',
-        subtitle: '15 Oct, 06:22 PM • Ref Case #DISC-901',
-        isFlagged: true,
-      },
-    ],
-    statusBadgeText: 'In Audit Inquiry',
-  },
-  {
-    id: 'cash-004',
-    reconciliationId: 'CASH-20261015-004',
-    collectionDate: '15 Oct 2026',
-    partnerName: 'Rajesh Kumar',
-    partnerCode: 'DP-001',
-    partnerInitials: 'RK',
-    partnerAvatarBg: 'bg-slate-100',
-    partnerAvatarText: 'text-slate-700',
-    cashReported: 6000,
-    cashReceived: 6000,
-    difference: 0,
-    status: 'Verified',
-    settlementRef: '#SET-20261015-05',
-    vehicle: 'Tata Ace (Van 01)',
-    route: 'Anna Nagar Route 1A',
-    timestamp: '15 Oct 2026, 06:00 PM',
-    depot: 'HQ Central Vault',
-    invoicesBatchText: '2 Commercial Invoices',
-    breakdown: [
-      {
-        paymentRef: 'PAY-20261015-021',
-        invoiceNo: 'INV-088',
-        customerName: 'Royal Caterers',
-        time: '02:00 PM',
-        amount: 3500,
-      },
-      {
-        paymentRef: 'PAY-20261015-022',
-        invoiceNo: 'INV-089',
-        customerName: 'Blue Star Tea',
-        time: '04:30 PM',
-        amount: 2500,
-      },
-    ],
-    totalReportedCash: 6000,
-    cashCounted: 6000,
-    shortfall: 0,
-    discrepancyNotes: 'Exact match verified by cashier.',
-    cashierName: 'Admin S. Raman (Staff ID #8841)',
-    investigationSteps: [
-      {
-        title: 'Field App Synchronized',
-        subtitle: '15 Oct, 05:40 PM • DP Mobile App v3.4',
-      },
-      {
-        title: 'Cash Tray Physical Count Completed',
-        subtitle: '15 Oct, 06:05 PM • Cashier S. Raman',
-      },
-    ],
-    statusBadgeText: 'Audit Clearance Passed',
-  },
-  {
-    id: 'cash-005',
-    reconciliationId: 'CASH-20261014-005',
-    collectionDate: '14 Oct 2026',
-    partnerName: 'Mohamed Irfan',
-    partnerCode: 'DP-002',
-    partnerInitials: 'MI',
-    partnerAvatarBg: 'bg-[#EEF2FF]',
-    partnerAvatarText: 'text-[#4F46E5]',
-    cashReported: 10500,
-    cashReceived: 9500,
-    difference: -1000,
-    status: 'Under Investigation',
-    settlementRef: '#SET-20261014-08',
-    vehicle: 'Mahindra Maxx (Van 02)',
-    route: 'K.K. Nagar North 3C',
-    timestamp: '14 Oct 2026, 06:30 PM',
-    depot: 'HQ Central Vault',
-    invoicesBatchText: '3 Commercial Invoices',
-    breakdown: [
-      {
-        paymentRef: 'PAY-20261014-031',
-        invoiceNo: 'INV-081',
-        customerName: 'Vasavi Sweets',
-        time: '01:15 PM',
-        amount: 3500,
-      },
-      {
-        paymentRef: 'PAY-20261014-032',
-        invoiceNo: 'INV-082',
-        customerName: 'Meenakshi Bhavan',
-        time: '03:20 PM',
-        amount: 4000,
-      },
-      {
-        paymentRef: 'PAY-20261014-033',
-        invoiceNo: 'INV-083',
-        customerName: 'City Cafe',
-        time: '05:00 PM',
-        amount: 3000,
-      },
-    ],
-    totalReportedCash: 10500,
-    cashCounted: 9500,
-    shortfall: -1000,
-    discrepancyNotes: 'Shortfall of ₹1,000 reported from Vasavi Sweets delivery.',
-    cashierName: 'Admin S. Raman (Staff ID #8841)',
-    investigationSteps: [
-      {
-        title: 'Field App Synchronized',
-        subtitle: '14 Oct, 05:55 PM • DP Mobile App v3.4',
-      },
-      {
-        title: 'Cash Tray Physical Count Completed',
-        subtitle: '14 Oct, 06:35 PM • Cashier S. Raman',
-      },
-      {
-        title: 'Shortfall Flagged & Dispute Logged',
-        subtitle: '14 Oct, 06:40 PM • Ref Case #DISC-887',
-        isFlagged: true,
-      },
-    ],
-    statusBadgeText: 'In Audit Inquiry',
-  },
-];
-
-const overviewInvoices: InvoiceRecord[] = [
-  {
-    id: 'inv-1',
-    invoiceNo: 'INV-20261024-086',
-    date: '24 Oct 2026',
-    time: 'Today, 14:15 PM',
-    customerName: 'Rajesh Kumar',
-    customerCode: 'CUS-00124',
-    category: 'Domestic',
-    deliveryPartnerName: 'Rajesh Kumar',
-    deliveryPartnerCode: 'DP-001',
-    vehicle: '(Van 01)',
-    cylinders: ['2x 14.2kg Domestic', '1x 19kg Domestic'],
-    invoiceAmount: 1200,
-    paidAmount: 1000,
-    balanceDue: 200,
-    status: 'Partially Paid',
-  },
-  {
-    id: 'inv-2',
-    invoiceNo: 'INV-20261024-085',
-    date: '24 Oct 2026',
-    time: 'Today, 13:40 PM',
-    customerName: 'Sri Krishna Sweets',
-    customerCode: 'CUS-00366',
-    category: 'Commercial',
-    deliveryPartnerName: 'Mohamed Irfan',
-    deliveryPartnerCode: 'DP-002',
-    vehicle: '(Van 02)',
-    cylinders: ['4x 19kg Commercial'],
-    invoiceAmount: 3700,
-    paidAmount: 3700,
-    balanceDue: 0,
-    status: 'Paid',
-  },
-  {
-    id: 'inv-3',
-    invoiceNo: 'INV-20261024-084',
-    date: '24 Oct 2026',
-    time: 'Today, 12:10 PM',
-    customerName: 'Hotel Annapoorna',
-    customerCode: 'CUS-00542',
-    category: 'Bulk Commercial',
-    deliveryPartnerName: 'Suresh Babu',
-    deliveryPartnerCode: 'DP-003',
-    vehicle: '(Truck 01)',
-    cylinders: ['6x 19kg Commercial'],
-    invoiceAmount: 5580,
-    paidAmount: 0,
-    balanceDue: 5580,
-    status: 'Unpaid',
-  },
-  {
-    id: 'inv-4',
-    invoiceNo: 'INV-20261024-083',
-    date: '24 Oct 2026',
-    time: 'Today, 11:20 AM',
-    customerName: 'Priya Enterprises',
-    customerCode: 'CUS-00830',
-    category: 'Small Business',
-    deliveryPartnerName: 'Rajesh Kumar',
-    deliveryPartnerCode: 'DP-001',
-    vehicle: '(Van 01)',
-    cylinders: ['2x 14.2kg Domestic'],
-    invoiceAmount: 1500,
-    paidAmount: 750,
-    balanceDue: 750,
-    status: 'Partially Paid',
-  },
-  {
-    id: 'inv-5',
-    invoiceNo: 'INV-20261024-082',
-    date: '24 Oct 2026',
-    time: 'Today, 10:45 AM',
-    customerName: 'Suresh Babu (Res)',
-    customerCode: 'CUS-00877',
-    category: 'Domestic',
-    deliveryPartnerName: 'Mohamed Irfan',
-    deliveryPartnerCode: 'DP-002',
-    vehicle: '(Van 02)',
-    cylinders: ['1x 14.2kg Domestic'],
-    invoiceAmount: 950,
-    paidAmount: 950,
-    balanceDue: 0,
-    status: 'Paid',
-  },
-];
-
 export interface LedgerTransaction {
   date: string;
   dateTime?: string;
@@ -985,282 +185,6 @@ export interface CustomerLedgerRecord {
   transactions: LedgerTransaction[];
 }
 
-const initialCustomerLedgerList: CustomerLedgerRecord[] = [
-  {
-    id: 'led-001',
-    name: 'Rajesh Kumar',
-    customerCode: 'CUS-00124',
-    phone: '+91 98765 43210',
-    address: 'Plot 14, Anna Nagar 2nd St, Madurai',
-    partnerVehicle: 'DP-001 (Van 04)',
-    category: 'Domestic Consumer',
-    assignedPartner: 'Rajesh Kumar',
-    assignedPartnerCode: 'DP-001',
-    totalInvoiced: 3000,
-    paymentsReceived: 2000,
-    outstandingBalance: 2000,
-    availableAdvance: 500,
-    totalAmountPaid: 2000,
-    paidInvoicesCount: 1,
-    pendingInvoicesCount: 2,
-    status: 'Outstanding',
-    transactions: [
-      {
-        date: '10 Oct 2026',
-        dateTime: '10 Oct 2026, 11:30 AM',
-        type: 'Invoice Created',
-        reference: 'INV-20261010-001',
-        description: 'Delivery: 1x 14.2kg Domestic LPG Cylinder · Ref Slip: #DEL-9812',
-        debit: 1500,
-        credit: null,
-        runningBalance: 2500,
-        note: 'incl. prev balance',
-        actionText: 'View Invoice',
-      },
-      {
-        date: '12 Oct 2026',
-        dateTime: '12 Oct 2026, 02:15 PM',
-        type: 'Payment Received',
-        reference: 'PAY-20261012-001',
-        description: 'Payment received via UPI (UPI-984210992) · Auto FIFO Allocated',
-        debit: null,
-        credit: 1000,
-        runningBalance: 1500,
-        actionText: 'View Receipt',
-      },
-      {
-        date: '15 Oct 2026',
-        dateTime: '15 Oct 2026, 10:15 AM',
-        type: 'Invoice Created',
-        reference: 'INV-20261015-002',
-        description: 'Delivery: 1x 14.2kg Domestic LPG Cylinder · Ref Slip: #DEL-9844',
-        debit: 1500,
-        credit: null,
-        runningBalance: 3000,
-        actionText: 'View Invoice',
-      },
-      {
-        date: '16 Oct 2026',
-        dateTime: '16 Oct 2026, 04:45 PM',
-        type: 'Payment Received',
-        reference: 'PAY-20261016-001',
-        description: 'Cash payment collected by DP-001 · Handover verified in batch: CASH-20261016-001',
-        debit: null,
-        credit: 1000,
-        runningBalance: 2000,
-        actionText: 'View Payment',
-      },
-    ],
-  },
-  {
-    id: 'led-002',
-    name: 'Mohammed Ali',
-    customerCode: 'CUS-00125',
-    phone: '+91 98421 56789',
-    assignedPartner: 'Suresh Babu',
-    assignedPartnerCode: 'DP-003',
-    totalInvoiced: 4200,
-    paymentsReceived: 5200,
-    outstandingBalance: 0,
-    availableAdvance: 1000,
-    status: 'Advance Available',
-    transactions: [
-      {
-        date: '08 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261008-019',
-        description: '15x 19kg Commercial Refill',
-        debit: 4200,
-        credit: 0,
-        runningBalance: 4200,
-      },
-      {
-        date: '14 Oct 2026',
-        type: 'Payment',
-        reference: 'PAY-20261014-088',
-        description: 'UPI Payment via Customer Portal',
-        debit: 0,
-        credit: 5200,
-        runningBalance: -1000,
-      },
-    ],
-  },
-  {
-    id: 'led-003',
-    name: 'Priya Stores',
-    customerCode: 'CUS-00126',
-    phone: '+91 98945 12345',
-    assignedPartner: 'Mohamed Irfan',
-    assignedPartnerCode: 'DP-002',
-    totalInvoiced: 8500,
-    paymentsReceived: 8500,
-    outstandingBalance: 0,
-    availableAdvance: 0,
-    status: 'Settled',
-    transactions: [
-      {
-        date: '10 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261010-078',
-        description: 'Commercial 19kg cylinder replenishment',
-        debit: 4500,
-        credit: 0,
-        runningBalance: 4500,
-      },
-      {
-        date: '12 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261012-081',
-        description: 'Commercial 19kg cylinder replenishment',
-        debit: 4000,
-        credit: 0,
-        runningBalance: 8500,
-      },
-      {
-        date: '15 Oct 2026',
-        type: 'Payment',
-        reference: 'PAY-20261015-003',
-        description: 'Depot Verified Cash Collection',
-        debit: 0,
-        credit: 8500,
-        runningBalance: 0,
-      },
-    ],
-  },
-  {
-    id: 'led-004',
-    name: 'Sri Krishna Sweets',
-    customerCode: 'CUS-00088',
-    phone: '+91 98402 33441',
-    assignedPartner: 'Rajesh Kumar',
-    assignedPartnerCode: 'DP-001',
-    totalInvoiced: 15400,
-    paymentsReceived: 11700,
-    outstandingBalance: 3700,
-    availableAdvance: 0,
-    status: 'Outstanding',
-    transactions: [
-      {
-        date: '05 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261005-022',
-        description: 'Bulk 19kg commercial delivery',
-        debit: 15400,
-        credit: 0,
-        runningBalance: 15400,
-      },
-      {
-        date: '13 Oct 2026',
-        type: 'Payment',
-        reference: 'PAY-20261013-006',
-        description: 'UPI Transfer ref #UPI-880291',
-        debit: 0,
-        credit: 11700,
-        runningBalance: 3700,
-      },
-    ],
-  },
-  {
-    id: 'led-005',
-    name: 'Hotel Annapoorna',
-    customerCode: 'CUS-00129',
-    phone: '+91 99432 11223',
-    assignedPartner: 'Mohamed Irfan',
-    assignedPartnerCode: 'DP-002',
-    totalInvoiced: 18000,
-    paymentsReceived: 12450,
-    outstandingBalance: 5550,
-    availableAdvance: 0,
-    status: 'Outstanding',
-    transactions: [
-      {
-        date: '02 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261002-009',
-        description: 'Commercial kitchens weekly contract refill',
-        debit: 18000,
-        credit: 0,
-        runningBalance: 18000,
-      },
-      {
-        date: '14 Oct 2026',
-        type: 'Payment',
-        reference: 'PAY-20261014-005',
-        description: 'Cash payment with tare weight dispute',
-        debit: 0,
-        credit: 12450,
-        runningBalance: 5550,
-      },
-    ],
-  },
-  {
-    id: 'led-006',
-    name: 'Suresh Babu (Res)',
-    customerCode: 'CUS-00127',
-    phone: '+91 97876 54321',
-    assignedPartner: 'Suresh Babu',
-    assignedPartnerCode: 'DP-003',
-    totalInvoiced: 950,
-    paymentsReceived: 950,
-    outstandingBalance: 0,
-    availableAdvance: 0,
-    status: 'Settled',
-    transactions: [
-      {
-        date: '15 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261015-082',
-        description: '1x 14.2kg Domestic Cylinder',
-        debit: 950,
-        credit: 0,
-        runningBalance: 950,
-      },
-      {
-        date: '15 Oct 2026',
-        type: 'Payment',
-        reference: 'PAY-20261015-091',
-        description: 'UPI Spot Payment',
-        debit: 0,
-        credit: 950,
-        runningBalance: 0,
-      },
-    ],
-  },
-  {
-    id: 'led-007',
-    name: 'Kumar Traders',
-    customerCode: 'CUS-00130',
-    phone: '+91 98760 11223',
-    assignedPartner: 'Unassigned',
-    assignedPartnerCode: '',
-    totalInvoiced: 2700,
-    paymentsReceived: 2700,
-    outstandingBalance: 0,
-    availableAdvance: 0,
-    status: 'Inactive',
-    transactions: [
-      {
-        date: '01 Oct 2026',
-        type: 'Invoice',
-        reference: 'INV-20261001-003',
-        description: 'Domestic commercial refill batch',
-        debit: 2700,
-        credit: 0,
-        runningBalance: 2700,
-      },
-      {
-        date: '03 Oct 2026',
-        type: 'Payment',
-        reference: 'PAY-20261003-011',
-        description: 'Full cash settlement',
-        debit: 0,
-        credit: 2700,
-        runningBalance: 0,
-      },
-    ],
-  },
-];
-
 interface AdminInvoicesPageProps {
   initialTab?: 'Overview' | 'Invoices' | 'Payments' | 'Cash Reconciliation' | 'Customer Ledger';
 }
@@ -1277,52 +201,31 @@ export default function AdminInvoicesPage({
 
   // Invoices Tab Table Selection & Inspection
   const [invoicesList, setInvoicesList] = useState<InvoiceRecord[]>(detailedInvoicesList);
-  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(['inv-101']);
-  const [inspectedInvoice, setInspectedInvoice] = useState<InvoiceRecord | null>(detailedInvoicesList[1]); // Default to Mohammed Ali (INV-20261015-002)
-
-  useEffect(() => {
-    let isMounted = true;
-    fetch('/api/admin/invoices')
-      .then((res) => res.json())
-      .then((json) => {
-        if (!isMounted) return;
-        if (json?.success && json?.data?.invoices?.length) {
-          const liveInvoices: InvoiceRecord[] = json.data.invoices;
-          setInvoicesList((prev) => {
-            const liveNumbers = new Set(liveInvoices.map((i) => i.invoiceNo));
-            const filteredPrev = prev.filter((i) => !liveNumbers.has(i.invoiceNo));
-            return [...liveInvoices, ...filteredPrev];
-          });
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load live invoices:', err);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [inspectedInvoice, setInspectedInvoice] = useState<InvoiceRecord | null>(null);
 
   // Payments Tab State
-  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>(['pay-003']); // Default checked on Priya Stores (PAY-20261015-003)
-  const [inspectedPayment, setInspectedPayment] = useState<PaymentRecord | null>(initialPaymentsList[2]); // Default to PAY-20261015-003 Priya Stores
+  const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>([]);
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
+  const [inspectedPayment, setInspectedPayment] = useState<PaymentRecord | null>(null);
   const [paymentSearchQuery, setPaymentSearchQuery] = useState('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('All Methods');
   const [paymentPartnerFilter, setPaymentPartnerFilter] = useState('All Delivery Partners');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('All Statuses');
 
   // Cash Reconciliation Tab State
-  const [inspectedCashRecord, setInspectedCashRecord] = useState<CashReconciliationRecord | null>(initialCashReconciliationsList[2]); // Default to CASH-20261015-003 Ravi Shanker
+  const [cashReconciliationsList, setCashReconciliationsList] = useState<CashReconciliationRecord[]>([]);
+  const [inspectedCashRecord, setInspectedCashRecord] = useState<CashReconciliationRecord | null>(null);
   const [cashSearchQuery, setCashSearchQuery] = useState('');
   const [cashPartnerFilter, setCashPartnerFilter] = useState('All Delivery Partners');
   const [cashStatusFilter, setCashStatusFilter] = useState('All Statuses');
   const [cashCountedInput, setCashCountedInput] = useState('14,000');
   const [discrepancyMemoInput, setDiscrepancyMemoInput] = useState(
-    'Physical handover short by ₹1,000. Driver Ravi reported that customer Hotel Annapoorna paid ₹4,550 instead of ₹5,550 due to a pending dispute on tare weight deduction.'
+    'Physical handover short by ₹1,000. Driver reported dispute on tare weight deduction.'
   );
 
   // Customer Ledger Tab State
+  const [customerLedgerList, setCustomerLedgerList] = useState<CustomerLedgerRecord[]>([]);
   const [activeCustomerLedgerId, setActiveCustomerLedgerId] = useState<string | null>(null);
   const [individualTxFilter, setIndividualTxFilter] = useState('All Transactions');
   const [individualTxSearch, setIndividualTxSearch] = useState('');
@@ -1332,13 +235,98 @@ export default function AdminInvoicesPage({
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState('Active');
   const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState<CustomerLedgerRecord | null>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/admin/invoices')
+      .then((res) => res.json())
+      .then((json) => {
+        if (!isMounted) return;
+        if (json?.success && json?.data) {
+          if (Array.isArray(json.data.invoices)) {
+            setInvoicesList(json.data.invoices);
+            if (json.data.invoices.length > 0) {
+              setInspectedInvoice(json.data.invoices[0]);
+              setSelectedInvoiceIds([json.data.invoices[0].id]);
+            }
+          }
+          if (Array.isArray(json.data.payments)) {
+            setPaymentsList(json.data.payments);
+            if (json.data.payments.length > 0) {
+              setInspectedPayment(json.data.payments[0]);
+              setSelectedPaymentIds([json.data.payments[0].id]);
+            }
+          }
+          if (Array.isArray(json.data.customerLedgers)) {
+            setCustomerLedgerList(json.data.customerLedgers);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load live invoices:', err);
+      });
+
+    fetch('/api/settlements/history')
+      .then((res) => res.json())
+      .then((json) => {
+        if (!isMounted) return;
+        if (json?.success && Array.isArray(json?.data)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mapped: CashReconciliationRecord[] = json.data.map((s: any) => ({
+            id: s.id,
+            reconciliationId: `CASH-${s.id.slice(-6).toUpperCase()}`,
+            collectionDate: s.date,
+            partnerName: s.partnerName || 'Suresh Babu',
+            partnerCode: s.partnerCode || 'DP-003',
+            partnerInitials: (s.partnerName || 'SB').slice(0, 2).toUpperCase(),
+            partnerAvatarBg: 'bg-slate-100',
+            partnerAvatarText: 'text-slate-700',
+            cashReported: s.cashExpected || 0,
+            cashReceived: s.cashHandedOver || 0,
+            difference: (s.cashHandedOver || 0) - (s.cashExpected || 0),
+            status: s.status === 'Verified' ? ('Verified' as const) : ('Pending Verification' as const),
+            settlementRef: `#SET-${s.id.slice(-6).toUpperCase()}`,
+            vehicle: 'TN 58 AX 4821',
+            route: 'Madurai Route Beat',
+            timestamp: s.date,
+            depot: 'HQ Central Vault',
+            invoicesBatchText: `${s.deliveriesCount || 1} Deliveries`,
+            breakdown: [],
+            totalReportedCash: s.cashExpected || 0,
+            cashCounted: s.cashHandedOver || 0,
+            shortfall: Math.max(0, (s.cashExpected || 0) - (s.cashHandedOver || 0)),
+            discrepancyNotes: 'Handover record from live delivery cycle.',
+            cashierName: 'Admin S. Raman (Staff ID #8841)',
+            investigationSteps: [
+              {
+                title: 'Field Cash Dropped',
+                subtitle: `${s.date} • Gate Handover Point`,
+              },
+            ],
+            statusBadgeText: s.status === 'Verified' ? 'Audit Clearance Passed' : 'Pending Verification',
+          }));
+          setCashReconciliationsList(mapped);
+          if (mapped.length > 0) {
+            setInspectedCashRecord(mapped[0]);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load settlements:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const currentLedgerCustomer = useMemo(() => {
-    if (!activeCustomerLedgerId) return null;
+    if (!activeCustomerLedgerId) return customerLedgerList[0] || null;
     return (
-      initialCustomerLedgerList.find((c) => c.customerCode === activeCustomerLedgerId) ||
-      initialCustomerLedgerList[0]
+      customerLedgerList.find((c) => c.customerCode === activeCustomerLedgerId) ||
+      customerLedgerList[0] ||
+      null
     );
-  }, [activeCustomerLedgerId]);
+  }, [activeCustomerLedgerId, customerLedgerList]);
 
   // Modals
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
@@ -1385,10 +373,10 @@ export default function AdminInvoicesPage({
   };
 
   const toggleSelectAllPayments = () => {
-    if (selectedPaymentIds.length === initialPaymentsList.length) {
+    if (selectedPaymentIds.length === paymentsList.length) {
       setSelectedPaymentIds([]);
     } else {
-      setSelectedPaymentIds(initialPaymentsList.map((p) => p.id));
+      setSelectedPaymentIds(paymentsList.map((p) => p.id));
     }
   };
 
@@ -1418,7 +406,7 @@ export default function AdminInvoicesPage({
   }, [invoicesList, searchQuery, statusFilter, partnerFilter, customerFilter]);
 
   const filteredPayments = useMemo(() => {
-    return initialPaymentsList.filter((pay) => {
+    return paymentsList.filter((pay) => {
       if (paymentSearchQuery.trim()) {
         const q = paymentSearchQuery.toLowerCase();
         const match =
@@ -1440,10 +428,10 @@ export default function AdminInvoicesPage({
       }
       return true;
     });
-  }, [paymentSearchQuery, paymentMethodFilter, paymentPartnerFilter, paymentStatusFilter]);
+  }, [paymentsList, paymentSearchQuery, paymentMethodFilter, paymentPartnerFilter, paymentStatusFilter]);
 
   const filteredCashReconciliations = useMemo(() => {
-    return initialCashReconciliationsList.filter((item) => {
+    return cashReconciliationsList.filter((item) => {
       if (cashSearchQuery.trim()) {
         const q = cashSearchQuery.toLowerCase();
         const match =
@@ -1465,10 +453,10 @@ export default function AdminInvoicesPage({
       }
       return true;
     });
-  }, [cashSearchQuery, cashPartnerFilter, cashStatusFilter]);
+  }, [cashReconciliationsList, cashSearchQuery, cashPartnerFilter, cashStatusFilter]);
 
   const filteredLedgerCustomers = useMemo(() => {
-    return initialCustomerLedgerList.filter((item) => {
+    return customerLedgerList.filter((item) => {
       if (ledgerSearchQuery.trim()) {
         const q = ledgerSearchQuery.toLowerCase();
         const match =
@@ -1498,7 +486,7 @@ export default function AdminInvoicesPage({
       }
       return true;
     });
-  }, [ledgerSearchQuery, ledgerPartnerFilter, ledgerBalanceFilter, ledgerStatusFilter]);
+  }, [customerLedgerList, ledgerSearchQuery, ledgerPartnerFilter, ledgerBalanceFilter, ledgerStatusFilter]);
 
   const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1868,7 +856,7 @@ export default function AdminInvoicesPage({
                           <th className="py-3 px-3 w-8">
                             <input
                               type="checkbox"
-                              checked={selectedPaymentIds.length === initialPaymentsList.length}
+                              checked={paymentsList.length > 0 && selectedPaymentIds.length === paymentsList.length}
                               onChange={toggleSelectAllPayments}
                               className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
                             />
@@ -3109,7 +2097,7 @@ export default function AdminInvoicesPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                      {overviewInvoices.map((inv) => (
+                      {(invoicesList.length > 0 ? invoicesList.slice(0, 5) : []).map((inv) => (
                         <tr key={inv.id} className="hover:bg-slate-50/70 transition">
                           <td className="py-3 px-4">
                             <div className="font-extrabold text-slate-900">{inv.invoiceNo}</div>

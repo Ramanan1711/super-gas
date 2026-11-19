@@ -48,131 +48,19 @@ interface CustomerRecord {
   statusDot: 'green' | 'grey';
 }
 
-// Exact mock dataset from the attached design
-const initialCustomers: CustomerRecord[] = [
+// Delivery partners fallback list
+const defaultDeliveryPartners = [
   {
-    id: '1',
-    name: 'Rajesh Kumar',
-    code: 'CUS-00124',
-    phone: '+91 98765 43210',
-    address: 'Anna Nagar, Madurai',
-    deliveryPartner: {
-      name: 'Rajesh',
-      code: 'DP- 001',
-    },
-    balance: 700,
-    balanceText: '₹700',
-    balanceSubtext: '1 invoice due',
-    isSettled: false,
-    statusDot: 'green',
-  },
-  {
-    id: '2',
-    name: 'Mohamed Irfan',
-    code: 'CUS-00125',
-    phone: '+91 98421 56789',
-    address: 'KK Nagar, Madurai',
-    deliveryPartner: {
-      name: 'Mohamed Irfan',
-      code: 'DP-002',
-    },
-    balance: 0,
-    balanceText: 'Settled (₹0)',
-    isSettled: true,
-    statusDot: 'green',
-  },
-  {
-    id: '3',
-    name: 'Priya Enterprises',
-    code: 'CUS-00126',
-    badge: 'B2B',
-    badgeType: 'B2B',
-    phone: '+91 98945 12345',
-    address: 'Bypass Road, Madurai',
-    deliveryPartner: {
-      name: 'Unassigned - Action Required',
-      code: '',
-      isUnassigned: true,
-    },
-    balance: 1500,
-    balanceText: '₹1,500',
-    balanceSubtext: 'Overdue 4 days',
-    isOverdue: true,
-    statusDot: 'green',
-  },
-  {
-    id: '4',
+    id: 'DP-003',
     name: 'Suresh Babu',
-    code: 'CUS-00127',
     phone: '+91 97876 54321',
-    address: 'Tallakulam, Madurai',
-    deliveryPartner: {
-      name: 'Suresh',
-      code: 'DP- 003',
-    },
-    balance: 0,
-    balanceText: '₹0',
-    balanceSubtext: 'Settled',
-    isSettled: true,
-    statusDot: 'grey',
-  },
-  {
-    id: '5',
-    name: 'Sri Krishna Sweets',
-    code: 'CUS-00128',
-    badge: 'COMMERCIAL',
-    badgeType: 'COMMERCIAL',
-    phone: '+91 98402 33441',
-    address: 'West Veli Street, Madurai',
-    deliveryPartner: {
-      name: 'Rajesh',
-      code: 'DP- 001',
-    },
-    balance: 3700,
-    balanceText: '₹3,700',
-    balanceSubtext: '2 invoices pending',
-    isSettled: false,
-    statusDot: 'green',
-  },
-  {
-    id: '6',
-    name: 'Hotel Annapoorna',
-    code: 'CUS-00129',
-    badge: 'COMMERCIAL',
-    badgeType: 'COMMERCIAL',
-    phone: '+91 99432 11223',
-    address: 'Mattuthavani, Madurai',
-    deliveryPartner: {
-      name: 'Mohamed Irfan',
-      code: 'DP-002',
-    },
-    balance: 5550,
-    balanceText: '₹5,550',
-    balanceSubtext: 'Overdue 12 days',
-    isOverdue: true,
-    statusDot: 'green',
-  },
-];
-
-// Delivery partners list matching design
-const authorizedDeliveryPartners = [
-  {
-    id: 'DP-02',
-    name: 'Suresh Babu',
-    phone: '+91 94432 10987',
     deliveries: 8,
   },
   {
-    id: 'DP-09',
-    name: 'Mohamed Irfan',
-    phone: '+91 97890 55412',
-    deliveries: 10,
-  },
-  {
-    id: 'DP-04',
-    name: 'Rajesh Kumar',
-    phone: '+91 98401 22340',
-    deliveries: 4,
+    id: 'DP-002',
+    name: 'Varman',
+    phone: '+91 98401 55555',
+    deliveries: 5,
   },
 ];
 
@@ -253,31 +141,53 @@ export default function AdminCustomersPage() {
   const [assigningCustomer, setAssigningCustomer] = useState<CustomerRecord | null>(null);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
-  const [customerList, setCustomerList] = useState<CustomerRecord[]>(initialCustomers);
+  const [authorizedDeliveryPartners, setAuthorizedDeliveryPartners] = useState(defaultDeliveryPartners);
+  const [customerList, setCustomerList] = useState<CustomerRecord[]>([]);
 
-  // Fetch live customers from database on mount
+  // Fetch live customers & partners from database on mount
   useEffect(() => {
+    let ignore = false;
     async function loadCustomers() {
       try {
         const res = await fetch('/api/customers?limit=100');
         if (!res.ok) return;
         const result = await res.json();
-        if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+        if (!ignore && result.success && Array.isArray(result.data)) {
           const dbRecords = result.data.map(mapDbCustomerToRecord);
-          // Merge with initial design records (by phone/code) so table remains full and consistent
-          const dbPhones = new Set(dbRecords.map((r: CustomerRecord) => r.phone));
-          const merged = [
-            ...dbRecords,
-            ...initialCustomers.filter((init) => !dbPhones.has(init.phone)),
-          ];
-          setCustomerList(merged);
+          setCustomerList(dbRecords);
         }
       } catch (err) {
         console.warn('Could not load customers from database:', err);
       }
     }
 
+    async function loadPartners() {
+      try {
+        const res = await fetch('/api/drivers');
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!ignore && result.success && Array.isArray(result.data?.partners)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mapped = result.data.partners.map((p: any) => ({
+            id: p.partnerCode || p.id,
+            name: p.name,
+            phone: p.phone,
+            deliveries: p._count?.assignedTrips || p.todayDeliveries || 0,
+          }));
+          if (mapped.length > 0) {
+            setAuthorizedDeliveryPartners(mapped);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load partners for assignment:', err);
+      }
+    }
+
     loadCustomers();
+    loadPartners();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   // Action Popup & Interactive Modals State
@@ -498,7 +408,7 @@ export default function AdminCustomersPage() {
         p.id.toLowerCase().includes(q) ||
         p.phone.toLowerCase().includes(q)
     );
-  }, [partnerSearchQuery]);
+  }, [partnerSearchQuery, authorizedDeliveryPartners]);
 
   const handleResetFilters = () => {
     setSearchQuery('');

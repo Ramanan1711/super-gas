@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from './AdminSidebar';
 import {
@@ -528,8 +528,95 @@ export default function AdminInventoryPage() {
 
   // Datasets state
   const [movements, setMovements] = useState<PartnerMovement[]>(initialMovements);
-  const [stockItems] = useState<StockItem[]>(initialStockItems);
+  const [stockItems, setStockItems] = useState<StockItem[]>(initialStockItems);
   const [auditRecords, setAuditRecords] = useState<AuditRecord[]>(initialAuditRecords);
+
+  // Fetch live depot inventory & partner movements from database on mount
+  useEffect(() => {
+    let ignore = false;
+    async function loadInventoryData() {
+      try {
+        const depotRes = await fetch('/api/inventory/depot?depotCode=MDU-HQ');
+        if (depotRes.ok) {
+          const json = await depotRes.json();
+          if (!ignore && json.success && Array.isArray(json.data?.inventory)) {
+            const mappedStock: StockItem[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            json.data.inventory.forEach((inv: any, idx: number) => {
+              const isDomestic = inv.code.includes('DOM') || inv.code.includes('14.2');
+              const isInd = inv.code.includes('IND') || inv.code.includes('47.5');
+              const category: StockItem['category'] = isDomestic ? 'Domestic' : (isInd ? 'Industrial' : 'Commercial');
+
+              mappedStock.push({
+                id: `stock-f-${idx}`,
+                type: inv.label,
+                category,
+                state: 'FILLED',
+                openingBalance: inv.filled + 20,
+                stockReceived: 20,
+                issuedToPartners: -20,
+                returnedByPartners: 0,
+                adjustments: 0,
+                availableQuantity: inv.filled,
+                minReserveLevel: '100 units',
+                status: inv.filled < 50 ? 'Low Stock' : 'Healthy',
+              });
+
+              mappedStock.push({
+                id: `stock-e-${idx}`,
+                type: inv.label,
+                category,
+                state: 'EMPTY',
+                openingBalance: inv.empty + 10,
+                stockReceived: 0,
+                issuedToPartners: 0,
+                returnedByPartners: 10,
+                adjustments: 0,
+                availableQuantity: inv.empty,
+                minReserveLevel: 'Max 250',
+                status: 'Available',
+              });
+            });
+
+            if (mappedStock.length > 0) {
+              setStockItems(mappedStock);
+            }
+          }
+        }
+
+        const driversRes = await fetch('/api/drivers');
+        if (driversRes.ok) {
+          const dJson = await driversRes.json();
+          if (!ignore && dJson.success && Array.isArray(dJson.data?.partners)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const mappedMovements: PartnerMovement[] = dJson.data.partners.map((p: any, i: number) => ({
+              id: p.id || `pm-${i}`,
+              name: p.name,
+              code: p.partnerCode || `DP-00${i + 1}`,
+              route: p.address?.split(',')?.[0] || 'Central Route',
+              filledIssued: (p.filledCylinders || 0) + 15,
+              filledReturned: 0,
+              emptyCollected: p.emptyCylinders || 0,
+              emptyDeposited: 0,
+              currentFilled: p.filledCylinders || 0,
+              currentEmpty: p.emptyCylinders || 0,
+              lastDispatch: '08:00 AM',
+              status: p.status === 'SUSPENDED' ? 'Not Started' : 'In Field',
+            }));
+            if (mappedMovements.length > 0) {
+              setMovements(mappedMovements);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load inventory data from database:', err);
+      }
+    }
+    loadInventoryData();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const triggerToast = (msg: string) => {
     setActionToast(msg);

@@ -49,14 +49,14 @@ export interface DeliveryStats {
 }
 
 const defaultStats: DeliveryStats = {
-  totalDeliveries: 15,
-  completedDeliveries: 10,
-  pendingDeliveries: 5,
+  totalDeliveries: 0,
+  completedDeliveries: 0,
+  pendingDeliveries: 0,
   cancelledDeliveries: 0,
-  emptyCylindersCollected: 8,
-  totalCollected: 12000,
-  cashInHand: 10500,
-  onlineCollected: 1500,
+  emptyCylindersCollected: 0,
+  totalCollected: 0,
+  cashInHand: 0,
+  onlineCollected: 0,
 };
 
 interface DeliveryScreenProps {
@@ -97,7 +97,7 @@ export default function DeliveryScreen({
     '33 KG': 0,
   });
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
-  const [emptyCount, setEmptyCount] = useState(8);
+  const [emptyCount, setEmptyCount] = useState(0);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
   const [collectedAmount, setCollectedAmount] = useState<number>(0);
   const [outstandingBalance, setOutstandingBalance] = useState<number>(0);
@@ -105,27 +105,37 @@ export default function DeliveryScreen({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeBottomNav, setActiveBottomNav] = useState<'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE'>(initialBottomNav);
 
-  // Cylinder custody stock on van (matching Figma design)
-  const [filledStock, setFilledStock] = useState(10);
-  const [emptyStock, setEmptyStock] = useState(15);
+  // Cylinder custody stock on van (matching live DB)
+  const [filledStock, setFilledStock] = useState(0);
+  const [emptyStock, setEmptyStock] = useState(0);
   const [showCylinderDetails, setShowCylinderDetails] = useState(false);
 
-  // Fetch live delivery tasks on mount
+  // Fetch live delivery tasks & stock on mount
   React.useEffect(() => {
     let ignore = false;
     async function loadTasks() {
       try {
         const res = await fetch('/api/deliveries?driverCode=DP-003');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!ignore && data.deliveries && Array.isArray(data.deliveries) && data.deliveries.length > 0) {
-          setDeliveries(data.deliveries);
-          if (data.stats) {
-            setStats(data.stats);
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore && data.deliveries && Array.isArray(data.deliveries)) {
+            setDeliveries(data.deliveries);
+            if (data.stats) {
+              setStats(data.stats);
+            }
+          }
+        }
+
+        const invRes = await fetch('/api/inventory/vehicle?regNumber=TN%2058%20AX%204821');
+        if (invRes.ok) {
+          const invData = await invRes.json();
+          if (!ignore && invData.success && invData.data?.summary) {
+            setFilledStock(invData.data.summary.totalFilled);
+            setEmptyStock(invData.data.summary.totalEmpty);
           }
         }
       } catch (err) {
-        console.warn('Could not load deliveries from DB, using initial data:', err);
+        console.warn('Could not load deliveries from DB:', err);
       }
     }
     loadTasks();

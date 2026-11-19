@@ -37,72 +37,7 @@ interface ExpenseClaim {
   vanInfo?: string;
 }
 
-const initialClaims: ExpenseClaim[] = [
-  {
-    id: 'exp-1',
-    code: 'EXP-20261024-009',
-    category: 'Fuel / Petrol',
-    categoryType: 'fuel',
-    amount: 1450,
-    dateStr: 'Today, 11:30 AM',
-    status: 'PENDING',
-    paymentStatus: 'Unpaid',
-    hasReceipt: true,
-    vanInfo: 'Van 03 (TN 58 AX 4821)',
-  },
-  {
-    id: 'exp-2',
-    code: 'EXP-20261020-006',
-    category: 'Vehicle Maintenance',
-    categoryType: 'vehicle',
-    amount: 2800,
-    dateStr: '20 Oct 2026',
-    status: 'APPROVED',
-    paymentStatus: 'Paid - Depot UPI',
-    description: 'Brake pad replacement & tyre puncture repair - Madurai',
-    referenceOrNote: 'Ref: UPI-98421092',
-    hasReceipt: true,
-  },
-  {
-    id: 'exp-3',
-    code: 'EXP-20261018-004',
-    category: 'Food / Allowance',
-    categoryType: 'food',
-    amount: 1200,
-    dateStr: '19 Oct 2026',
-    status: 'REJECTED',
-    paymentStatus: 'Disallowed',
-    description: 'Unauthorized route detour lunch',
-    referenceOrNote: 'Audit Disallowed',
-    hasReceipt: false,
-  },
-  {
-    id: 'exp-4',
-    code: 'EXP-20261016-003',
-    category: 'Parking Charges',
-    categoryType: 'parking',
-    amount: 700,
-    dateStr: '16 Oct 2026',
-    status: 'APPROVED',
-    paymentStatus: 'Unpaid',
-    description: 'Commercial loading bay parking tokens at Wholesale..',
-    referenceOrNote: 'Next Friday settlement cycle',
-    hasReceipt: true,
-  },
-  {
-    id: 'exp-5',
-    code: 'EXP-20261022-007',
-    category: 'Mobile / Data',
-    categoryType: 'mobile',
-    amount: 700,
-    dateStr: '22 Oct 2026',
-    status: 'PENDING',
-    paymentStatus: 'Unpaid',
-    description: 'Customer GPS navigation & Super Gas dispatch..',
-    referenceOrNote: 'Attached e-tax bill',
-    hasReceipt: true,
-  },
-];
+const initialClaims: ExpenseClaim[] = [];
 
 export default function DeliveryExpensesScreen() {
   const [claims, setClaims] = useState<ExpenseClaim[]>(initialClaims);
@@ -130,7 +65,7 @@ export default function DeliveryExpensesScreen() {
       const res = await fetch('/api/expenses?partnerCode=DP-003');
       if (!res.ok) return;
       const result = await res.json();
-      if (result.success && Array.isArray(result.data?.claims) && result.data.claims.length > 0) {
+      if (result.success && Array.isArray(result.data?.claims)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapped: ExpenseClaim[] = result.data.claims.map((c: any) => {
           const rawCat = (c.category || '').toLowerCase();
@@ -176,7 +111,7 @@ export default function DeliveryExpensesScreen() {
         const res = await fetch('/api/expenses?partnerCode=DP-003');
         if (!res.ok) return;
         const result = await res.json();
-        if (!ignore && result.success && Array.isArray(result.data?.claims) && result.data.claims.length > 0) {
+        if (!ignore && result.success && Array.isArray(result.data?.claims)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mapped: ExpenseClaim[] = result.data.claims.map((c: any) => {
             const rawCat = (c.category || '').toLowerCase();
