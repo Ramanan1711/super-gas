@@ -53,21 +53,37 @@ export const GET = withApiHandler(async () => {
     totalVehicleEmpty += v.emptyCount;
   });
 
-  const totalRevenue = invoiceAgg._sum.totalAmount || 125000;
-  const todayCollection = todaySettlement?.cashHandedOver || 45000;
-  const activeVehicles = totalVehicles || 6;
-  const cylindersInCirculation = totalFilledCylinders + totalEmptyCylinders + totalVehicleFilled + totalVehicleEmpty || 1250;
+  const completedDeliveriesList = await prisma.delivery.findMany({
+    where: { status: 'DELIVERED' },
+  });
+  let customerHolding = 0;
+  for (const d of completedDeliveriesList) {
+    customerHolding += Math.max(0, d.quantity - (d.emptyCollected || 0));
+  }
+
+  const totalDepotCylinders = totalFilledCylinders + totalEmptyCylinders + totalDamagedCylinders;
+  const totalVehicleCylinders = totalVehicleFilled + totalVehicleEmpty;
+  const cylindersInCirculation = totalDepotCylinders + totalVehicleCylinders + customerHolding;
+
+  const totalRevenue = invoiceAgg._sum.paidAmount ?? invoiceAgg._sum.totalAmount ?? 0;
+  const todayCollection = todaySettlement?.cashHandedOver ?? 0;
+  const activeVehicles = totalVehicles;
 
   return successResponse({
     totalRevenue,
     todayCollection,
     activeVehicles,
     cylindersInCirculation,
+    warehouseCylinders: totalDepotCylinders,
+    vanCylinders: totalVehicleCylinders,
+    customerHolding,
     metrics: {
       totalRevenue,
       todayCollection,
       activeVehicles,
       cylindersInCirculation,
+      warehouseCylinders: totalDepotCylinders,
+      vanCylinders: totalVehicleCylinders,
       completedDeliveries,
       pendingDeliveries,
     },
@@ -93,8 +109,10 @@ export const GET = withApiHandler(async () => {
       depotDamaged: totalDamagedCylinders,
       vehicleFilled: totalVehicleFilled,
       vehicleEmpty: totalVehicleEmpty,
-      totalInDepot: totalFilledCylinders + totalEmptyCylinders + totalDamagedCylinders,
+      totalInDepot: totalDepotCylinders,
+      totalInVehicle: totalVehicleCylinders,
       totalInCirculation: cylindersInCirculation,
+      customerHolding,
     },
     pendingApprovals: {
       expenseClaims: pendingExpenseClaims,

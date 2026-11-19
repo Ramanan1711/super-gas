@@ -6,7 +6,6 @@ import {
   Search,
   Bell,
   ChevronDown,
-  ArrowUpRight,
   RefreshCw,
   Plus,
   PlusCircle,
@@ -35,7 +34,9 @@ export default function AdminDashboard() {
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [todayCollection, setTodayCollection] = useState<number>(0);
   const [activeVehicles, setActiveVehicles] = useState<number>(0);
-  const [cylindersInCirculation, setCylindersInCirculation] = useState<number>(0);
+  const [cylindersInCirculation, setCylindersInCirculation] = useState<number>(80);
+  const [warehouseCylinders, setWarehouseCylinders] = useState<number>(70);
+  const [vanCylinders, setVanCylinders] = useState<number>(10);
   const [completedDeliveries, setCompletedDeliveries] = useState<number>(0);
   const [emptyAvailable, setEmptyAvailable] = useState<number>(0);
   const [overallEmpty, setOverallEmpty] = useState<number>(0);
@@ -129,11 +130,27 @@ export default function AdminDashboard() {
         if (d.totalRevenue !== undefined) setTotalRevenue(d.totalRevenue);
         if (d.todayCollection !== undefined) setTodayCollection(d.todayCollection);
         if (d.activeVehicles !== undefined) setActiveVehicles(d.activeVehicles);
+        if (d.warehouseCylinders !== undefined) {
+          setWarehouseCylinders(d.warehouseCylinders);
+        } else if (d.inventory?.totalInDepot !== undefined) {
+          setWarehouseCylinders(d.inventory.totalInDepot);
+        }
+
+        if (d.vanCylinders !== undefined) {
+          setVanCylinders(d.vanCylinders);
+        } else if (d.inventory?.totalInVehicle !== undefined) {
+          setVanCylinders(d.inventory.totalInVehicle);
+        }
+
         if (d.cylindersInCirculation !== undefined) setCylindersInCirculation(d.cylindersInCirculation);
         if (d.deliveries?.completed !== undefined) setCompletedDeliveries(d.deliveries.completed);
         if (d.inventory?.depotEmpty !== undefined) setEmptyAvailable(d.inventory.depotEmpty);
-        if (d.inventory?.depotEmpty !== undefined && d.inventory?.vehicleEmpty !== undefined) {
-          setOverallEmpty(d.inventory.depotEmpty + d.inventory.vehicleEmpty);
+        if (d.customerHolding !== undefined) {
+          setOverallEmpty(d.customerHolding);
+        } else if (d.inventory?.customerHolding !== undefined) {
+          setOverallEmpty(d.inventory.customerHolding);
+        } else {
+          setOverallEmpty(0);
         }
       }
     } catch (err) {
@@ -325,13 +342,16 @@ export default function AdminDashboard() {
                   <Package className="w-4 h-4 stroke-[2.2]" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">{cylindersInCirculation.toLocaleString('en-IN')}</p>
-              <div className="flex items-center gap-1 text-xs">
-                <span className="font-bold text-[#16A34A] flex items-center">
-                  <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                  +44
-                </span>
-                <span className="text-slate-400 font-medium">this week</span>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-3xl font-black text-slate-900 tracking-tight">
+                  {warehouseCylinders}
+                </p>
+                <span className="text-xs font-bold text-slate-500">in warehouse</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                <span className="font-bold text-red-600">{vanCylinders} in van</span>
+                <span>·</span>
+                <span>{cylindersInCirculation} total stock</span>
               </div>
             </div>
 
@@ -1588,7 +1608,7 @@ export default function AdminDashboard() {
                       AGENCY FILLED
                     </span>
                     <span className="text-xs sm:text-sm font-extrabold text-[#047857] block">
-                      {cylindersInCirculation > 0 ? `${cylindersInCirculation} units ready` : '0 units ready'}
+                      {warehouseCylinders > 0 ? `${warehouseCylinders} units ready` : '0 units ready'}
                     </span>
                   </div>
                   <div>
