@@ -9,7 +9,11 @@ export const GET = withApiHandler(async () => {
     include: {
       assignedVehicle: {
         include: {
-          inventory: true,
+          inventory: {
+            include: {
+              product: true,
+            },
+          },
         },
       },
       depot: true,
@@ -31,12 +35,17 @@ export const GET = withApiHandler(async () => {
   const formattedPartners = partners.map((p: PartnerWithRelations) => {
     let filledCylinders = 0;
     let emptyCylinders = 0;
+    const filledTypes: string[] = [];
     if (p.assignedVehicle?.inventory) {
       for (const s of p.assignedVehicle.inventory) {
         filledCylinders += s.filledCount || 0;
         emptyCylinders += s.emptyCount || 0;
+        if (s.filledCount > 0 && s.product?.label) {
+          filledTypes.push(s.product.label);
+        }
       }
     }
+    const cylinderTypeLabel = filledTypes.length > 0 ? filledTypes.join(', ') : 'Standard LPG Cylinders';
 
     const todayTrip = p.trips?.[0];
     const todayDeliveries = todayTrip?.tasks?.length || 0;
@@ -68,6 +77,7 @@ export const GET = withApiHandler(async () => {
         : null,
       filledCylinders,
       emptyCylinders,
+      cylinderTypeLabel,
       todayDeliveries,
       customersCount: customerIdSet.size,
       documentsCount: p.documents?.length || 0,

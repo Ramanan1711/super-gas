@@ -52,6 +52,7 @@ export interface PartnerRecord {
   customersCount: number;
   filledCylinders: number;
   emptyCylinders: number;
+  cylinderTypeLabel?: string;
   status: 'Active' | 'Standby' | 'On Leave';
   hasWarning?: boolean;
   todayDeliveries: number;
@@ -138,6 +139,7 @@ export default function AdminDeliveryPartnersPage({
       joiningDate?: string | null;
       filledCylinders?: number;
       emptyCylinders?: number;
+      cylinderTypeLabel?: string;
       todayDeliveries?: number;
       customersCount?: number;
     }
@@ -177,6 +179,7 @@ export default function AdminDeliveryPartnersPage({
               customersCount: p.customersCount || 0,
               filledCylinders: p.filledCylinders || 0,
               emptyCylinders: p.emptyCylinders || 0,
+              cylinderTypeLabel: p.cylinderTypeLabel || '14.2 kg Domestic',
               status: p.status === 'SUSPENDED' ? 'On Leave' : (p.status === 'OFF_DUTY' ? 'Standby' : 'Active'),
               hasWarning: false,
               todayDeliveries: p.todayDeliveries || 0,
@@ -1777,7 +1780,7 @@ export default function AdminDeliveryPartnersPage({
                           <span className="text-sm font-bold text-slate-900">Cylinders</span>
                         </div>
                         <span className="text-[11px] text-slate-500 font-medium block">
-                          19kg Commercial
+                          {selectedPartner.cylinderTypeLabel || '14.2 kg Domestic'}
                         </span>
                       </div>
 

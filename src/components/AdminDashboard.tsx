@@ -97,7 +97,13 @@ export default function AdminDashboard() {
             transferType: 'LOAD_VEHICLE',
             notes: 'Gate pass dispatch issued via Quick Issue Card',
             items: dispatchRows.map((r) => ({
-              productCode: r.type.includes('19') ? 'COMM_19KG' : r.type.includes('47') ? 'IND_47KG' : 'DOM_14KG',
+              productCode: r.type.includes('19')
+                ? 'COMM_19KG'
+                : r.type.includes('47')
+                  ? 'IND_47KG'
+                  : (r.type.includes('5 kg') || r.type.startsWith('5'))
+                    ? 'DOM_5KG'
+                    : 'DOM_14KG',
               filledQuantity: r.qty,
               emptyQuantity: 0,
             })),
