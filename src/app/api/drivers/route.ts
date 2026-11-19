@@ -9,14 +9,14 @@ export const GET = withApiHandler(async () => {
     include: {
       assignedVehicle: {
         include: {
-          stocks: true,
+          inventory: true,
         },
       },
       depot: true,
       documents: true,
       trips: {
         where: {
-          date: {
+          shiftDate: {
             gte: new Date(new Date().setHours(0, 0, 0, 0)),
           },
         },
@@ -31,8 +31,8 @@ export const GET = withApiHandler(async () => {
   const formattedPartners = partners.map((p: PartnerWithRelations) => {
     let filledCylinders = 0;
     let emptyCylinders = 0;
-    if (p.assignedVehicle?.stocks) {
-      for (const s of p.assignedVehicle.stocks) {
+    if (p.assignedVehicle?.inventory) {
+      for (const s of p.assignedVehicle.inventory) {
         filledCylinders += s.filledCount || 0;
         emptyCylinders += s.emptyCount || 0;
       }
