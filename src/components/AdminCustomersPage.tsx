@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AdminSidebar from './AdminSidebar';
 import {
@@ -51,6 +51,7 @@ interface CustomerRecord {
 // Delivery partners dynamic list
 const defaultDeliveryPartners: Array<{
   id: string;
+  code: string;
   name: string;
   phone: string;
   deliveries: number;
@@ -136,6 +137,30 @@ export default function AdminCustomersPage() {
   const [authorizedDeliveryPartners, setAuthorizedDeliveryPartners] = useState(defaultDeliveryPartners);
   const [customerList, setCustomerList] = useState<CustomerRecord[]>([]);
 
+  const fetchPartners = useCallback(async () => {
+    try {
+      const res = await fetch('/api/drivers');
+      if (!res.ok) return;
+      const result = await res.json();
+      if (result.success && Array.isArray(result.data?.partners)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapped = result.data.partners.map((p: any) => {
+          const code = p.code || p.partnerCode || p.id;
+          return {
+            id: code,
+            code,
+            name: p.name,
+            phone: p.phone,
+            deliveries: p._count?.assignedTrips || p.todayDeliveries || 0,
+          };
+        });
+        setAuthorizedDeliveryPartners(mapped);
+      }
+    } catch (err) {
+      console.warn('Could not load partners for assignment:', err);
+    }
+  }, []);
+
   // Fetch live customers & partners from database on mount
   useEffect(() => {
     let ignore = false;
@@ -160,12 +185,16 @@ export default function AdminCustomersPage() {
         const result = await res.json();
         if (!ignore && result.success && Array.isArray(result.data?.partners)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mapped = result.data.partners.map((p: any) => ({
-            id: p.partnerCode || p.id,
-            name: p.name,
-            phone: p.phone,
-            deliveries: p._count?.assignedTrips || p.todayDeliveries || 0,
-          }));
+          const mapped = result.data.partners.map((p: any) => {
+            const code = p.code || p.partnerCode || p.id;
+            return {
+              id: code,
+              code,
+              name: p.name,
+              phone: p.phone,
+              deliveries: p._count?.assignedTrips || p.todayDeliveries || 0,
+            };
+          });
           setAuthorizedDeliveryPartners(mapped);
         }
       } catch (err) {
@@ -195,6 +224,7 @@ export default function AdminCustomersPage() {
   const [editPartner, setEditPartner] = useState('');
 
   const handleOpenAssignModal = (cust: CustomerRecord) => {
+    fetchPartners();
     setAssigningCustomer(cust);
     setPartnerSearchQuery('');
     const matched = authorizedDeliveryPartners.find((p) =>
@@ -204,6 +234,7 @@ export default function AdminCustomersPage() {
   };
 
   const handleOpenEditModal = (cust: CustomerRecord) => {
+    fetchPartners();
     setEditingCustomer(cust);
     setEditName(cust.name);
     setEditPhone(cust.phone);
@@ -531,7 +562,10 @@ export default function AdminCustomersPage() {
               {/* Add Customer Button */}
               <button
                 type="button"
-                onClick={() => setShowAddCustomerModal(true)}
+                onClick={() => {
+                  fetchPartners();
+                  setShowAddCustomerModal(true);
+                }}
                 className="bg-[#E81B24] hover:bg-red-700 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm shadow-red-600/30 cursor-pointer transition"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -1158,8 +1192,8 @@ export default function AdminCustomersPage() {
                   >
                     <option value="Leave unassign">Leave unassign</option>
                     {authorizedDeliveryPartners.map((p) => (
-                      <option key={p.id} value={`${p.name} · ${p.id}`}>
-                        {p.name} · {p.id}
+                      <option key={p.id} value={`${p.name} · ${p.code || p.id}`}>
+                        {p.name} ({p.code || p.id})
                       </option>
                     ))}
                   </select>
@@ -1560,8 +1594,8 @@ export default function AdminCustomersPage() {
                 >
                   <option value="Leave unassign">Leave unassign</option>
                   {authorizedDeliveryPartners.map((p) => (
-                    <option key={p.id} value={`${p.name} · ${p.id}`}>
-                      {p.name} · {p.id}
+                    <option key={p.id} value={`${p.name} · ${p.code || p.id}`}>
+                      {p.name} ({p.code || p.id})
                     </option>
                   ))}
                 </select>
