@@ -43,23 +43,25 @@ export default function PaymentScreen({
   const seq = String(customerIndex >= 0 ? customerIndex + 1 : 1).padStart(3, '0');
   const currentInvoiceNo = `INV-${dateCode}-${seq}`;
 
-  // Check if first-time buyer
+  // Check if first-time buyer / residential customer
+  const isDomestic =
+    selectedDelivery.customer.type?.toLowerCase() === 'domestic' ||
+    selectedDelivery.customer.type?.toLowerCase() === 'residential' ||
+    Boolean((selectedDelivery.customer as { customerType?: string }).customerType?.toLowerCase() === 'domestic');
+
   const isFirstTimeBuyer =
-    selectedDelivery.customer.type === 'Domestic' ||
-    selectedDelivery.notes?.toLowerCase().includes('first') ||
-    selectedDelivery.customer.name.toLowerCase().includes('priya');
+    isDomestic ||
+    Boolean(selectedDelivery.notes?.toLowerCase().includes('first')) ||
+    selectedDelivery.customer.name.toLowerCase().includes('priya') ||
+    selectedDelivery.emptyCollected === 0;
 
   // Customer's past deliveries in system
   const customerPastDeliveries = deliveries.filter(
     (d) => d.customerId === selectedDelivery.customerId && d.id !== selectedDelivery.id
   );
 
-  // Derive recent billing history records
+  // Derive recent billing history records from real DB customer deliveries or current ledger balance
   const pastInvoices = useMemo(() => {
-    if (isFirstTimeBuyer) {
-      return [];
-    }
-
     if (customerPastDeliveries.length > 0) {
       return customerPastDeliveries.map((d, i) => {
         const isPaid = d.paymentStatus === 'PAID';
@@ -83,33 +85,23 @@ export default function PaymentScreen({
       });
     }
 
-    // Default ledger history for returning commercial customers
-    // Displays previous paid invoice and previous pending invoice (e.g. ₹800)
-    const pendingAmount = selectedDelivery.customer.name.toLowerCase().includes('saravana')
-      ? 2400
-      : selectedDelivery.customer.name.toLowerCase().includes('muthu')
-      ? 1200
-      : 800;
+    // Check if customer has genuine previous unpaid balance in the database
+    const dbBalance = Number((selectedDelivery.customer as { currentBalance?: number }).currentBalance || 0);
+    if (dbBalance > 0 && !isFirstTimeBuyer) {
+      return [
+        {
+          id: 'prev-balance',
+          invoiceNo: `BAL-${selectedDelivery.customer.customerCode || 'PREV'}`,
+          dateStr: 'Previous Outstanding Balance',
+          amount: dbBalance,
+          isPaid: false,
+          statusText: `₹${dbBalance.toLocaleString('en-IN')} Pending`,
+        },
+      ];
+    }
 
-    return [
-      {
-        id: 'hist-1',
-        invoiceNo: 'INV-20261001-018',
-        dateStr: '01 Oct 2026 · Delivered',
-        amount: 1000,
-        isPaid: true,
-        statusText: '₹1,000 · Paid',
-      },
-      {
-        id: 'hist-2',
-        invoiceNo: 'INV-20261003-021',
-        dateStr: `03 Oct 2026 · ₹${pendingAmount.toLocaleString('en-IN')} Total`,
-        amount: pendingAmount,
-        isPaid: false,
-        statusText: `₹${pendingAmount.toLocaleString('en-IN')} Pending`,
-      },
-    ];
-  }, [isFirstTimeBuyer, customerPastDeliveries, selectedDelivery.customer.name]);
+    return [];
+  }, [customerPastDeliveries, selectedDelivery.customer, isFirstTimeBuyer]);
 
   // Calculate previous pending amount from unpaid past invoices
   const previousOutstanding = useMemo(() => {
@@ -118,7 +110,7 @@ export default function PaymentScreen({
       .reduce((sum, inv) => sum + inv.amount, 0);
   }, [pastInvoices]);
 
-  const currentInvoice = currentInvoiceAmount > 0 ? currentInvoiceAmount : 1200;
+  const currentInvoice = currentInvoiceAmount > 0 ? currentInvoiceAmount : 850;
   const totalBalanceDue = previousOutstanding + currentInvoice;
 
   // Amount received state (defaults to total balance due)

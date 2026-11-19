@@ -45,7 +45,6 @@ export default function ConfirmDeliveryScreen({
   amountReceived,
   paymentMethod,
   totalOutstandingBalance,
-  vanEmptyCollected,
   onBack,
   onConfirmDelivery,
   isSubmitting,
@@ -105,15 +104,8 @@ export default function ConfirmDeliveryScreen({
     ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? 1), 0)
     : deliveredQuantity;
 
-  // Empty cylinders collected from all customers to the van
-  const allDeliveredEmpties = deliveries
-    .filter((d) => d.status === 'DELIVERED')
-    .reduce((sum, d) => sum + (d.emptyCollected || 0), 0);
+  // Empty cylinders collected from this customer in this delivery
   const thisDeliveryEmpties = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
-
-  const totalEmpty = vanEmptyCollected !== undefined
-    ? vanEmptyCollected
-    : (allDeliveredEmpties + thisDeliveryEmpties);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
@@ -228,7 +220,7 @@ export default function ConfirmDeliveryScreen({
                 <span>Van Stock Custody Adjustment: </span>
                 <span className="font-bold text-slate-900">-{totalFilled} Filled</span>
                 <span> | </span>
-                <span className="font-bold text-slate-900">+{totalEmpty} Empty</span>
+                <span className="font-bold text-slate-900">+{thisDeliveryEmpties} Empty</span>
                 <span> safely reconciled</span>
               </p>
             </div>

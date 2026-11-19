@@ -39,11 +39,17 @@ export default function PaymentAllocationScreen({
 }: PaymentAllocationScreenProps) {
   const customerIndex = deliveries.findIndex((d) => d.id === selectedDelivery.id);
 
-  // Check if first-time buyer
+  // Check if first-time buyer / residential customer
+  const isDomestic =
+    selectedDelivery.customer.type?.toLowerCase() === 'domestic' ||
+    selectedDelivery.customer.type?.toLowerCase() === 'residential' ||
+    Boolean((selectedDelivery.customer as { customerType?: string }).customerType?.toLowerCase() === 'domestic');
+
   const isFirstTimeBuyer =
-    selectedDelivery.customer.type === 'Domestic' ||
-    selectedDelivery.notes?.toLowerCase().includes('first') ||
-    selectedDelivery.customer.name.toLowerCase().includes('priya');
+    isDomestic ||
+    Boolean(selectedDelivery.notes?.toLowerCase().includes('first')) ||
+    selectedDelivery.customer.name.toLowerCase().includes('priya') ||
+    selectedDelivery.emptyCollected === 0;
 
   // Customer's past deliveries in system
   const customerPastDeliveries = deliveries.filter(
@@ -58,7 +64,7 @@ export default function PaymentAllocationScreen({
   const currentInvoiceShort = `INV-${seq}`;
 
   // Current invoice payable
-  const currentInvoice = currentInvoiceAmount > 0 ? currentInvoiceAmount : 1200;
+  const currentInvoice = currentInvoiceAmount > 0 ? currentInvoiceAmount : 850;
 
   // Invoices list in chronological order (Oldest -> Intermediate -> Today)
   const invoiceList = useMemo(() => {
@@ -114,40 +120,47 @@ export default function PaymentAllocationScreen({
       ];
     }
 
-    // Default chronological ledger matching Figma specification
+    // Check if customer has genuine previous unpaid balance in the database
+    const dbBalance = Number((selectedDelivery.customer as { currentBalance?: number }).currentBalance || 0);
+    if (dbBalance > 0) {
+      return [
+        {
+          id: 'prev-balance',
+          invoiceNo: `BAL-${selectedDelivery.customer.customerCode || 'PREV'}`,
+          invoiceShort: 'BAL-PREV',
+          shortLabel: 'Prev Bal',
+          dateStr: 'Previous Ledger',
+          role: 'Oldest Pending',
+          amount: dbBalance,
+          isToday: false,
+        },
+        {
+          id: 'current',
+          invoiceNo: currentInvoiceNo,
+          invoiceShort: currentInvoiceShort,
+          shortLabel: 'Inv 2',
+          dateStr: 'Today',
+          role: 'Today',
+          amount: currentInvoice,
+          isToday: true,
+        },
+      ];
+    }
+
+    // Default clean balance: only today's invoice
     return [
       {
-        id: 'hist-1',
-        invoiceNo: 'INV-20261001-018',
-        invoiceShort: 'INV-018',
-        shortLabel: 'Inv 1',
-        dateStr: '01 Oct 2026',
-        role: 'Oldest Pending',
-        amount: 1000,
-        isToday: false,
-      },
-      {
-        id: 'hist-2',
-        invoiceNo: 'INV-20261003-021',
-        invoiceShort: 'INV-021',
-        shortLabel: 'Inv 2',
-        dateStr: '03 Oct 2026',
-        role: 'Intermediate',
-        amount: 800,
-        isToday: false,
-      },
-      {
         id: 'current',
-        invoiceNo: currentInvoiceNo || 'INV-20261005-024',
-        invoiceShort: currentInvoiceShort || 'INV-024',
-        shortLabel: 'Inv 3',
+        invoiceNo: currentInvoiceNo,
+        invoiceShort: currentInvoiceShort,
+        shortLabel: 'Inv 1',
         dateStr: 'Today',
         role: 'Today',
         amount: currentInvoice,
         isToday: true,
       },
     ];
-  }, [isFirstTimeBuyer, customerPastDeliveries, currentInvoiceNo, currentInvoiceShort, currentInvoice]);
+  }, [isFirstTimeBuyer, customerPastDeliveries, currentInvoiceNo, currentInvoiceShort, currentInvoice, selectedDelivery.customer]);
 
   // Execute Automated FIFO Allocation Algorithm
   const allocation = useMemo(() => {

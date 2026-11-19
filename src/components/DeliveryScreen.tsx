@@ -205,14 +205,16 @@ export default function DeliveryScreen({
       '47.5 kg Industrial': 1,
       '5 kg Domestic': 1,
     });
+    // Initialize empty cylinders count from existing delivery record, defaulting strictly to 0
+    // (Never assume 1 or order quantity, as new connection/residential customers may return 0 empties)
+    const initialEmpty = delivery.emptyCollected ?? 0;
     setEmptyCollectedCounts({
-      '14.2 kg Domestic': initialCategory === '14.2 kg Domestic' ? (delivery.emptyCollected || delivery.quantity || 1) : 0,
-      '19 kg Commercial': initialCategory === '19 kg Commercial' ? (delivery.emptyCollected || delivery.quantity || 1) : 0,
+      '14.2 kg Domestic': initialCategory === '14.2 kg Domestic' ? initialEmpty : 0,
+      '19 kg Commercial': initialCategory === '19 kg Commercial' ? initialEmpty : 0,
       '47.5 kg Industrial': 0,
       '5 kg Domestic': 0,
     });
-    setDeliveredQuantity(delivery.quantity);
-    const initialEmpty = delivery.emptyCollected || delivery.quantity || 1;
+    setDeliveredQuantity(delivery.quantity || 1);
     setEmptyCount(initialEmpty);
     setPaymentMode(delivery.paymentMethod === 'UPI' ? 'UPI' : 'CASH');
     setGstRequired(false);
@@ -292,7 +294,8 @@ export default function DeliveryScreen({
         ? selectedCategories.reduce((sum, c) => sum + (categoryQuantities[c] ?? 1), 0)
         : deliveredQuantity;
       const totalEmptyCollected = Object.values(emptyCollectedCounts).reduce((a, b) => a + b, 0);
-      const finalEmptyCount = totalEmptyCollected > 0 ? totalEmptyCollected : emptyCount;
+      // Use exact empty count entered by the driver. 0 is a valid handover amount.
+      const finalEmptyCount = selectedCategories.length > 0 ? totalEmptyCollected : emptyCount;
 
       const itemsPayload = selectedCategories.length > 0
         ? selectedCategories.map((c) => ({

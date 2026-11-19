@@ -47,14 +47,19 @@ export default function CustomerDeliveryScreen({
   const customerCode = selectedDelivery.customer.customerCode || `CUS-${String(customerIndex >= 0 ? customerIndex + 124 : 124).padStart(5, '0')}`;
 
   // Dynamic Pending Empty Return count:
-  // First-time buyers (e.g. Domestic new connections like Priya Sharma, or emptyCollected === 0) have 0 pending empties.
-  // Regular commercial customers have their pending empty exchange count.
-  const isFirstTimeBuyer =
-    selectedDelivery.customer.type === 'Domestic' ||
-    selectedDelivery.notes?.toLowerCase().includes('first') ||
-    selectedDelivery.customer.name.toLowerCase().includes('priya');
+  // First-time buyers / domestic / residential connections have 0 pending empties unless explicitly recorded.
+  const isDomestic =
+    selectedDelivery.customer.type?.toLowerCase() === 'domestic' ||
+    selectedDelivery.customer.type?.toLowerCase() === 'residential' ||
+    Boolean((selectedDelivery.customer as { customerType?: string }).customerType?.toLowerCase() === 'domestic');
 
-  const pendingEmptyCount = isFirstTimeBuyer ? 0 : (selectedDelivery.emptyCollected || selectedDelivery.quantity || 1);
+  const isFirstTimeBuyer =
+    isDomestic ||
+    Boolean(selectedDelivery.notes?.toLowerCase().includes('first')) ||
+    selectedDelivery.customer.name.toLowerCase().includes('priya') ||
+    selectedDelivery.emptyCollected === 0;
+
+  const pendingEmptyCount = isFirstTimeBuyer ? 0 : (selectedDelivery.emptyCollected ?? 0);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
