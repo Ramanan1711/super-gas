@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import AdminSidebar from './AdminSidebar';
 import {
@@ -211,10 +212,28 @@ export default function AdminCustomersPage() {
 
   // Action Popup & Interactive Modals State
   const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
+  const [actionMenuPos, setActionMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [activeCustomer, setActiveCustomer] = useState<CustomerRecord | null>(null);
   const [viewDetailsCustomer, setViewDetailsCustomer] = useState<CustomerRecord | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
   const [viewLedgerCustomer, setViewLedgerCustomer] = useState<CustomerRecord | null>(null);
   const [actionToast, setActionToast] = useState<string | null>(null);
+
+  // Auto-close action menu on window scroll or resize
+  useEffect(() => {
+    if (!activeActionMenuId) return;
+    const handleDismiss = () => {
+      setActiveActionMenuId(null);
+      setActiveCustomer(null);
+      setActionMenuPos(null);
+    };
+    window.addEventListener('scroll', handleDismiss, true);
+    window.addEventListener('resize', handleDismiss);
+    return () => {
+      window.removeEventListener('scroll', handleDismiss, true);
+      window.removeEventListener('resize', handleDismiss);
+    };
+  }, [activeActionMenuId]);
 
   // Edit Customer Form State
   const [editName, setEditName] = useState('');
@@ -743,7 +762,7 @@ export default function AdminCustomersPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredCustomers.map((cust, index) => (
+                    filteredCustomers.map((cust) => (
                       <tr key={cust.id} className="hover:bg-slate-50/80 transition group">
                         {/* 1. Customer Name & Code */}
                         <td className="py-4 pl-6">
@@ -881,9 +900,30 @@ export default function AdminCustomersPage() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setActiveActionMenuId(
-                                    activeActionMenuId === cust.id ? null : cust.id
-                                  );
+                                  if (activeActionMenuId === cust.id) {
+                                    setActiveActionMenuId(null);
+                                    setActiveCustomer(null);
+                                    setActionMenuPos(null);
+                                    return;
+                                  }
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const menuWidth = 235;
+                                  const menuHeight = 240;
+
+                                  let top = rect.bottom + 6;
+                                  if (top + menuHeight > window.innerHeight && rect.top - menuHeight > 10) {
+                                    top = rect.top - menuHeight - 6;
+                                  }
+
+                                  let left = rect.right - menuWidth;
+                                  if (left < 10) left = 10;
+                                  if (left + menuWidth > window.innerWidth - 10) {
+                                    left = window.innerWidth - menuWidth - 10;
+                                  }
+
+                                  setActionMenuPos({ top, left });
+                                  setActiveCustomer(cust);
+                                  setActiveActionMenuId(cust.id);
                                 }}
                                 className={`p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer inline-flex items-center justify-center ${
                                   activeActionMenuId === cust.id ? 'bg-slate-100 text-slate-900' : ''
@@ -892,104 +932,6 @@ export default function AdminCustomersPage() {
                               >
                                 <MoreVertical className="w-4 h-4" />
                               </button>
-
-                              {/* Exact Action Pop up dropdown */}
-                              {activeActionMenuId === cust.id && (
-                                <>
-                                  <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setActiveActionMenuId(null)}
-                                  />
-
-                                  <div
-                                    className={`absolute right-0 z-50 w-[235px] bg-white rounded-[24px] shadow-[0_14px_45px_rgba(0,0,0,0.14)] border border-slate-100/90 p-3 space-y-0.5 text-left animate-in fade-in zoom-in-95 duration-100 ${
-                                      index >= Math.max(0, filteredCustomers.length - 2)
-                                        ? 'bottom-full mb-2'
-                                        : 'top-full mt-2'
-                                    }`}
-                                  >
-                                    {/* 1. View Details */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setViewDetailsCustomer(cust);
-                                        setActiveActionMenuId(null);
-                                      }}
-                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
-                                    >
-                                      <Eye className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
-                                      <span className="text-[13.5px] font-medium text-slate-900">
-                                        View Details
-                                      </span>
-                                    </button>
-
-                                    {/* 2. Edit Customer */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleOpenEditModal(cust);
-                                        setActiveActionMenuId(null);
-                                      }}
-                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
-                                    >
-                                      <Pencil className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
-                                      <span className="text-[13.5px] font-medium text-slate-900">
-                                        Edit Customer
-                                      </span>
-                                    </button>
-
-                                    {/* 3. Reassign Partner */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleOpenAssignModal(cust);
-                                        setActiveActionMenuId(null);
-                                      }}
-                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
-                                    >
-                                      <ArrowLeftRight className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
-                                      <span className="text-[13.5px] font-medium text-slate-900">
-                                        Reassign Partner
-                                      </span>
-                                    </button>
-
-                                    {/* 4. View Customer Ledger */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setViewLedgerCustomer(cust);
-                                        setActiveActionMenuId(null);
-                                      }}
-                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
-                                    >
-                                      <FileText className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
-                                      <span className="text-[13.5px] font-medium text-slate-900">
-                                        View Customer Ledger
-                                      </span>
-                                    </button>
-
-                                    {/* Horizontal Divider */}
-                                    <div className="border-b border-slate-100 my-1.5 mx-1" />
-
-                                    {/* 5. Deactivate Customer */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleToggleCustomerStatus(cust.id);
-                                        setActiveActionMenuId(null);
-                                      }}
-                                      className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-red-50/60 transition cursor-pointer text-left group"
-                                    >
-                                      <Ban className="w-5 h-5 text-[#E81B24] stroke-[1.8] shrink-0" />
-                                      <span className="text-[13.5px] font-medium text-[#E81B24]">
-                                        {cust.statusDot === 'green'
-                                          ? 'Deactivate Customer'
-                                          : 'Activate Customer'}
-                                      </span>
-                                    </button>
-                                  </div>
-                                </>
-                              )}
                             </div>
                           )}
                         </td>
@@ -1401,6 +1343,121 @@ export default function AdminCustomersPage() {
           </div>
         </div>
       )}
+
+      {/* Action Pop up Dropdown (Mounted in Body Portal to prevent table clipping) */}
+      {activeActionMenuId && activeCustomer && actionMenuPos && typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[9998]"
+              onClick={() => {
+                setActiveActionMenuId(null);
+                setActiveCustomer(null);
+                setActionMenuPos(null);
+              }}
+            />
+
+            <div
+              style={{
+                position: 'fixed',
+                top: `${actionMenuPos.top}px`,
+                left: `${actionMenuPos.left}px`,
+              }}
+              className="z-[9999] w-[235px] bg-white rounded-[24px] shadow-[0_16px_50px_rgba(0,0,0,0.18)] border border-slate-200/90 p-3 space-y-0.5 text-left animate-in fade-in zoom-in-95 duration-100"
+            >
+              {/* 1. View Details */}
+              <button
+                type="button"
+                onClick={() => {
+                  setViewDetailsCustomer(activeCustomer);
+                  setActiveActionMenuId(null);
+                  setActiveCustomer(null);
+                  setActionMenuPos(null);
+                }}
+                className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+              >
+                <Eye className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                <span className="text-[13.5px] font-medium text-slate-900">
+                  View Details
+                </span>
+              </button>
+
+              {/* 2. Edit Customer */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleOpenEditModal(activeCustomer);
+                  setActiveActionMenuId(null);
+                  setActiveCustomer(null);
+                  setActionMenuPos(null);
+                }}
+                className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+              >
+                <Pencil className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                <span className="text-[13.5px] font-medium text-slate-900">
+                  Edit Customer
+                </span>
+              </button>
+
+              {/* 3. Reassign Partner */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleOpenAssignModal(activeCustomer);
+                  setActiveActionMenuId(null);
+                  setActiveCustomer(null);
+                  setActionMenuPos(null);
+                }}
+                className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+              >
+                <ArrowLeftRight className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                <span className="text-[13.5px] font-medium text-slate-900">
+                  Reassign Partner
+                </span>
+              </button>
+
+              {/* 4. View Customer Ledger */}
+              <button
+                type="button"
+                onClick={() => {
+                  setViewLedgerCustomer(activeCustomer);
+                  setActiveActionMenuId(null);
+                  setActiveCustomer(null);
+                  setActionMenuPos(null);
+                }}
+                className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer text-left group"
+              >
+                <FileText className="w-5 h-5 text-slate-900 stroke-[1.8] shrink-0" />
+                <span className="text-[13.5px] font-medium text-slate-900">
+                  View Customer Ledger
+                </span>
+              </button>
+
+              {/* Horizontal Divider */}
+              <div className="border-b border-slate-100 my-1.5 mx-1" />
+
+              {/* 5. Deactivate Customer */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleToggleCustomerStatus(activeCustomer.id);
+                  setActiveActionMenuId(null);
+                  setActiveCustomer(null);
+                  setActionMenuPos(null);
+                }}
+                className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-red-50/60 transition cursor-pointer text-left group"
+              >
+                <Ban className="w-5 h-5 text-[#E81B24] stroke-[1.8] shrink-0" />
+                <span className="text-[13.5px] font-medium text-[#E81B24]">
+                  {activeCustomer.statusDot === 'green'
+                    ? 'Deactivate Customer'
+                    : 'Activate Customer'}
+                </span>
+              </button>
+            </div>
+          </>,
+          document.body
+        )}
 
       {/* 1. View Customer Details Modal */}
       {viewDetailsCustomer && (
