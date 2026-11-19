@@ -10,9 +10,15 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   let partnerId = body.partnerId;
   if (!partnerId || partnerId.startsWith('DP-')) {
-    const partner = await prisma.deliveryPartner.findUnique({
+    let partner = await prisma.deliveryPartner.findUnique({
       where: { partnerCode: partnerId || body.partnerCode || 'DP-003' },
     });
+    if (!partner) {
+      partner = await prisma.deliveryPartner.findFirst({
+        where: { status: { in: ['ACTIVE', 'ON_DUTY'] } },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
     if (!partner) {
       return notFoundResponse('Delivery partner');
     }

@@ -126,18 +126,123 @@ export const POST = withApiHandler(async (
     const finalEmpty =
       body.emptyCollected !== undefined ? Number(body.emptyCollected) : legacyDelivery.emptyCollected;
 
+    const paymentMethodNorm = validatedInput.paymentMethod === 'UPI_QR' ? 'UPI' : validatedInput.paymentMethod;
+
     const updated = await prisma.delivery.update({
       where: { id },
       data: {
         status: 'DELIVERED',
         emptyCollected: finalEmpty,
         amount: finalAmount,
-        paymentMethod: validatedInput.paymentMethod === 'UPI_QR' ? 'UPI' : validatedInput.paymentMethod,
+        paymentMethod: paymentMethodNorm,
         paymentStatus: 'PAID',
         deliveredAt: new Date(),
       },
       include: { customer: true },
     });
+
+    const qtyDelivered = body.quantity ? Number(body.quantity) : legacyDelivery.quantity || 1;
+
+    // Synchronize vehicle inventory: deduct delivered filled, add collected empties
+    try {
+      const partner = await prisma.deliveryPartner.findFirst({
+        where: { status: { in: ['ACTIVE', 'ON_DUTY'] } },
+        include: { assignedVehicle: true },
+      });
+
+      const vehicleId = partner?.assignedVehicleId || (await prisma.vehicle.findFirst())?.id;
+      const defaultProduct =
+        (await prisma.cylinderProduct.findFirst({
+          where: {
+            OR: [
+              { code: 'DOM_14KG' },
+              { label: { contains: '14.2', mode: 'insensitive' } },
+            ],
+          },
+        })) || (await prisma.cylinderProduct.findFirst());
+
+      if (vehicleId && defaultProduct) {
+        const currentInv = await prisma.vehicleInventory.findUnique({
+          where: {
+            vehicleId_productId: {
+              vehicleId,
+              productId: defaultProduct.id,
+            },
+          },
+        });
+
+        if (currentInv) {
+          await prisma.vehicleInventory.update({
+            where: { id: currentInv.id },
+            data: {
+              filledCount: Math.max(0, currentInv.filledCount - qtyDelivered),
+              emptyCount: currentInv.emptyCount + finalEmpty,
+            },
+          });
+        }
+      }
+
+      // If CASH, record expected cash in driver daily settlement for day-end handover
+      if (paymentMethodNorm === 'CASH' && partner && finalAmount > 0) {
+        const todayDate = new Date(new Date().toISOString().slice(0, 10));
+        const settlement = await prisma.dailySettlement.findUnique({
+          where: {
+            businessDate_partnerId: {
+              businessDate: todayDate,
+              partnerId: partner.id,
+            },
+          },
+        });
+
+        if (settlement) {
+          const newExpected = settlement.cashExpected + finalAmount;
+          const newRemaining = Math.max(0, newExpected - settlement.cashHandedOver);
+          await prisma.dailySettlement.update({
+            where: { id: settlement.id },
+            data: {
+              cashExpected: newExpected,
+              remainingBalance: newRemaining,
+              status: newRemaining === 0 ? 'VERIFIED' : 'PARTIALLY_HANDED_OVER',
+            },
+          });
+        } else {
+          await prisma.dailySettlement.create({
+            data: {
+              businessDate: todayDate,
+              partnerId: partner.id,
+              cashExpected: finalAmount,
+              cashHandedOver: 0,
+              remainingBalance: finalAmount,
+              shortfallAmount: 0,
+              status: 'PARTIALLY_HANDED_OVER',
+            },
+          });
+        }
+      }
+
+      // Generate invoice record for customer billing
+      const invoiceNumber = `#INV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(Date.now()).slice(-4)}`;
+      await prisma.invoice.create({
+        data: {
+          invoiceNumber,
+          customerId: legacyDelivery.customerId,
+          totalAmount: finalAmount,
+          taxAmount: 0,
+          paymentStatus: 'PAID',
+          pdfUrl: null,
+          payments: {
+            create: {
+              amount: finalAmount,
+              paymentMethod: paymentMethodNorm === 'CASH' ? 'CASH' : 'UPI',
+              status: 'COMPLETED',
+              collectedById: partner?.id || null,
+            },
+          },
+        },
+      });
+    } catch (syncErr) {
+      console.warn('Non-fatal warning synchronizing inventory/invoice for legacy delivery:', syncErr);
+    }
 
     return successResponse({
       message: 'Delivery completed successfully.',

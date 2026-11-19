@@ -115,7 +115,7 @@ export default function DeliveryScreen({
     let ignore = false;
     async function loadTasks() {
       try {
-        const res = await fetch('/api/deliveries?driverCode=DP-003');
+        const res = await fetch('/api/deliveries');
         if (res.ok) {
           const data = await res.json();
           if (!ignore && data.deliveries && Array.isArray(data.deliveries)) {

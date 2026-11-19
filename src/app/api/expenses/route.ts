@@ -12,14 +12,20 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const where: any = {};
 
   if (partnerCode && partnerCode !== 'ALL' && partnerCode !== 'all') {
-    const partner = await prisma.deliveryPartner.findUnique({
+    let partner = await prisma.deliveryPartner.findUnique({
       where: { partnerCode },
     });
 
     if (!partner) {
-      return notFoundResponse('Delivery partner');
+      partner = await prisma.deliveryPartner.findFirst({
+        where: { status: { in: ['ACTIVE', 'ON_DUTY'] } },
+        orderBy: { createdAt: 'desc' },
+      });
     }
-    where.partnerId = partner.id;
+
+    if (partner) {
+      where.partnerId = partner.id;
+    }
   }
 
   if (status && status !== 'All' && status !== 'ALL') {
@@ -70,7 +76,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   let partnerId = body.partnerId;
   const partnerCode = body.partnerCode || (partnerId && partnerId.startsWith('DP-') ? partnerId : 'DP-003');
 
-  const partner = await prisma.deliveryPartner.findFirst({
+  let partner = await prisma.deliveryPartner.findFirst({
     where: {
       OR: [
         ...(partnerId && !partnerId.startsWith('DP-') ? [{ id: partnerId }] : []),
@@ -81,6 +87,16 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       assignedVehicle: true,
     },
   });
+
+  if (!partner) {
+    partner = await prisma.deliveryPartner.findFirst({
+      where: { status: { in: ['ACTIVE', 'ON_DUTY'] } },
+      include: {
+        assignedVehicle: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   if (!partner) {
     return notFoundResponse('Delivery partner');

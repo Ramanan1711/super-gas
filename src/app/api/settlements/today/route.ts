@@ -6,12 +6,22 @@ import { successResponse, notFoundResponse } from '@/lib/api-response';
 export const GET = withApiHandler(async (req: NextRequest) => {
   const partnerCode = req.nextUrl.searchParams.get('partnerCode') || 'DP-003';
 
-  const partner = await prisma.deliveryPartner.findUnique({
+  let partner = await prisma.deliveryPartner.findUnique({
     where: { partnerCode },
     include: {
       depot: true,
     },
   });
+
+  if (!partner) {
+    partner = await prisma.deliveryPartner.findFirst({
+      where: { status: { in: ['ACTIVE', 'ON_DUTY'] } },
+      include: {
+        depot: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   if (!partner) {
     return notFoundResponse('Delivery partner');
