@@ -387,12 +387,22 @@ export class DeliveryTransactionService {
               data: { filledCount: Math.max(0, depotInv.filledCount - item.filledQuantity) },
             });
           }
-          if (vehicleInv) {
-            await tx.vehicleInventory.update({
-              where: { id: vehicleInv.id },
-              data: { filledCount: vehicleInv.filledCount + item.filledQuantity },
-            });
-          }
+          await tx.vehicleInventory.upsert({
+            where: {
+              vehicleId_productId: {
+                vehicleId,
+                productId,
+              },
+            },
+            update: { filledCount: { increment: item.filledQuantity } },
+            create: {
+              vehicleId,
+              productId,
+              filledCount: item.filledQuantity,
+              emptyCount: 0,
+              damagedCount: 0,
+            },
+          });
         } else if (input.transferType === 'UNLOAD_VEHICLE') {
           // Vehicle -> Depot: deduct empties/damaged from vehicle, add to depot
           if (vehicleInv) {
@@ -404,15 +414,25 @@ export class DeliveryTransactionService {
               },
             });
           }
-          if (depotInv) {
-            await tx.depotInventory.update({
-              where: { id: depotInv.id },
-              data: {
-                emptyCount: depotInv.emptyCount + item.emptyQuantity,
-                damagedCount: depotInv.damagedCount + item.damagedQuantity,
+          await tx.depotInventory.upsert({
+            where: {
+              depotId_productId: {
+                depotId,
+                productId,
               },
-            });
-          }
+            },
+            update: {
+              emptyCount: { increment: item.emptyQuantity },
+              damagedCount: { increment: item.damagedQuantity },
+            },
+            create: {
+              depotId,
+              productId,
+              filledCount: 0,
+              emptyCount: item.emptyQuantity,
+              damagedCount: item.damagedQuantity,
+            },
+          });
         }
       }
 

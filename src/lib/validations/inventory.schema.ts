@@ -14,7 +14,13 @@ export const stockTransferSchema = z.object({
   vehicleReg: z.string().optional(),
   partnerId: z.string().optional(),
   partnerCode: z.string().optional(),
-  transferType: z.enum(['LOAD_VEHICLE', 'UNLOAD_VEHICLE', 'DEPOT_REFILL']),
+  transferType: z.enum([
+    'LOAD_VEHICLE',
+    'UNLOAD_VEHICLE',
+    'DEPOT_REFILL',
+    'DEPOT_TO_VEHICLE',
+    'VEHICLE_TO_DEPOT',
+  ]),
   notes: z.string().max(500).optional(),
   items: z.array(stockTransferItemInputSchema).min(1, 'At least one product item is required'),
 });

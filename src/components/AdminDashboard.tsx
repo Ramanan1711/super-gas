@@ -94,7 +94,7 @@ export default function AdminDashboard() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             partnerCode: curDriver.code,
-            transferType: 'DEPOT_TO_VEHICLE',
+            transferType: 'LOAD_VEHICLE',
             notes: 'Gate pass dispatch issued via Quick Issue Card',
             items: dispatchRows.map((r) => ({
               productCode: r.type.includes('19') ? 'COMM_19KG' : r.type.includes('47') ? 'IND_47KG' : 'DOM_14KG',
