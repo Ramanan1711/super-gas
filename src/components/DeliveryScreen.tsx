@@ -85,16 +85,18 @@ export default function DeliveryScreen({
   // Delivery Flow State
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [step, setStep] = useState<'CATEGORY' | 'EMPTY_COLLECTION' | 'INVOICE' | 'PAYMENT' | 'PAYMENT_ALLOCATION' | 'CONFIRM_DELIVERY' | 'COMPLETED'>('CATEGORY');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['14.2 kg Domestic']);
   const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({
-    '5 KG': 1,
-    '21 KG': 1,
-    '33 KG': 1,
+    '14.2 kg Domestic': 1,
+    '19 kg Commercial': 1,
+    '47.5 kg Industrial': 1,
+    '5 kg Domestic': 1,
   });
   const [emptyCollectedCounts, setEmptyCollectedCounts] = useState<Record<string, number>>({
-    '5 KG': 0,
-    '21 KG': 0,
-    '33 KG': 0,
+    '14.2 kg Domestic': 0,
+    '19 kg Commercial': 0,
+    '47.5 kg Industrial': 0,
+    '5 kg Domestic': 0,
   });
   const [deliveredQuantity, setDeliveredQuantity] = useState(1);
   const [emptyCount, setEmptyCount] = useState(0);
@@ -191,23 +193,26 @@ export default function DeliveryScreen({
   // Handle open delivery flow
   const handleStartDelivery = (delivery: Delivery) => {
     setSelectedDelivery(delivery);
-    setSelectedCategories([]);
+    const initialCategory =
+      delivery.cylinderType && delivery.cylinderType.includes('19')
+        ? '19 kg Commercial'
+        : '14.2 kg Domestic';
+
+    setSelectedCategories([initialCategory]);
     setCategoryQuantities({
-      '5 KG': 1,
-      '21 KG': 1,
-      '33 KG': 1,
+      '14.2 kg Domestic': initialCategory === '14.2 kg Domestic' ? (delivery.quantity || 1) : 1,
+      '19 kg Commercial': initialCategory === '19 kg Commercial' ? (delivery.quantity || 1) : 1,
+      '47.5 kg Industrial': 1,
+      '5 kg Domestic': 1,
     });
     setEmptyCollectedCounts({
-      '5 KG': 0,
-      '21 KG': 0,
-      '33 KG': 0,
+      '14.2 kg Domestic': initialCategory === '14.2 kg Domestic' ? (delivery.emptyCollected || delivery.quantity || 1) : 0,
+      '19 kg Commercial': initialCategory === '19 kg Commercial' ? (delivery.emptyCollected || delivery.quantity || 1) : 0,
+      '47.5 kg Industrial': 0,
+      '5 kg Domestic': 0,
     });
     setDeliveredQuantity(delivery.quantity);
-    const isFirstTime =
-      delivery.customer.type === 'Domestic' ||
-      delivery.notes?.toLowerCase().includes('first') ||
-      delivery.customer.name.toLowerCase().includes('priya');
-    const initialEmpty = isFirstTime ? 0 : (delivery.emptyCollected || delivery.quantity || 1);
+    const initialEmpty = delivery.emptyCollected || delivery.quantity || 1;
     setEmptyCount(initialEmpty);
     setPaymentMode(delivery.paymentMethod === 'UPI' ? 'UPI' : 'CASH');
     setGstRequired(false);
@@ -259,16 +264,17 @@ export default function DeliveryScreen({
   // Dynamic current invoice total
   const currentInvoiceTotal = useMemo(() => {
     const CYLINDER_PRICES: Record<string, number> = {
-      '5 KG': 400,
-      '21 KG': 2000,
-      '33 KG': 4500,
+      '14.2 kg Domestic': 850,
+      '19 kg Commercial': 1850,
+      '47.5 kg Industrial': 4200,
+      '5 kg Domestic': 380,
     };
     const sub = selectedCategories.length > 0
       ? selectedCategories.reduce(
-          (sum, cat) => sum + (categoryQuantities[cat] ?? 1) * (CYLINDER_PRICES[cat] ?? 2000),
+          (sum, cat) => sum + (categoryQuantities[cat] ?? 1) * (CYLINDER_PRICES[cat] ?? (cat.includes('19') ? 1850 : cat.includes('47') ? 4200 : cat.includes('5') ? 380 : 850)),
           0
         )
-      : (CYLINDER_PRICES['21 KG'] ?? 2000);
+      : (CYLINDER_PRICES['14.2 kg Domestic'] ?? 850);
     return gstRequired ? Math.round(sub * 1.05) : sub;
   }, [selectedCategories, categoryQuantities, gstRequired]);
 
@@ -291,14 +297,20 @@ export default function DeliveryScreen({
       const itemsPayload = selectedCategories.length > 0
         ? selectedCategories.map((c) => ({
             category: c,
-            productCode: c.includes('47') ? '47.5KG_IND' : c.includes('25') ? '25KG_COM' : '19KG_COMM',
+            productCode: c.includes('19')
+              ? 'COMM_19KG'
+              : c.includes('47')
+              ? 'IND_47KG'
+              : c.includes('5')
+              ? 'DOM_5KG'
+              : 'DOM_14KG',
             filledDelivered: categoryQuantities[c] ?? 1,
             emptyCollected: emptyCollectedCounts[c] ?? 0,
             unitPrice: Math.round(finalAmount / (totalDelivered || 1)),
           }))
         : [
             {
-              productCode: '19KG_COMM',
+              productCode: selectedDelivery.cylinderType.includes('19') ? 'COMM_19KG' : 'DOM_14KG',
               filledDelivered: totalDelivered || 1,
               emptyCollected: finalEmptyCount,
               unitPrice: finalAmount,

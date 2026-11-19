@@ -88,13 +88,13 @@ export default function ConfirmDeliveryScreen({
 
   // Formatted Filled Delivered
   const filledDeliveredStr = selectedCategories.length > 0
-    ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x${c.replace(/\s+/g, '').toLowerCase()}`).join(', ')
-    : `${deliveredQuantity}x${selectedDelivery.cylinderType.replace(/\s+/g, '').toLowerCase()}`;
+    ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x ${c}`).join(', ')
+    : `${deliveredQuantity}x ${selectedDelivery.cylinderType}`;
 
-  // Formatted Empty Collected from THIS customer (no hardcoded fallback)
-  const collectedEmptyCategories = ['5 KG', '21 KG', '33 KG']
-    .filter((cat) => (emptyCollectedCounts[cat] ?? 0) > 0)
-    .map((cat) => `${emptyCollectedCounts[cat]}x${cat.replace(/\s+/g, '').toLowerCase()}`);
+  // Formatted Empty Collected from THIS customer (dynamic from emptyCollectedCounts)
+  const collectedEmptyCategories = Object.entries(emptyCollectedCounts)
+    .filter(([, count]) => (count ?? 0) > 0)
+    .map(([cat, count]) => `${count}x ${cat}`);
 
   const emptyCollectedStr = collectedEmptyCategories.length > 0
     ? collectedEmptyCategories.join(', ')
@@ -113,7 +113,7 @@ export default function ConfirmDeliveryScreen({
 
   const totalEmpty = vanEmptyCollected !== undefined
     ? vanEmptyCollected
-    : (allDeliveredEmpties + thisDeliveryEmpties || 5);
+    : (allDeliveredEmpties + thisDeliveryEmpties);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">

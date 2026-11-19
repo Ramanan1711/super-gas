@@ -152,7 +152,13 @@ export default function CustomerDeliveryScreen({
               Select Category
             </h3>
             <div className="space-y-4">
-              {['5 KG', '21 KG', '33 KG'].map((category) => {
+              {[
+                { name: '14.2 kg Domestic', price: '₹850', type: 'Domestic' },
+                { name: '19 kg Commercial', price: '₹1,850', type: 'Commercial' },
+                { name: '47.5 kg Industrial', price: '₹4,200', type: 'Industrial' },
+                { name: '5 kg Domestic', price: '₹380', type: 'Domestic' },
+              ].map((item) => {
+                const category = item.name;
                 const isChecked = selectedCategories.includes(category);
                 return (
                   <div
@@ -174,9 +180,14 @@ export default function CustomerDeliveryScreen({
                       >
                         {isChecked && <Check className="w-3.5 h-3.5 stroke-[3] text-white" />}
                       </div>
-                      <span className="text-sm sm:text-[15px] font-bold text-slate-900 tracking-wide">
-                        {category}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm sm:text-[15px] font-bold text-slate-900 tracking-wide">
+                          {category}
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                          {item.price}
+                        </span>
+                      </div>
                     </button>
 
                     {/* Quantity Counter (Displayed when checkbox is selected) */}
@@ -235,22 +246,15 @@ export default function CustomerDeliveryScreen({
                     </p>
                   ))
                 ) : (
-                  <>
-                    <p className="text-sm font-bold text-slate-900 tracking-wide">5 KG X 1</p>
-                    <p className="text-sm font-bold text-slate-900 tracking-wide">21 KG X 1</p>
-                  </>
+                  <p className="text-sm font-bold text-slate-900 tracking-wide">14.2 kg Domestic X 1</p>
                 )}
               </div>
             </div>
 
             {/* Empty Cylinders Collection Cards */}
-            {[
-              { category: '5 KG', defaultCount: 0 },
-              { category: '21 KG', defaultCount: 0 },
-              { category: '33 KG', defaultCount: 0 },
-            ].map((item) => (
+            {(selectedCategories.length > 0 ? selectedCategories : ['14.2 kg Domestic']).map((category) => (
               <div
-                key={item.category}
+                key={category}
                 className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-3"
               >
                 <div className="flex items-center justify-between">
@@ -258,7 +262,7 @@ export default function CustomerDeliveryScreen({
                     Empty Cylinders
                   </h3>
                   <span className="text-xs font-bold text-slate-900">
-                    {item.category}
+                    {category}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 font-normal">
@@ -281,19 +285,19 @@ export default function CustomerDeliveryScreen({
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => onUpdateEmptyCount(item.category, -1)}
+                      onClick={() => onUpdateEmptyCount(category, -1)}
                       className="w-8 h-8 rounded-lg bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 active:scale-95 flex items-center justify-center text-slate-900 transition cursor-pointer"
                     >
                       <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
 
                     <span className="font-extrabold text-slate-900 text-lg sm:text-xl min-w-[24px] text-center">
-                      {emptyCollectedCounts[item.category] ?? 0}
+                      {emptyCollectedCounts[category] ?? 0}
                     </span>
 
                     <button
                       type="button"
-                      onClick={() => onUpdateEmptyCount(item.category, 1)}
+                      onClick={() => onUpdateEmptyCount(category, 1)}
                       className="w-8 h-8 rounded-lg bg-[#E81B24] hover:bg-red-700 active:scale-95 shadow-xs flex items-center justify-center text-white transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5 stroke-[3]" />
@@ -317,17 +321,17 @@ export default function CustomerDeliveryScreen({
                   <span className="text-slate-600 font-medium">Filled Delivered</span>
                   <span className="font-bold text-slate-900 text-right">
                     {selectedCategories.length > 0
-                      ? selectedCategories.map((cat) => `${categoryQuantities[cat] ?? 1}x${cat.toLowerCase().replace(' ', '')}`).join(', ')
-                      : '1x5kg, 1x21kg'}
+                      ? selectedCategories.map((cat) => `${categoryQuantities[cat] ?? 1}x ${cat}`).join(', ')
+                      : '1x 14.2 kg Domestic'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-slate-600 font-medium">Empty Collected</span>
                   <span className="font-bold text-slate-900 text-right">
                     {(() => {
-                      const collected = ['5 KG', '21 KG', '33 KG']
-                        .filter((cat) => (emptyCollectedCounts[cat] ?? 0) > 0)
-                        .map((cat) => `${emptyCollectedCounts[cat]}x${cat.toLowerCase().replace(' ', '')}`);
+                      const collected = Object.entries(emptyCollectedCounts)
+                        .filter(([, count]) => (count ?? 0) > 0)
+                        .map(([cat, count]) => `${count}x ${cat}`);
                       return collected.length > 0 ? collected.join(', ') : '0 Collected';
                     })()}
                   </span>

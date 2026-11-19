@@ -92,14 +92,14 @@ export default function InvoiceScreen({
 
   // Dynamic Outgoing (Handed Over) Text from previous page
   const outgoingCategories = selectedCategories.length > 0
-    ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x${c.toLowerCase().replace(' ', '')}`).join(', ')
-    : '1x21kg';
+    ? selectedCategories.map((c) => `${categoryQuantities[c] ?? 1}x ${c}`).join(', ')
+    : '1x 14.2 kg Domestic';
   const outgoingText = `${outgoingCategories} Cylinders Filled`;
 
   // Dynamic Incoming (Collected) Empty Cylinders & Total Count from previous page
-  const collectedEmptyCategories = ['5 KG', '21 KG', '33 KG']
-    .filter((cat) => (emptyCollectedCounts[cat] ?? 0) > 0)
-    .map((cat) => `${emptyCollectedCounts[cat]}x${cat.toLowerCase().replace(' ', '')}`);
+  const collectedEmptyCategories = Object.entries(emptyCollectedCounts)
+    .filter(([, count]) => (count ?? 0) > 0)
+    .map(([cat, count]) => `${count}x ${cat}`);
   
   const totalReturned = Object.values(emptyCollectedCounts).reduce((acc, curr) => acc + curr, 0);
 
@@ -107,21 +107,26 @@ export default function InvoiceScreen({
     ? `${collectedEmptyCategories.join(', ')} Empty Cylinders`
     : '0 Empty Cylinders Returned';
 
-  // Dynamic pricing according to cylinder:
-  // 5 KG: ₹400 / cylinder, 21 KG: ₹2,000 / cylinder, 33 KG: ₹4,500 / cylinder
+  // Dynamic pricing according to real cylinder catalog:
+  // 14.2 kg Domestic: ₹850, 19 kg Commercial: ₹1,850, 47.5 kg Industrial: ₹4,200, 5 kg Domestic: ₹380
   const CYLINDER_PRICES: Record<string, number> = {
-    '5 KG': 400,
-    '21 KG': 2000,
-    '33 KG': 4500,
+    '14.2 kg Domestic': 850,
+    '19 kg Commercial': 1850,
+    '47.5 kg Industrial': 4200,
+    '5 kg Domestic': 380,
+    '14.2kg Domestic': 850,
+    '19kg Commercial': 1850,
+    '47.5kg Industrial': 4200,
+    '5kg Domestic': 380,
   };
 
   const subtotal = selectedCategories.length > 0
     ? selectedCategories.reduce((sum, cat) => {
         const qty = categoryQuantities[cat] ?? 1;
-        const price = CYLINDER_PRICES[cat] ?? 2000;
+        const price = CYLINDER_PRICES[cat] ?? (cat.includes('19') ? 1850 : cat.includes('47') ? 4200 : cat.includes('5') ? 380 : 850);
         return sum + qty * price;
       }, 0)
-    : (CYLINDER_PRICES['21 KG'] ?? 2000);
+    : (CYLINDER_PRICES['14.2 kg Domestic'] ?? 850);
 
   const gstAmount = gstRequired ? subtotal * 0.05 : 0;
   const totalPayable = subtotal + gstAmount;
@@ -340,7 +345,7 @@ export default function InvoiceScreen({
               BILLING SUMMARY
             </span>
             <span className="text-xs font-medium text-slate-500">
-              Commercial Standard Tariff
+              Standard Agency Tariff
             </span>
           </div>
           <div className="space-y-1.5 text-xs sm:text-sm">

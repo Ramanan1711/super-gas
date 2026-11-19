@@ -161,24 +161,66 @@ export const POST = withApiHandler(async (
           },
         })) || (await prisma.cylinderProduct.findFirst());
 
-      if (vehicleId && defaultProduct) {
-        const currentInv = await prisma.vehicleInventory.findUnique({
-          where: {
-            vehicleId_productId: {
-              vehicleId,
-              productId: defaultProduct.id,
-            },
-          },
-        });
+      if (vehicleId) {
+        if (body.items && Array.isArray(body.items) && body.items.length > 0) {
+          for (const item of body.items) {
+            const p = await prisma.cylinderProduct.findFirst({
+              where: {
+                OR: [
+                  { code: item.productCode },
+                  { label: { contains: item.category || '14.2', mode: 'insensitive' } },
+                ],
+              },
+            });
+            if (p) {
+              const currentInv = await prisma.vehicleInventory.findUnique({
+                where: {
+                  vehicleId_productId: {
+                    vehicleId,
+                    productId: p.id,
+                  },
+                },
+              });
 
-        if (currentInv) {
-          await prisma.vehicleInventory.update({
-            where: { id: currentInv.id },
-            data: {
-              filledCount: Math.max(0, currentInv.filledCount - qtyDelivered),
-              emptyCount: currentInv.emptyCount + finalEmpty,
+              if (currentInv) {
+                await prisma.vehicleInventory.update({
+                  where: { id: currentInv.id },
+                  data: {
+                    filledCount: Math.max(0, currentInv.filledCount - (item.filledDelivered || 1)),
+                    emptyCount: currentInv.emptyCount + (item.emptyCollected || 0),
+                  },
+                });
+              } else {
+                await prisma.vehicleInventory.create({
+                  data: {
+                    vehicleId,
+                    productId: p.id,
+                    filledCount: 0,
+                    emptyCount: item.emptyCollected || 0,
+                  },
+                });
+              }
+            }
+          }
+        } else if (defaultProduct) {
+          const currentInv = await prisma.vehicleInventory.findUnique({
+            where: {
+              vehicleId_productId: {
+                vehicleId,
+                productId: defaultProduct.id,
+              },
             },
           });
+
+          if (currentInv) {
+            await prisma.vehicleInventory.update({
+              where: { id: currentInv.id },
+              data: {
+                filledCount: Math.max(0, currentInv.filledCount - qtyDelivered),
+                emptyCount: currentInv.emptyCount + finalEmpty,
+              },
+            });
+          }
         }
       }
 
