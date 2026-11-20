@@ -174,9 +174,14 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
       const res = await fetch(`/api/settlements/history?partnerCode=DP-003&filter=${activeFilter}`);
       if (!res.ok) return;
       const result = await res.json();
-      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+      const rawList = Array.isArray(result.data?.settlements)
+        ? result.data.settlements
+        : Array.isArray(result.data)
+        ? result.data
+        : [];
+      if (result.success && rawList.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mappedHistory: SettlementDay[] = result.data.map((s: any) => ({
+        const mappedHistory: SettlementDay[] = rawList.map((s: any) => ({
           id: s.id,
           date: s.date,
           status: s.status as SettlementDay['status'],
@@ -245,9 +250,14 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
         const res = await fetch(`/api/settlements/history?partnerCode=DP-003&filter=${activeFilter}`);
         if (!res.ok) return;
         const result = await res.json();
-        if (!ignore && result.success && Array.isArray(result.data) && result.data.length > 0) {
+        const rawList = Array.isArray(result.data?.settlements)
+          ? result.data.settlements
+          : Array.isArray(result.data)
+          ? result.data
+          : [];
+        if (!ignore && result.success && rawList.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mappedHistory: SettlementDay[] = result.data.map((s: any) => ({
+          const mappedHistory: SettlementDay[] = rawList.map((s: any) => ({
             id: s.id,
             date: s.date,
             status: s.status as SettlementDay['status'],

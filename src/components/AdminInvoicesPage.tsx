@@ -269,9 +269,14 @@ export default function AdminInvoicesPage({
       .then((res) => res.json())
       .then((json) => {
         if (!isMounted) return;
-        if (json?.success && Array.isArray(json?.data)) {
+        const rawList = Array.isArray(json?.data?.settlements)
+          ? json.data.settlements
+          : Array.isArray(json?.data)
+          ? json.data
+          : [];
+        if (json?.success && rawList.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mapped: CashReconciliationRecord[] = json.data.map((s: any) => ({
+          const mapped: CashReconciliationRecord[] = rawList.map((s: any) => ({
             id: s.id,
             reconciliationId: `CASH-${s.id.slice(-6).toUpperCase()}`,
             collectionDate: s.date,
@@ -280,10 +285,10 @@ export default function AdminInvoicesPage({
             partnerInitials: (s.partnerName || 'SB').slice(0, 2).toUpperCase(),
             partnerAvatarBg: 'bg-slate-100',
             partnerAvatarText: 'text-slate-700',
-            cashReported: s.cashExpected || 0,
-            cashReceived: s.cashHandedOver || 0,
-            difference: (s.cashHandedOver || 0) - (s.cashExpected || 0),
-            status: s.status === 'Verified' ? ('Verified' as const) : ('Pending Verification' as const),
+            cashReported: s.expectedAmount ?? s.cashExpected ?? 0,
+            cashReceived: s.handedOverAmount ?? s.cashHandedOver ?? 0,
+            difference: (s.handedOverAmount ?? s.cashHandedOver ?? 0) - (s.expectedAmount ?? s.cashExpected ?? 0),
+            status: (s.status === 'Verified' || s.rawStatus === 'VERIFIED') ? ('Verified' as const) : ('Pending Verification' as const),
             settlementRef: `#SET-${s.id.slice(-6).toUpperCase()}`,
             vehicle: 'TN 58 AX 4821',
             route: 'Madurai Route Beat',
@@ -291,9 +296,9 @@ export default function AdminInvoicesPage({
             depot: 'HQ Central Vault',
             invoicesBatchText: `${s.deliveriesCount || 1} Deliveries`,
             breakdown: [],
-            totalReportedCash: s.cashExpected || 0,
-            cashCounted: s.cashHandedOver || 0,
-            shortfall: Math.max(0, (s.cashExpected || 0) - (s.cashHandedOver || 0)),
+            totalReportedCash: s.expectedAmount ?? s.cashExpected ?? 0,
+            cashCounted: s.handedOverAmount ?? s.cashHandedOver ?? 0,
+            shortfall: Math.max(0, (s.expectedAmount ?? s.cashExpected ?? 0) - (s.handedOverAmount ?? s.cashHandedOver ?? 0)),
             discrepancyNotes: 'Handover record from live delivery cycle.',
             cashierName: 'Admin S. Raman (Staff ID #8841)',
             investigationSteps: [
@@ -302,7 +307,7 @@ export default function AdminInvoicesPage({
                 subtitle: `${s.date} • Gate Handover Point`,
               },
             ],
-            statusBadgeText: s.status === 'Verified' ? 'Audit Clearance Passed' : 'Pending Verification',
+            statusBadgeText: (s.status === 'Verified' || s.rawStatus === 'VERIFIED') ? 'Audit Clearance Passed' : 'Pending Verification',
           }));
           setCashReconciliationsList(mapped);
           if (mapped.length > 0) {
@@ -348,6 +353,38 @@ export default function AdminInvoicesPage({
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleVerifyCashRecord = async () => {
+    if (!inspectedCashRecord) return;
+    try {
+      const res = await fetch('/api/settlements/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settlementId: inspectedCashRecord.id,
+          auditRemarks: discrepancyMemoInput.trim() || 'Verified by Admin in Cash Reconciliation',
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error?.message || 'Verification failed');
+      }
+
+      setCashReconciliationsList((prev) =>
+        prev.map((r) =>
+          r.id === inspectedCashRecord.id
+            ? { ...r, status: 'Verified', statusBadgeText: 'Audit Clearance Passed' }
+            : r
+        )
+      );
+      setInspectedCashRecord((prev) =>
+        prev ? { ...prev, status: 'Verified', statusBadgeText: 'Audit Clearance Passed' } : null
+      );
+      triggerToast(`Vault cash for ${inspectedCashRecord.reconciliationId} signed off & verified!`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error verifying settlement');
+    }
   };
 
   const toggleSelectInvoice = (id: string, e: React.MouseEvent) => {
@@ -2987,13 +3024,30 @@ export default function AdminInvoicesPage({
                         <span>Handover PDF</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => triggerToast(`Discrepancy confirmed & flagged for ${inspectedCashRecord.reconciliationId}`)}
-                        className="flex-1 min-w-0 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-extrabold text-xs py-2.5 px-3 rounded-xl shadow-xs transition text-center cursor-pointer whitespace-nowrap"
-                      >
-                        Confirm &amp; Flag Discrepancy
-                      </button>
+                      {inspectedCashRecord.status === 'Verified' ? (
+                        <div className="flex-1 bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Vault Cash Verified &amp; Signed Off</span>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleVerifyCashRecord}
+                            className="flex-1 min-w-0 bg-[#059669] hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-xs py-2.5 px-3 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                          >
+                            <Check className="w-4 h-4 stroke-[3]" />
+                            <span>Verify &amp; Sign Off Vault Cash</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => triggerToast(`Discrepancy confirmed & flagged for ${inspectedCashRecord.reconciliationId}`)}
+                            className="border border-red-200 hover:bg-red-50 text-[#BC0118] font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer whitespace-nowrap"
+                          >
+                            Flag Diff
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
