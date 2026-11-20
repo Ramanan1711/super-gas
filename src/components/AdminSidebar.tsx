@@ -89,7 +89,7 @@ export default function AdminSidebar({
     { name: 'Settlements', icon: CheckSquare, href: '/admin/settlements' },
     { name: 'Expenses', icon: FileText, href: '/admin/expenses' },
     { name: 'Reports', icon: BarChart3, href: '/admin/reports' },
-    { name: 'Settings', icon: Settings, href: '/admin' },
+    { name: 'Settings', icon: Settings, href: '/admin/settings' },
   ];
 
   const handleClick = (name: string) => {
