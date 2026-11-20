@@ -385,19 +385,36 @@ export default function AdminSettlementsPage() {
     const target = ledgerRecords.find((r) => r.id === id);
 
     try {
-      const res = await fetch('/api/settlements/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          settlementId: id.startsWith('rec') ? undefined : id,
-          handoverCode: target?.recordId?.startsWith('#HND') ? target.recordId : undefined,
-          auditRemarks: 'Verified by Agency Admin',
-        }),
-      });
+      if (target?.recordId?.startsWith('EXP-')) {
+        const res = await fetch(`/api/expenses/${id}/review`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'APPROVED',
+            adminRemark: 'Verified by Agency Admin in Settlements Ledger',
+            disbursedAmount: target.amount,
+          }),
+        });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        console.warn('Backend verification notice:', err);
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          console.warn('Backend expense verification notice:', err);
+        }
+      } else {
+        const res = await fetch('/api/settlements/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settlementId: id.startsWith('rec') ? undefined : id,
+            handoverCode: target?.recordId?.startsWith('#HND') ? target.recordId : undefined,
+            auditRemarks: 'Verified by Agency Admin',
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          console.warn('Backend verification notice:', err);
+        }
       }
 
       setLedgerRecords((prev) =>
@@ -415,9 +432,9 @@ export default function AdminSettlementsPage() {
         )
       );
       setReviewModalRecord(null);
-      triggerToast(`Verified cash drop ${target?.recordId || id} successfully`);
+      triggerToast(`Verified record ${target?.recordId || id} successfully`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error verifying drop');
+      alert(err instanceof Error ? err.message : 'Error verifying record');
     }
   };
 
@@ -1447,9 +1464,33 @@ export default function AdminSettlementsPage() {
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
+                  const targetRecord = reviewModalRecord;
+                  if (targetRecord.recordId?.startsWith('EXP-')) {
+                    await fetch(`/api/expenses/${targetRecord.id}/review`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        status: 'REJECTED',
+                        adminRemark: 'Flagged for supervisor discrepancy inquiry',
+                      }),
+                    }).catch(() => null);
+                  }
+                  setLedgerRecords((prev) =>
+                    prev.map((rec) =>
+                      rec.id === targetRecord.id
+                        ? {
+                            ...rec,
+                            auditStatus: 'Rejected',
+                            hasActionReview: false,
+                            amountNote: 'Discrepancy Flagged',
+                            amountNoteType: 'danger',
+                          }
+                        : rec
+                    )
+                  );
                   setReviewModalRecord(null);
-                  triggerToast(`Flagged ${reviewModalRecord.recordId} for supervisor discrepancy inquiry`);
+                  triggerToast(`Flagged ${targetRecord.recordId} for supervisor discrepancy inquiry`);
                 }}
                 className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
               >
