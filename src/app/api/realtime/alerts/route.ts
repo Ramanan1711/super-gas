@@ -6,20 +6,34 @@ import { getSealedLiveAlertsQuery } from '@/lib/realtime';
 
 export const GET = withApiHandler(async () => {
   // Ensure the table exists
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS live_dispatch_alerts (
-      id text PRIMARY KEY,
-      title text NOT NULL,
-      severity text NOT NULL DEFAULT 'INFO',
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS live_dispatch_alerts (
+        id text PRIMARY KEY,
+        title text NOT NULL,
+        severity text NOT NULL DEFAULT 'INFO',
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+    `);
+  } catch (err) {
+    console.warn('Could not verify live_dispatch_alerts table:', err);
+  }
 
   const sealed = await getSealedLiveAlertsQuery();
 
+  if (!sealed) {
+    return successResponse({
+      configured: false,
+      message: 'NEON_REALTIME_SECRET is not configured.',
+      sealedQuery: null,
+      realtimeUrl: process.env.NEON_REALTIME_URL || null,
+    });
+  }
+
   return successResponse({
+    configured: true,
     sealedQuery: sealed,
-    realtimeUrl: process.env.NEON_REALTIME_URL,
+    realtimeUrl: process.env.NEON_REALTIME_URL || null,
   });
 });
 
