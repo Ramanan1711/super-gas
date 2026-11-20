@@ -26,6 +26,7 @@ import {
   X,
   RotateCcw,
   AlertCircle,
+  Maximize2,
 } from 'lucide-react';
 
 export interface PendingClaim {
@@ -46,6 +47,7 @@ export interface PendingClaim {
   fuelQuantity?: string;
   terminalTimestamp: string;
   receiptType: string;
+  receiptUrl?: string | null;
 }
 
 export interface ExpenseRecord {
@@ -60,8 +62,9 @@ export interface ExpenseRecord {
   expenseDate: string;
   source: 'App Submission' | 'Admin Recorded';
   approvalStatus: 'Approved' | 'Pending Approval' | 'Rejected (Policy)' | 'Under Review';
-  paymentStatus: 'Reimbursed (Bank)' | 'Paid (Cash)' | 'Reimbursed (UPI)' | 'Disallowed' | 'Unpaid';
+  paymentStatus: 'Reimbursed (Bank)' | 'Paid (Cash)' | 'Reimbursed (UPI)' | 'Disallowed' | 'Unpaid' | 'Paid';
   type: 'delivery' | 'agency' | 'other';
+  receiptUrl?: string | null;
 }
 
 const initialPendingClaims: PendingClaim[] = [];
@@ -100,6 +103,7 @@ export default function AdminExpensesPage() {
   const [rejectReason, setRejectReason] = useState('Exceeds Daily Route Fuel Allowance');
   const [rejectCustomNote, setRejectCustomNote] = useState('');
   const [inspectedExpenseRecord, setInspectedExpenseRecord] = useState<ExpenseRecord | null>(null);
+  const [expandedReceiptUrl, setExpandedReceiptUrl] = useState<string | null>(null);
 
   // Add Expense Form State
   const [addExpenseType, setAddExpenseType] = useState<'Delivery Partner' | 'Agency' | 'Others'>('Delivery Partner');
@@ -236,10 +240,11 @@ export default function AdminExpensesPage() {
                 amount: c.amount,
                 time: new Date(c.claimDate || c.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
                 status: 'Pending Approval' as const,
-                stationName: c.receiptUrl ? 'Verified Receipt Uploaded' : 'Cash Expense',
-                stationOutlet: c.vehicle?.regNumber || 'Madurai Central Hub',
+                stationName: c.receiptUrl ? 'Bill Photo Uploaded' : 'Cash Expense',
+                stationOutlet: c.vehicle?.regNumber ? `Vehicle: ${c.vehicle.regNumber}` : 'Madurai Central Hub',
                 terminalTimestamp: new Date(c.createdAt).toLocaleString('en-GB'),
                 receiptType: c.receiptUrl ? 'Bill Slip Upload' : 'Driver Self-Claim',
+                receiptUrl: c.receiptUrl || null,
               };
             });
 
@@ -283,6 +288,7 @@ export default function AdminExpensesPage() {
               approvalStatus,
               paymentStatus: c.paymentStatus === 'Paid' ? 'Paid (Cash)' : 'Unpaid',
               type: 'delivery',
+              receiptUrl: c.receiptUrl || null,
             };
           });
 
@@ -816,59 +822,61 @@ export default function AdminExpensesPage() {
                       </div>
                     </div>
 
-                    {/* Receipt Image Photo Card */}
-                    <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-900 shadow-inner relative group">
-                      {/* Realistic thermal slip design representation */}
-                      <div className="bg-[#FAF7F0] p-4 text-slate-800 font-mono text-[10px] leading-tight space-y-1.5 shadow-md">
-                        <div className="text-center font-bold tracking-widest text-[11px] border-b border-dashed border-slate-400 pb-1.5">
-                          {selectedClaim.stationName}
+                    {/* Receipt Image / Bill Photo Card */}
+                    {selectedClaim.receiptUrl ? (
+                      <div
+                        onClick={() => setExpandedReceiptUrl(selectedClaim.receiptUrl!)}
+                        className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-950 shadow-inner relative group cursor-pointer"
+                        title="Click to view full receipt"
+                      >
+                        <div className="relative w-full min-h-[200px] max-h-[280px] bg-slate-900/90 flex items-center justify-center p-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={selectedClaim.receiptUrl}
+                            alt={`Receipt photo for claim ${selectedClaim.claimId}`}
+                            className="max-h-[260px] w-auto max-w-full object-contain rounded-lg shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                          />
                         </div>
-                        <div className="text-center text-[9px] text-slate-500">
-                          {selectedClaim.stationOutlet}
+                        <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <span className="bg-slate-900/90 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 backdrop-blur-xs">
+                            <Maximize2 className="w-3.5 h-3.5" />
+                            <span>Click to Enlarge</span>
+                          </span>
                         </div>
-                        <div className="text-center text-[9px] text-slate-500 border-b border-dashed border-slate-300 pb-1">
-                          GSTIN: 33AAACH1234F1Z8 · POS TX #48921
-                        </div>
-
-                        <div className="pt-1 flex justify-between">
-                          <span>DATE: 24/10/2026</span>
-                          <span>TIME: 09:28:44</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>VEHICLE: TN 58 AX 4821</span>
-                          <span>PUMP NO: 04</span>
-                        </div>
-                        <div className="flex justify-between border-b border-dashed border-slate-300 pb-1">
-                          <span>PRODUCT: HIGH SPEED DIESEL</span>
-                          <span>NOZ NO: 02</span>
-                        </div>
-
-                        <div className="flex justify-between font-bold pt-0.5">
-                          <span>VOLUME (LTR):</span>
-                          <span>{selectedClaim.fuelQuantity || '13.36 L'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>RATE (₹/LTR):</span>
-                          <span>₹89.82</span>
-                        </div>
-                        <div className="flex justify-between font-extrabold text-sm text-slate-900 border-t border-b border-slate-800 py-1 my-1">
-                          <span>TOTAL AMOUNT:</span>
-                          <span>₹{selectedClaim.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                        </div>
-
-                        <div className="text-center text-[9px] text-slate-400 pt-1 tracking-wider">
-                          PAYMENT: PETRO FLEET CARD VERIFIED
-                        </div>
-                        <div className="flex justify-center pt-1">
-                          {/* Simulated Barcode */}
-                          <div className="h-4 w-3/4 bg-[repeating-linear-gradient(90deg,#1e293b,#1e293b_2px,transparent_2px,transparent_4px)]"></div>
+                        <div className="absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded shadow flex items-center gap-1">
+                          <Maximize2 className="w-2.5 h-2.5" />
+                          <span>Tap to Expand</span>
                         </div>
                       </div>
-
-                      <div className="absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded">
-                        Tap to Expand
+                    ) : (
+                      <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/90 p-5 text-center space-y-2.5">
+                        <div className="w-10 h-10 rounded-full bg-slate-200/80 text-slate-500 mx-auto flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-slate-400" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">No Receipt Photo Attached</div>
+                          <div className="text-[11px] text-slate-500 font-medium mt-0.5 max-w-[240px] mx-auto">
+                            Driver submitted this claim as a direct cash expense without a bill photo.
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-2.5 border border-slate-200/80 text-left text-[11px] space-y-1">
+                          <div className="flex justify-between text-slate-600">
+                            <span className="text-slate-400">Expense Type:</span>
+                            <span className="font-semibold text-slate-800">{selectedClaim.category}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-600">
+                            <span className="text-slate-400">Description:</span>
+                            <span className="font-semibold text-slate-800 text-right truncate max-w-[170px]" title={selectedClaim.description}>
+                              {selectedClaim.description}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-slate-600 border-t border-slate-100 pt-1 mt-1 font-bold">
+                            <span className="text-slate-500">Claim Amount:</span>
+                            <span className="text-[#BC0118]">₹{selectedClaim.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Receipt Meta Rows */}
                     <div className="mt-4 space-y-1.5 text-xs">
@@ -878,14 +886,22 @@ export default function AdminExpensesPage() {
                           {selectedClaim.partnerName} ({selectedClaim.partnerCode})
                         </span>
                       </div>
-                      {selectedClaim.fuelQuantity && (
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="font-medium text-slate-500">Fuel Quantity:</span>
-                          <span className="font-bold text-slate-900">{selectedClaim.fuelQuantity}</span>
-                        </div>
-                      )}
                       <div className="flex items-center justify-between text-slate-600">
-                        <span className="font-medium text-slate-500">Terminal Timestamp:</span>
+                        <span className="font-medium text-slate-500">Category:</span>
+                        <span className="font-bold text-slate-900">{selectedClaim.category}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="font-medium text-slate-500">Vehicle / Route:</span>
+                        <span className="font-bold text-slate-900">{selectedClaim.stationOutlet}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="font-medium text-slate-500">Receipt Slip:</span>
+                        <span className={`font-bold ${selectedClaim.receiptUrl ? 'text-emerald-700' : 'text-slate-600'}`}>
+                          {selectedClaim.receiptUrl ? 'Photo Uploaded' : 'Cash Expense (No Slip)'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="font-medium text-slate-500">Logged At:</span>
                         <span className="font-bold text-slate-900">{selectedClaim.terminalTimestamp}</span>
                       </div>
                     </div>
@@ -1666,6 +1682,12 @@ export default function AdminExpensesPage() {
                 <span className="font-bold text-slate-800">{inspectedExpenseRecord.category}</span>
               </div>
               <div className="flex justify-between items-center border-b border-slate-200/60 pb-2">
+                <span className="text-slate-500 font-medium">Description:</span>
+                <span className="font-bold text-slate-800 text-right truncate max-w-[240px]" title={inspectedExpenseRecord.description}>
+                  {inspectedExpenseRecord.description}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-200/60 pb-2">
                 <span className="text-slate-500 font-medium">Approval Status:</span>
                 <span className="font-bold text-emerald-700">{inspectedExpenseRecord.approvalStatus}</span>
               </div>
@@ -1681,11 +1703,90 @@ export default function AdminExpensesPage() {
               </div>
             </div>
 
+            {/* Receipt in Inspector */}
+            {inspectedExpenseRecord.receiptUrl ? (
+              <div className="bg-slate-950 rounded-2xl p-3 border border-slate-200/80 space-y-2">
+                <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between px-1">
+                  <span>Attached Bill Slip / Photo:</span>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedReceiptUrl(inspectedExpenseRecord.receiptUrl!)}
+                    className="text-red-400 hover:text-red-300 hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                  >
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Enlarge Photo</span>
+                  </button>
+                </div>
+                <div
+                  onClick={() => setExpandedReceiptUrl(inspectedExpenseRecord.receiptUrl!)}
+                  className="flex items-center justify-center max-h-48 cursor-pointer overflow-hidden rounded-xl bg-slate-900"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={inspectedExpenseRecord.receiptUrl}
+                    alt="Receipt"
+                    className="max-h-48 w-auto max-w-full object-contain rounded-lg shadow-xs hover:scale-105 transition duration-150"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-50 rounded-xl p-3 border border-dashed border-slate-200 text-center text-xs text-slate-500 font-medium">
+                No receipt photo attached (Cash Self-Claim)
+              </div>
+            )}
+
             <div className="flex justify-end pt-2">
               <button
                 type="button"
                 onClick={() => setInspectedExpenseRecord(null)}
                 className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Full Size Receipt Viewer */}
+      {expandedReceiptUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setExpandedReceiptUrl(null)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-[#BC0118]" />
+                <h3 className="font-extrabold text-sm text-slate-900">
+                  Uploaded Receipt / Bill Photo
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpandedReceiptUrl(null)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 bg-slate-950 flex items-center justify-center overflow-auto max-h-[calc(90vh-120px)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={expandedReceiptUrl}
+                alt="Enlarged Receipt"
+                className="max-h-full max-w-full object-contain rounded shadow"
+              />
+            </div>
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs">
+              <span className="text-slate-500 font-medium">Receipt verified from database</span>
+              <button
+                type="button"
+                onClick={() => setExpandedReceiptUrl(null)}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-1.5 rounded-xl transition cursor-pointer"
               >
                 Close
               </button>
