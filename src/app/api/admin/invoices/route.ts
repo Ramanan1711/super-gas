@@ -57,7 +57,17 @@ export const GET = withApiHandler(async (req: NextRequest) => {
         ledgerEntries: {
           orderBy: { createdAt: 'desc' },
         },
-        deliveryPartner: true,
+        deliveryTasks: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            trip: {
+              include: {
+                partner: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { name: 'asc' },
     }),
@@ -217,9 +227,10 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     });
 
     const outstanding = Math.max(0, totalDebit - totalCredit);
-    const partnerLabel = c.deliveryPartner
-      ? `${c.deliveryPartner.partnerCode} ${c.deliveryPartner.name}`
-      : 'Unassigned';
+    const assignedPartnerObj = c.deliveryTasks?.[0]?.trip?.partner;
+    const partnerLabel = assignedPartnerObj
+      ? `${assignedPartnerObj.partnerCode} ${assignedPartnerObj.name}`
+      : (c.route && c.route.includes('·') ? c.route : 'Unassigned');
 
     return {
       id: c.id,
