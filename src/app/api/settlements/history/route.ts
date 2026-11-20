@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withApiHandler } from '@/lib/api-middleware';
-import { successResponse, notFoundResponse } from '@/lib/api-response';
+import { successResponse } from '@/lib/api-response';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
   const partnerCode = req.nextUrl.searchParams.get('partnerCode');
@@ -11,14 +11,20 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const where: any = {};
 
   if (partnerCode && partnerCode !== 'ALL' && partnerCode !== 'all') {
-    const partner = await prisma.deliveryPartner.findUnique({
+    let partner = await prisma.deliveryPartner.findUnique({
       where: { partnerCode },
     });
 
     if (!partner) {
-      return notFoundResponse('Delivery partner');
+      partner = await prisma.deliveryPartner.findFirst({
+        where: { status: { in: ['ACTIVE', 'ON_DUTY'] } },
+        orderBy: { createdAt: 'desc' },
+      });
     }
-    where.partnerId = partner.id;
+
+    if (partner) {
+      where.partnerId = partner.id;
+    }
   }
 
   if (filter === 'Verified') {

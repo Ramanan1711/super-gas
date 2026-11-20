@@ -57,6 +57,8 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   return successResponse({
     id: settlement.id,
+    partnerCode: partner.partnerCode,
+    partnerName: partner.name,
     businessDate: settlement.businessDate.toISOString().slice(0, 10),
     cashExpected: expected,
     cashHandedOver: handedOver,

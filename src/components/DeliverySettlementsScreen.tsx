@@ -112,6 +112,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
   const [showAllHandoversModal, setShowAllHandoversModal] = useState(false);
 
   // Live today settlement state
+  const [currentPartnerCode, setCurrentPartnerCode] = useState('DP-006');
   const [cashExpected, setCashExpected] = useState(5000);
   const [cashHandedOver, setCashHandedOver] = useState(3000);
   const [remainingBalance, setRemainingBalance] = useState(2000);
@@ -133,11 +134,12 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
   // Fetch today's financial summary
   const fetchTodaySettlement = async () => {
     try {
-      const res = await fetch('/api/settlements/today?partnerCode=DP-003');
+      const res = await fetch(`/api/settlements/today?partnerCode=${currentPartnerCode}`);
       if (!res.ok) return;
       const result = await res.json();
       if (result.success && result.data) {
         const d = result.data;
+        if (d.partnerCode) setCurrentPartnerCode(d.partnerCode);
         setCashExpected(d.cashExpected ?? 5000);
         setCashHandedOver(d.cashHandedOver ?? 3000);
         setRemainingBalance(d.remainingBalance ?? 2000);
@@ -169,9 +171,10 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
   };
 
   // Fetch historical settlement records
-  const fetchSettlementHistory = async () => {
+  const fetchSettlementHistory = async (partnerToFetch?: string) => {
     try {
-      const res = await fetch(`/api/settlements/history?partnerCode=DP-003&filter=${activeFilter}`);
+      const pCode = partnerToFetch || currentPartnerCode;
+      const res = await fetch(`/api/settlements/history?partnerCode=${pCode}&filter=${activeFilter}`);
       if (!res.ok) return;
       const result = await res.json();
       const rawList = Array.isArray(result.data?.settlements)
@@ -203,11 +206,13 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
     let ignore = false;
     async function loadToday() {
       try {
-        const res = await fetch('/api/settlements/today?partnerCode=DP-003');
+        const res = await fetch('/api/settlements/today');
         if (!res.ok) return;
         const result = await res.json();
         if (!ignore && result.success && result.data) {
           const d = result.data;
+          const resolvedCode = d.partnerCode || 'DP-006';
+          setCurrentPartnerCode(resolvedCode);
           setCashExpected(d.cashExpected ?? 5000);
           setCashHandedOver(d.cashHandedOver ?? 3000);
           setRemainingBalance(d.remainingBalance ?? 2000);
@@ -247,7 +252,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
     let ignore = false;
     async function loadHistory() {
       try {
-        const res = await fetch(`/api/settlements/history?partnerCode=DP-003&filter=${activeFilter}`);
+        const res = await fetch(`/api/settlements/history?partnerCode=${currentPartnerCode}&filter=${activeFilter}`);
         if (!res.ok) return;
         const result = await res.json();
         const rawList = Array.isArray(result.data?.settlements)
@@ -278,7 +283,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
     return () => {
       ignore = true;
     };
-  }, [activeFilter]);
+  }, [activeFilter, currentPartnerCode]);
 
   // Submit cash handover drop (#HND)
   const handleHandoverDropSubmit = async (e: React.FormEvent) => {
@@ -294,7 +299,7 @@ export default function DeliverySettlementsScreen({ onBack }: DeliverySettlement
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          partnerCode: 'DP-003',
+          partnerCode: currentPartnerCode,
           amount: amountNum,
           dropType,
           receivedByName: receivedByAdmin.trim() || 'S. Raman (Admin)',
