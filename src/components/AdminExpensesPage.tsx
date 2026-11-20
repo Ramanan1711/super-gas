@@ -94,9 +94,8 @@ export default function AdminExpensesPage() {
   const [addCustomExpenseName, setAddCustomExpenseName] = useState('Petrol Bunk');
   const [addExpenseAmount, setAddExpenseAmount] = useState('3,500');
   const [addExpensePartner, setAddExpensePartner] = useState('Varun (DP-006)');
-  const [addExpenseDate, setAddExpenseDate] = useState(() =>
-    new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-  );
+  const [addExpenseDate, setAddExpenseDate] = useState<string>('');
+  const [todayDateStr, setTodayDateStr] = useState<string>('Today');
   const [addExpenseVendor, setAddExpenseVendor] = useState('Petrol Bunk');
   const [addExpenseLedgerTag, setAddExpenseLedgerTag] = useState('10');
   const [addExpensePaymentStatus, setAddExpensePaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
@@ -105,14 +104,17 @@ export default function AdminExpensesPage() {
   const [addExpensePurpose, setAddExpensePurpose] = useState('');
   const [uploadedReceiptFileName, setUploadedReceiptFileName] = useState<string | null>(null);
 
+  // Defer dynamic date evaluation to client-side mount (avoids blocking prerender current-time error)
+  React.useEffect(() => {
+    const formatted = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    setTodayDateStr(formatted);
+    setAddExpenseDate(formatted);
+  }, []);
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
-
-  const todayDateStr = useMemo(() => {
-    return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  }, []);
 
   // Real-time KPI summaries computed from database records
   const partnerExpensesApprovedToday = useMemo(() => {
