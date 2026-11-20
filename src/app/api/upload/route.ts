@@ -71,22 +71,21 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     ? folder
     : 'general';
 
-  let publicUrl = '';
+  // Store the file as a self-contained Data URL so that when saved to the database,
+  // it is completely portable and accessible from anywhere (localhost, Vercel production, mobile)
+  // without relying on local server filesystem writes or 404ing across environments.
+  const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+  const publicUrl = dataUrl;
 
-  // In production on Vercel or serverless environments, /var/task is read-only.
-  // We seamlessly store the file as a robust data URL so it displays and persists anywhere.
-  if (process.env.VERCEL) {
-    publicUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
-  } else {
+  // Best-effort local backup for debugging in local development
+  if (!process.env.VERCEL) {
     try {
       const uploadDir = path.join(process.cwd(), 'public', 'uploads', targetSubfolder);
       await fs.mkdir(uploadDir, { recursive: true });
       const filePath = path.join(uploadDir, uniqueFilename);
       await fs.writeFile(filePath, buffer);
-      publicUrl = `/uploads/${targetSubfolder}/${uniqueFilename}`;
     } catch {
-      // Fallback if local filesystem write fails (e.g. read-only container)
-      publicUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+      // Ignore local filesystem backup errors
     }
   }
 
