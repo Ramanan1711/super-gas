@@ -117,6 +117,7 @@ export default function DeliveryScreen({
     let ignore = false;
     async function loadTasks() {
       try {
+        let deliveriesEmptyCount = 0;
         const res = await fetch('/api/deliveries');
         if (res.ok) {
           const data = await res.json();
@@ -124,6 +125,7 @@ export default function DeliveryScreen({
             setDeliveries(data.deliveries);
             if (data.stats) {
               setStats(data.stats);
+              deliveriesEmptyCount = data.stats.emptyCylindersCollected || 0;
             }
           }
         }
@@ -133,8 +135,10 @@ export default function DeliveryScreen({
           const invData = await invRes.json();
           if (!ignore && invData.success && invData.data?.summary) {
             setFilledStock(invData.data.summary.totalFilled);
-            setEmptyStock(invData.data.summary.totalEmpty);
+            setEmptyStock(Math.max(invData.data.summary.totalEmpty, deliveriesEmptyCount));
           }
+        } else if (deliveriesEmptyCount > 0) {
+          setEmptyStock(deliveriesEmptyCount);
         }
       } catch (err) {
         console.warn('Could not load deliveries from DB:', err);

@@ -22,6 +22,28 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     return notFoundResponse('Vehicle');
   }
 
+  // Auto-reconcile with completed customer deliveries to ensure van custody never lags behind
+  const completedDeliveries = await prisma.delivery.findMany({
+    where: { status: 'DELIVERED' },
+  });
+  const totalEmptiesFromDeliveries = completedDeliveries.reduce(
+    (sum: number, d: { emptyCollected?: number | null }) => sum + (d.emptyCollected || 0),
+    0
+  );
+
+  // If DB inventory record lagged behind completed deliveries, reconcile the primary product
+  if (vehicle.inventory.length > 0) {
+    const currentTotalEmpty = vehicle.inventory.reduce((sum: number, inv: { emptyCount: number }) => sum + inv.emptyCount, 0);
+    if (currentTotalEmpty < totalEmptiesFromDeliveries) {
+      const diff = totalEmptiesFromDeliveries - currentTotalEmpty;
+      vehicle.inventory[0].emptyCount += diff;
+      await prisma.vehicleInventory.update({
+        where: { id: vehicle.inventory[0].id },
+        data: { emptyCount: vehicle.inventory[0].emptyCount },
+      });
+    }
+  }
+
   // Calculate totals
   let totalFilled = 0;
   let totalEmpty = 0;
