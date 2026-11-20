@@ -93,7 +93,10 @@ export default function AdminExpensesPage() {
   const [addExpenseType, setAddExpenseType] = useState<'Delivery Partner' | 'Agency' | 'Others'>('Delivery Partner');
   const [addCustomExpenseName, setAddCustomExpenseName] = useState('Petrol Bunk');
   const [addExpenseAmount, setAddExpenseAmount] = useState('3,500');
-  const [addExpenseDatePartner, setAddExpenseDatePartner] = useState('Rajesh Kumar (DP-001)');
+  const [addExpensePartner, setAddExpensePartner] = useState('Varun (DP-006)');
+  const [addExpenseDate, setAddExpenseDate] = useState(() =>
+    new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  );
   const [addExpenseVendor, setAddExpenseVendor] = useState('Petrol Bunk');
   const [addExpenseLedgerTag, setAddExpenseLedgerTag] = useState('10');
   const [addExpensePaymentStatus, setAddExpensePaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
@@ -106,6 +109,40 @@ export default function AdminExpensesPage() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  const todayDateStr = useMemo(() => {
+    return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }, []);
+
+  // Real-time KPI summaries computed from database records
+  const partnerExpensesApprovedToday = useMemo(() => {
+    return expenseRecords
+      .filter((r) => r.type === 'delivery' && r.approvalStatus === 'Approved')
+      .reduce((sum, r) => sum + r.amount, 0);
+  }, [expenseRecords]);
+
+  const approvedDriversCount = useMemo(() => {
+    const driverCodes = new Set(
+      expenseRecords
+        .filter((r) => r.type === 'delivery' && r.approvalStatus === 'Approved')
+        .map((r) => r.partnerCode)
+    );
+    return driverCodes.size;
+  }, [expenseRecords]);
+
+  const agencyExpensesToday = useMemo(() => {
+    return expenseRecords
+      .filter((r) => r.type === 'agency')
+      .reduce((sum, r) => sum + r.amount, 0);
+  }, [expenseRecords]);
+
+  const agencyExpensesCount = useMemo(() => {
+    return expenseRecords.filter((r) => r.type === 'agency').length;
+  }, [expenseRecords]);
+
+  const totalPendingAmount = useMemo(() => {
+    return pendingClaims.reduce((acc, c) => acc + c.amount, 0);
+  }, [pendingClaims]);
 
   const selectedClaim = useMemo(() => {
     return pendingClaims.find((c) => c.id === selectedClaimId) || pendingClaims[0];
@@ -344,14 +381,14 @@ export default function AdminExpensesPage() {
     const amt = parseFloat(addExpenseAmount.replace(/,/g, '')) || 0;
     const partnerName =
       addExpenseType === 'Delivery Partner'
-        ? addExpenseDatePartner.split(' (')[0]
+        ? addExpensePartner.split(' (')[0]
         : addExpenseType === 'Agency'
         ? 'Agency Central'
         : addCustomExpenseName || 'Other Vendor';
 
     const partnerCode =
-      addExpenseType === 'Delivery Partner' && addExpenseDatePartner.includes('(')
-        ? addExpenseDatePartner.split('(')[1].replace(')', '')
+      addExpenseType === 'Delivery Partner' && addExpensePartner.includes('(')
+        ? addExpensePartner.split('(')[1].replace(')', '')
         : addExpenseType === 'Agency'
         ? 'HQ-HUB'
         : 'EXT-01';
@@ -361,10 +398,10 @@ export default function AdminExpensesPage() {
       expenseId: `EXP-REC-${Date.now().toString().slice(-6)}`,
       partnerName,
       partnerCode,
-      category: 'Fuel',
+      category: addExpenseType === 'Agency' ? 'Utilities' : 'Fuel',
       description: addExpensePurpose || (addExpenseType === 'Others' ? addCustomExpenseName : `${addExpenseVendor} payment`),
       amount: amt,
-      expenseDate: '24 Oct 2026',
+      expenseDate: addExpenseDate || todayDateStr,
       source: 'Admin Recorded',
       approvalStatus: 'Approved',
       paymentStatus:
@@ -505,11 +542,11 @@ export default function AdminExpensesPage() {
 
                 <button
                   type="button"
-                  onClick={() => triggerToast('Selected date: Today (24 Oct 2026)')}
+                  onClick={() => triggerToast(`Selected date: Today (${todayDateStr})`)}
                   className="bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
                 >
                   <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Today (24 Oct 2026)</span>
+                  <span>Today ({todayDateStr})</span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
@@ -539,12 +576,12 @@ export default function AdminExpensesPage() {
               </div>
               <div className="mt-3">
                 <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  ₹4,850.00
+                  ₹{partnerExpensesApprovedToday.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="flex items-center justify-between mt-2 pt-1 text-xs">
                   <div className="flex items-center gap-1.5 text-slate-600 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>Approved across 6 active drivers today</span>
+                    <span>Approved across {approvedDriversCount} active driver{approvedDriversCount === 1 ? '' : 's'} today</span>
                   </div>
                   <span className="text-[10px] text-slate-400 font-medium">
                     Strictly isolates pending &amp; rejected claims
@@ -565,12 +602,12 @@ export default function AdminExpensesPage() {
               </div>
               <div className="mt-3">
                 <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  ₹12,400.00
+                  ₹{agencyExpensesToday.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="flex items-center justify-between mt-2 pt-1 text-xs">
                   <div className="flex items-center gap-1.5 text-slate-600 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                    <span>Operational agency costs recorded today</span>
+                    <span>{agencyExpensesCount > 0 ? `${agencyExpensesCount} operational costs recorded today` : 'No operational agency costs recorded today'}</span>
                   </div>
                   <span className="text-[10px] text-slate-400 font-medium">
                     Hub power, cylinder valve maintenance &amp; safety ops
@@ -592,10 +629,10 @@ export default function AdminExpensesPage() {
               <div className="mt-3">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                    {pendingClaims.length} Claims
+                    {pendingClaims.length} Claim{pendingClaims.length === 1 ? '' : 's'}
                   </span>
                   <span className="text-sm font-bold text-slate-500">
-                    (₹{pendingClaims.reduce((acc, c) => acc + c.amount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })})
+                    (₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-amber-800 font-medium mt-1">
@@ -1296,11 +1333,27 @@ export default function AdminExpensesPage() {
                 </div>
               </div>
 
+              {/* Conditional Partner input if "Delivery Partner" tab is active */}
+              {addExpenseType === 'Delivery Partner' && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                    DELIVERY PARTNER (NAME &amp; CODE)*
+                  </label>
+                  <input
+                    type="text"
+                    value={addExpensePartner}
+                    onChange={(e) => setAddExpensePartner(e.target.value)}
+                    className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-bold text-slate-900 border-none outline-none"
+                    placeholder="Varun (DP-006)"
+                  />
+                </div>
+              )}
+
               {/* Conditional Custom Expense Name if "Others" tab is active */}
               {addExpenseType === 'Others' && (
                 <div>
                   <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
-                    CUSTOME EXPENSE NAME*
+                    CUSTOM EXPENSE NAME*
                   </label>
                   <input
                     type="text"
@@ -1336,8 +1389,8 @@ export default function AdminExpensesPage() {
                   <div className="bg-[#F1F4FA] rounded-xl px-4 py-3 flex items-center justify-between">
                     <input
                       type="text"
-                      value={addExpenseDatePartner}
-                      onChange={(e) => setAddExpenseDatePartner(e.target.value)}
+                      value={addExpenseDate}
+                      onChange={(e) => setAddExpenseDate(e.target.value)}
                       className="bg-transparent border-none outline-none text-xs font-bold text-slate-900 w-full"
                     />
                     <Calendar className="w-4 h-4 text-slate-700 shrink-0" />
