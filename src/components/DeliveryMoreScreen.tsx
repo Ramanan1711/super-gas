@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DeliveryProfileScreen from './DeliveryProfileScreen';
 import DeliveryDocumentsScreen from './DeliveryDocumentsScreen';
 import DeliveryHistoryScreen from './DeliveryHistoryScreen';
@@ -26,6 +27,7 @@ interface DeliveryMoreScreenProps {
 
 export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreenProps) {
   void onNavigateTab;
+  const router = useRouter();
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showDocumentsPage, setShowDocumentsPage] = useState(false);
   const [showHistoryPage, setShowHistoryPage] = useState(false);
@@ -39,6 +41,45 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
     emptyCylinders: 0,
     cashOnHand: 0,
   });
+  const [driverProfile, setDriverProfile] = useState<{
+    name: string;
+    partnerCode: string;
+    vehicle?: string;
+    depot?: string;
+  }>({
+    name: 'Delivery Partner',
+    partnerCode: 'DP-006',
+    vehicle: 'Van 03 (TN 58 AX 4821)',
+    depot: 'Madurai Central Hub',
+  });
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
+    router.push('/login');
+    router.refresh();
+  };
+
+  React.useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.data?.user) {
+          const user = data.data.user;
+          const partner = data.data.partnerProfile;
+          setDriverProfile({
+            name: partner?.name || user.name || 'Delivery Partner',
+            partnerCode: partner?.partnerCode || 'DP-006',
+            vehicle: partner?.assignedVehicle?.regNumber || partner?.vehicle || 'Van 03 (TN 58 AX 4821)',
+            depot: partner?.depot?.name || partner?.depot || 'Madurai Central Hub',
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     fetch('/api/deliveries')
@@ -95,7 +136,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
           {/* Avatar with Online/Active indicator */}
           <div className="relative shrink-0">
             <div className="w-13 h-13 rounded-full bg-[#3F4D67] text-white font-black text-base flex items-center justify-center shadow-inner tracking-wide">
-              SB
+              {driverProfile.name.slice(0, 2).toUpperCase()}
             </div>
             <span className="w-3.5 h-3.5 rounded-full bg-[#17A44B] border-2 border-white absolute bottom-0 right-0 shadow-2xs" />
           </div>
@@ -104,7 +145,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-black text-slate-900 tracking-tight truncate">
-                Suresh Babu
+                {driverProfile.name}
               </h2>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-bold shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -112,7 +153,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
               </span>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5 leading-snug">
-              ID: DP-003 • Van 03 (TN 58 AX 4821)
+              ID: {driverProfile.partnerCode} • {driverProfile.vehicle}
             </p>
           </div>
         </div>
@@ -273,16 +314,27 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
           </div>
         </div>
 
-        {/* 5. End Shift & Depot Handover Button */}
-        <div className="pt-1">
+        {/* 5. End Shift & Logout Controls */}
+        <div className="pt-1 space-y-2.5">
           <button
             type="button"
             onClick={() => setActiveModal('END_SHIFT')}
-            className="w-full bg-white hover:bg-red-50/50 active:scale-98 border border-slate-200/90 rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer text-[#BC0118]"
+            className="w-full bg-white hover:bg-slate-50 active:scale-98 border border-slate-200/90 rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer text-slate-800"
+          >
+            <Truck className="w-4 h-4 text-slate-600 stroke-[2.4]" />
+            <span className="font-bold text-sm tracking-tight">
+              End Shift & Depot Handover
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full bg-red-50/70 hover:bg-red-100/80 active:scale-98 border border-red-200/80 rounded-2xl py-3 px-4 flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer text-[#BC0118]"
           >
             <LogOut className="w-4 h-4 text-[#BC0118] stroke-[2.4]" />
             <span className="font-bold text-sm tracking-tight">
-              End Shift & Depot Handover
+              Sign Out of Terminal
             </span>
           </button>
         </div>

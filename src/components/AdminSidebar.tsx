@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutGrid,
   Users,
@@ -35,6 +35,7 @@ export default function AdminSidebar({
   onToggleCollapse,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [internalActive, setInternalActive] = useState<string | null>(null);
   const [internalCollapsed, setInternalCollapsed] = useState(false);
 
@@ -77,6 +78,16 @@ export default function AdminSidebar({
     }
     return propActiveItem ?? internalActive ?? 'Dashboard';
   }, [pathname, propActiveItem, internalActive]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
+    router.push('/login');
+    router.refresh();
+  };
 
   const isCollapsed = propCollapsed ?? internalCollapsed;
 
@@ -231,13 +242,14 @@ export default function AdminSidebar({
               <User className="w-5 h-5 stroke-[2.2]" />
             </div>
 
-            <Link
-              href="/"
-              title="Logout / Return to Mobile View"
-              className="p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Sign Out"
+              className="p-1.5 text-slate-500 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer"
             >
               <LogOut className="w-5 h-5 stroke-[2]" />
-            </Link>
+            </button>
           </>
         ) : (
           <>
@@ -255,13 +267,23 @@ export default function AdminSidebar({
               </div>
             </div>
 
-            <Link
-              href="/"
-              title="Logout / Return to Mobile View"
-              className="p-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-            >
-              <LogOut className="w-5 h-5 stroke-[2]" />
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link
+                href="/"
+                title="Preview Delivery Terminal"
+                className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                <Truck className="w-4 h-4 stroke-[2]" />
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Sign Out"
+                className="p-2 text-slate-500 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer"
+              >
+                <LogOut className="w-5 h-5 stroke-[2]" />
+              </button>
+            </div>
           </>
         )}
       </div>

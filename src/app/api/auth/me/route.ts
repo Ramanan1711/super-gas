@@ -4,15 +4,28 @@ import { withApiHandler } from '@/lib/api-middleware';
 import { successResponse, notFoundResponse } from '@/lib/api-response';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
-  // Extract user ID from header or default to Suresh Babu (DP-003) active session
   const authHeader = req.headers.get('authorization') || '';
   const userIdHeader = req.headers.get('x-user-id');
+  const cookieUserId = req.cookies.get('user_id')?.value;
+  const cookieToken = req.cookies.get('auth_token')?.value;
 
   let user = null;
 
   if (userIdHeader) {
     user = await prisma.user.findUnique({
       where: { id: userIdHeader },
+      include: {
+        partnerProfile: {
+          include: {
+            depot: true,
+            assignedVehicle: true,
+          },
+        },
+      },
+    });
+  } else if (cookieUserId) {
+    user = await prisma.user.findUnique({
+      where: { id: cookieUserId },
       include: {
         partnerProfile: {
           include: {
@@ -38,9 +51,25 @@ export const GET = withApiHandler(async (req: NextRequest) => {
         },
       });
     }
+  } else if (cookieToken && cookieToken.startsWith('sg_sess_')) {
+    const parts = cookieToken.replace('sg_sess_', '').split('_');
+    const userId = parts[0];
+    if (userId) {
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          partnerProfile: {
+            include: {
+              depot: true,
+              assignedVehicle: true,
+            },
+          },
+        },
+      });
+    }
   }
 
-  // Fallback to active driver profile (Suresh Babu)
+  // Fallback to active driver profile (e.g. Varun or Suresh) if no user found
   if (!user) {
     user = await prisma.user.findFirst({
       where: { role: 'DELIVERY_PARTNER' },

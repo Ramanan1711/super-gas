@@ -8,16 +8,26 @@ import { loginSchema } from '@/lib/validations/auth.schema';
 export const POST = withApiHandler(async (req: NextRequest) => {
   const body = await validateBody(req, loginSchema);
 
-  // Normalize phone / email lookup
+  // Normalize phone / email / partnerCode lookup
   const cleanIdentifier = body.phoneOrEmail.trim();
+  const digitsOnly = cleanIdentifier.replace(/\D/g, '');
 
-  // Find user by phone or email
+  const searchPhones = [
+    cleanIdentifier,
+    cleanIdentifier.startsWith('+91') ? cleanIdentifier.replace('+91', '').trim() : `+91${cleanIdentifier}`,
+  ];
+  if (digitsOnly.length >= 10) {
+    const last10 = digitsOnly.slice(-10);
+    searchPhones.push(last10, `+91${last10}`, `+91 ${last10}`);
+  }
+
+  // Find user by phone, email, or partner code
   const user = await prisma.user.findFirst({
     where: {
       OR: [
-        { phone: cleanIdentifier },
-        { phone: cleanIdentifier.startsWith('+91') ? cleanIdentifier.replace('+91', '').trim() : `+91${cleanIdentifier}` },
+        { phone: { in: searchPhones } },
         { email: { equals: cleanIdentifier, mode: 'insensitive' } },
+        { partnerProfile: { partnerCode: { equals: cleanIdentifier, mode: 'insensitive' } } },
       ],
       isActive: true,
     },
@@ -49,6 +59,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   }
 
   // Create sanitized user session response
+  const sessionToken = `sg_sess_${user.id}_${Date.now()}`;
   const sessionData = {
     user: {
       id: user.id,
@@ -67,8 +78,29 @@ export const POST = withApiHandler(async (req: NextRequest) => {
           vehicle: user.partnerProfile.assignedVehicle?.regNumber,
         }
       : null,
-    token: `sg_sess_${user.id}_${Date.now()}`,
+    token: sessionToken,
   };
 
-  return successResponse(sessionData, 200);
+  const res = successResponse(sessionData, 200);
+
+  // Set session cookies (valid for 7 days)
+  const cookieOptions = {
+    path: '/',
+    httpOnly: false,
+    sameSite: 'lax' as const,
+    maxAge: 60 * 60 * 24 * 7,
+  };
+
+  res.cookies.set('auth_token', sessionToken, cookieOptions);
+  res.cookies.set('user_role', user.role, cookieOptions);
+  res.cookies.set('user_id', user.id, cookieOptions);
+  res.cookies.set('user_name', user.name, cookieOptions);
+
+  if (user.partnerProfile?.partnerCode) {
+    res.cookies.set('partner_code', user.partnerProfile.partnerCode, cookieOptions);
+  } else {
+    res.cookies.delete('partner_code');
+  }
+
+  return res;
 });
