@@ -257,7 +257,28 @@ export default function AdminInvoicesPage({
             }
           }
           if (Array.isArray(json.data.customerLedgers)) {
-            setCustomerLedgerList(json.data.customerLedgers);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const normalizedLedgers: CustomerLedgerRecord[] = json.data.customerLedgers.map((cl: any) => ({
+              id: cl.id,
+              name: cl.name || cl.customerName || 'Customer',
+              customerCode: cl.customerCode || 'CUS-001',
+              phone: cl.phone || '',
+              address: cl.address || '',
+              partnerVehicle: cl.partnerVehicle,
+              category: cl.category || 'Domestic Consumer',
+              assignedPartner: cl.assignedPartner || 'Unassigned',
+              assignedPartnerCode: cl.assignedPartnerCode,
+              totalInvoiced: Number(cl.totalInvoiced ?? cl.totalPurchases ?? 0),
+              paymentsReceived: Number(cl.paymentsReceived ?? cl.totalPaid ?? 0),
+              outstandingBalance: Number(cl.outstandingBalance ?? 0),
+              availableAdvance: Number(cl.availableAdvance ?? 0),
+              totalAmountPaid: Number(cl.totalAmountPaid ?? cl.paymentsReceived ?? cl.totalPaid ?? 0),
+              paidInvoicesCount: Number(cl.paidInvoicesCount ?? 0),
+              pendingInvoicesCount: Number(cl.pendingInvoicesCount ?? 0),
+              status: cl.status || (Number(cl.outstandingBalance || 0) > 0 ? 'Outstanding' : 'Settled'),
+              transactions: Array.isArray(cl.transactions) ? cl.transactions : (Array.isArray(cl.history) ? cl.history : []),
+            }));
+            setCustomerLedgerList(normalizedLedgers);
           }
         }
       })
@@ -3172,7 +3193,7 @@ export default function AdminInvoicesPage({
                     </div>
                     <div className="mt-3">
                       <div className="text-2xl font-black text-[#BC0118] tracking-tight">
-                        ₹{currentLedgerCustomer?.outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '2,000.00'}
+                        ₹{(currentLedgerCustomer?.outstandingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
                       <p className="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
                         Total unpaid balance across all unpaid and partially paid invoices
@@ -3192,7 +3213,7 @@ export default function AdminInvoicesPage({
                     </div>
                     <div className="mt-3">
                       <div className="text-2xl font-black text-emerald-700 tracking-tight">
-                        ₹{currentLedgerCustomer?.totalAmountPaid?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '2,000.00'}
+                        ₹{(currentLedgerCustomer?.totalAmountPaid ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
                       <p className="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
                         Total customer payments received during the selected statement period
@@ -3419,7 +3440,7 @@ export default function AdminInvoicesPage({
                                 {/* Running Balance */}
                                 <td className="py-3.5 px-3 text-right whitespace-nowrap">
                                   <span className="font-black text-slate-900 block">
-                                    ₹{tx.runningBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    ₹{(tx.runningBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                   </span>
                                   {tx.note && (
                                     <span className="text-[10px] text-slate-400 font-medium block">
@@ -3648,32 +3669,32 @@ export default function AdminInvoicesPage({
 
                           {/* Total Invoiced */}
                           <td className="py-3.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
-                            ₹{cust.totalInvoiced.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            ₹{(cust.totalInvoiced ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
 
                           {/* Payments Received */}
                           <td className="py-3.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
-                            ₹{cust.paymentsReceived.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            ₹{(cust.paymentsReceived ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
 
                           {/* Outstanding Balance */}
                           <td className="py-3.5 px-3 text-right font-black whitespace-nowrap">
-                            {cust.outstandingBalance > 0 ? (
+                            {(cust.outstandingBalance ?? 0) > 0 ? (
                               <span className="text-[#BC0118]">
-                                ₹{cust.outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹{(cust.outstandingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                             ) : (
                               <span className="text-slate-800">
-                                ₹{cust.outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹{(cust.outstandingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                             )}
                           </td>
 
                           {/* Available Advance */}
                           <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                            {cust.availableAdvance > 0 ? (
+                            {(cust.availableAdvance ?? 0) > 0 ? (
                               <span className="font-black text-emerald-600">
-                                ₹{cust.availableAdvance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹{(cust.availableAdvance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                             ) : (
                               <span className="text-slate-400 font-semibold">—</span>
@@ -3856,34 +3877,34 @@ export default function AdminInvoicesPage({
                   <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-xl p-3">
                     <span className="text-[10px] text-slate-400 font-bold block">Total Invoiced</span>
                     <span className="text-sm font-black text-slate-900 block mt-0.5">
-                      ₹{selectedLedgerCustomer.totalInvoiced.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹{(selectedLedgerCustomer.totalInvoiced ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-xl p-3">
                     <span className="text-[10px] text-slate-400 font-bold block">Payments Received</span>
                     <span className="text-sm font-black text-slate-900 block mt-0.5">
-                      ₹{selectedLedgerCustomer.paymentsReceived.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹{(selectedLedgerCustomer.paymentsReceived ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className={`rounded-xl p-3 border ${
-                    selectedLedgerCustomer.outstandingBalance > 0
+                    (selectedLedgerCustomer.outstandingBalance ?? 0) > 0
                       ? 'bg-red-50/70 border-red-200 text-[#BC0118]'
                       : 'bg-[#F8FAFC] border-slate-200/80 text-slate-900'
                   }`}>
                     <span className="text-[10px] font-bold block opacity-70">Outstanding</span>
                     <span className="text-sm font-black block mt-0.5">
-                      ₹{selectedLedgerCustomer.outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹{(selectedLedgerCustomer.outstandingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className={`rounded-xl p-3 border ${
-                    selectedLedgerCustomer.availableAdvance > 0
+                    (selectedLedgerCustomer.availableAdvance ?? 0) > 0
                       ? 'bg-emerald-50/70 border-emerald-200 text-emerald-700'
                       : 'bg-[#F8FAFC] border-slate-200/80 text-slate-500'
                   }`}>
                     <span className="text-[10px] font-bold block opacity-70">Available Advance</span>
                     <span className="text-sm font-black block mt-0.5">
-                      {selectedLedgerCustomer.availableAdvance > 0
-                        ? `₹${selectedLedgerCustomer.availableAdvance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                      {(selectedLedgerCustomer.availableAdvance ?? 0) > 0
+                        ? `₹${(selectedLedgerCustomer.availableAdvance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
                         : '₹0.00'}
                     </span>
                   </div>
@@ -3931,9 +3952,9 @@ export default function AdminInvoicesPage({
                               {(tx.credit ?? 0) > 0 ? tx.credit?.toLocaleString('en-IN') : '—'}
                             </td>
                             <td className={`py-2.5 px-3 text-right font-black ${
-                              tx.runningBalance > 0 ? 'text-[#BC0118]' : 'text-slate-800'
+                              (tx.runningBalance ?? 0) > 0 ? 'text-[#BC0118]' : 'text-slate-800'
                             }`}>
-                              ₹{tx.runningBalance.toLocaleString('en-IN')}
+                              ₹{(tx.runningBalance ?? 0).toLocaleString('en-IN')}
                             </td>
                           </tr>
                         ))}

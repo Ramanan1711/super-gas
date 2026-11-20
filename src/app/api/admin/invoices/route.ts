@@ -57,6 +57,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
         ledgerEntries: {
           orderBy: { createdAt: 'desc' },
         },
+        invoices: true,
         deliveryTasks: {
           take: 1,
           orderBy: { createdAt: 'desc' },
@@ -64,6 +65,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
             trip: {
               include: {
                 partner: true,
+                vehicle: true,
               },
             },
           },
@@ -83,6 +85,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   type PaymentWithRelations = (typeof payments)[number];
   type CustomerWithLedger = (typeof customersWithLedger)[number];
   type LedgerEntryItem = CustomerWithLedger['ledgerEntries'][number];
+  type CustomerInvoiceItem = CustomerWithLedger['invoices'][number];
 
   const formattedInvoices = invoices.map((inv: InvoiceWithRelations) => {
     totalInvoiced += inv.totalAmount;
@@ -217,33 +220,90 @@ export const GET = withApiHandler(async (req: NextRequest) => {
       return {
         id: le.id,
         date: dateFormatted,
+        dateTime: le.createdAt.toISOString(),
         refNo: le.referenceNumber,
+        reference: le.referenceNumber,
         desc: le.notes || (le.type === 'INVOICE' ? 'LPG Cylinder Delivery' : 'Payment Received'),
+        description: le.notes || (le.type === 'INVOICE' ? 'LPG Cylinder Delivery' : 'Payment Received'),
         type: le.type === 'INVOICE' ? ('Invoice' as const) : ('Payment' as const),
-        debit: le.debit,
-        credit: le.credit,
+        debit: le.debit > 0 ? le.debit : null,
+        credit: le.credit > 0 ? le.credit : null,
         runningBalance: le.runningBalance,
       };
     });
 
     const outstanding = Math.max(0, totalDebit - totalCredit);
+    const advance = Math.max(0, totalCredit - totalDebit);
+
     const assignedPartnerObj = c.deliveryTasks?.[0]?.trip?.partner;
-    const partnerLabel = assignedPartnerObj
-      ? `${assignedPartnerObj.partnerCode} ${assignedPartnerObj.name}`
-      : (c.route && c.route.includes('·') ? c.route : 'Unassigned');
+    const assignedVehicleObj = c.deliveryTasks?.[0]?.trip?.vehicle;
+
+    let partnerName = 'Unassigned';
+    let partnerCode: string | undefined = undefined;
+
+    if (assignedPartnerObj) {
+      partnerName = assignedPartnerObj.name;
+      partnerCode = assignedPartnerObj.partnerCode;
+    } else if (c.route && c.route.includes('·')) {
+      const parts = c.route.split('·');
+      partnerName = parts[0].trim();
+      partnerCode = parts[1].trim();
+    } else if (c.route) {
+      partnerName = c.route;
+    }
+
+    const partnerLabel = partnerCode ? `${partnerCode} ${partnerName}` : partnerName;
+    const vehicleText = assignedVehicleObj?.regNumber || (partnerCode ? `${partnerCode} Delivery Vehicle` : undefined);
+
+    const paidInvoicesCount = c.invoices?.filter((inv: CustomerInvoiceItem) => inv.paymentStatus === 'PAID').length || 0;
+    const pendingInvoicesCount = c.invoices?.filter((inv: CustomerInvoiceItem) => inv.paymentStatus !== 'PAID').length || 0;
+
+    let ledgerStatus: 'Outstanding' | 'Advance Available' | 'Settled' | 'Inactive' = 'Settled';
+    if (outstanding > 0) {
+      ledgerStatus = 'Outstanding';
+    } else if (advance > 0) {
+      ledgerStatus = 'Advance Available';
+    }
 
     return {
       id: c.id,
-      customerCode: c.customerCode || 'CUS-001',
+      name: c.name,
       customerName: c.name,
+      customerCode: c.customerCode || 'CUS-001',
       phone: c.phone,
+      address: c.address || '',
       route: c.address || 'Madurai Route',
-      assignedPartner: partnerLabel,
-      totalPurchases: totalDebit || 5000,
-      totalPaid: totalCredit || 5000,
+      category: c.type === 'COMMERCIAL' || c.customerType === 'COMMERCIAL' ? 'Commercial Client' : 'Domestic Consumer',
+      assignedPartner: partnerName,
+      assignedPartnerCode: partnerCode,
+      assignedPartnerLabel: partnerLabel,
+      partnerVehicle: vehicleText,
+      totalInvoiced: totalDebit,
+      totalPurchases: totalDebit,
+      paymentsReceived: totalCredit,
+      totalPaid: totalCredit,
+      totalAmountPaid: totalCredit,
       outstandingBalance: outstanding,
-      status: outstanding > 0 ? ('Overdue' as const) : ('Active' as const),
-      creditLimit: 15000,
+      availableAdvance: advance,
+      paidInvoicesCount,
+      pendingInvoicesCount,
+      status: ledgerStatus,
+      creditLimit: c.creditLimit || 15000,
+      transactions: history.length > 0 ? history : [
+        {
+          id: `hist-${c.id}`,
+          date: 'Live Record',
+          dateTime: new Date().toISOString(),
+          refNo: c.customerCode || 'CUS-001',
+          reference: c.customerCode || 'CUS-001',
+          desc: 'Current Balance Clearance',
+          description: 'Current Balance Clearance',
+          type: 'Payment' as const,
+          debit: null,
+          credit: totalCredit > 0 ? totalCredit : null,
+          runningBalance: outstanding,
+        },
+      ],
       history: history.length > 0 ? history : [
         {
           id: `hist-${c.id}`,
