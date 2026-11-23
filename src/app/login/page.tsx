@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successInfo, setSuccessInfo] = useState<{ role: string; name: string } | null>(null);
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -70,17 +71,32 @@ export default function LoginPage() {
           router.push('/admin');
         }
         router.refresh();
-      }, 700);
+      }, 600);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
       setErrorMessage(message);
+      setSuccessInfo(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhoneOrEmail(e.target.value);
+    if (errorMessage) setErrorMessage(null);
+    if (successInfo) setSuccessInfo(null);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (errorMessage) setErrorMessage(null);
+    if (successInfo) setSuccessInfo(null);
+  };
+
   const setDemoAccount = (type: 'ADMIN' | 'DRIVER') => {
     setErrorMessage(null);
+    setSuccessInfo(null);
+    setLoading(false);
     if (type === 'ADMIN') {
       setPhoneOrEmail('9080995108');
       setPassword('supergas123');
@@ -146,11 +162,11 @@ export default function LoginPage() {
                 <input
                   type="text"
                   value={phoneOrEmail}
-                  onChange={(e) => setPhoneOrEmail(e.target.value)}
+                  onChange={handleIdentifierChange}
                   placeholder="e.g. 9080995108, DP-006, or email"
                   autoComplete="username"
-                  disabled={loading || Boolean(successInfo)}
-                  className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-white rounded-xl pl-10 pr-3.5 py-3 text-sm placeholder:text-slate-500 outline-none transition font-medium"
+                  disabled={loading}
+                  className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-white rounded-xl pl-10 pr-3.5 py-3 text-sm placeholder:text-slate-500 outline-none transition font-medium disabled:opacity-60"
                 />
               </div>
             </div>
@@ -172,11 +188,11 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   placeholder="••••••••••••"
                   autoComplete="current-password"
-                  disabled={loading || Boolean(successInfo)}
-                  className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-white rounded-xl pl-10 pr-10 py-3 text-sm placeholder:text-slate-500 outline-none transition font-medium"
+                  disabled={loading}
+                  className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-white rounded-xl pl-10 pr-10 py-3 text-sm placeholder:text-slate-500 outline-none transition font-medium disabled:opacity-60"
                 />
                 <button
                   type="button"
@@ -188,10 +204,10 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button - Always clickable unless actively submitting */}
             <button
               type="submit"
-              disabled={loading || Boolean(successInfo)}
+              disabled={loading}
               className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#BC0118] to-red-600 hover:from-red-700 hover:to-red-600 active:scale-[0.99] text-white font-bold text-sm shadow-lg shadow-red-900/30 flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
