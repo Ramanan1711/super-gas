@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   Package,
   X,
-  RefreshCw,
   ChevronDown,
   ChevronRight,
   Home,
@@ -36,8 +35,7 @@ interface MainDeliveryScreenProps {
   activeBottomNav: 'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE';
   setActiveBottomNav: (nav: 'HOME' | 'CUSTOMERS' | 'STOCKS' | 'EXPENSES' | 'MORE') => void;
   onStartDelivery: (delivery: Delivery) => void;
-  onResetAllToPending: () => void;
-  isSubmitting: boolean;
+  isSubmitting?: boolean;
   getInitials: (name: string) => string;
 }
 
@@ -53,8 +51,6 @@ export default function MainDeliveryScreen({
   activeBottomNav,
   setActiveBottomNav,
   onStartDelivery,
-  onResetAllToPending,
-  isSubmitting,
   getInitials,
 }: MainDeliveryScreenProps) {
   return (
@@ -249,7 +245,7 @@ export default function MainDeliveryScreen({
 
         {/* Customers Section */}
         <div id="customers-list-section" className="space-y-3 pt-2">
-          {/* Section Header with Reset Demo Button */}
+          {/* Section Header */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-slate-900">Customers</h2>
@@ -257,16 +253,6 @@ export default function MainDeliveryScreen({
                 ({deliveries.length})
               </span>
             </div>
-            <button
-              type="button"
-              onClick={onResetAllToPending}
-              disabled={isSubmitting}
-              className="text-[11px] font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/80 px-2.5 py-1 rounded-lg border border-red-200/80 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-              title="Reset sample deliveries to Pending so you can test the delivery handover flow again"
-            >
-              <RefreshCw className={`w-3 h-3 ${isSubmitting ? 'animate-spin' : ''}`} />
-              <span>Reset Demo to Pending</span>
-            </button>
           </div>
 
           {/* Search Bar */}

@@ -232,41 +232,6 @@ export default function DeliveryScreen({
     setStep('CATEGORY');
   };
 
-  // Reset deliveries for testing demo
-  const handleResetAllToPending = async () => {
-    try {
-      setIsSubmitting(true);
-      const res = await fetch('/api/deliveries/reset', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setDeliveries(data.deliveries);
-        setStats(data.stats);
-        setFilledStock(10);
-        setEmptyStock(15);
-      } else {
-        setDeliveries((prev) =>
-          prev.map((d, i) => ({
-            ...d,
-            status: i < 5 ? 'PENDING' : 'DELIVERED',
-            emptyCollected: i < 5 ? 0 : (d.emptyCollected || 1),
-            paymentStatus: i < 5 ? 'PENDING' : 'PAID',
-          }))
-        );
-      }
-    } catch {
-      setDeliveries((prev) =>
-        prev.map((d, i) => ({
-          ...d,
-          status: i < 5 ? 'PENDING' : 'DELIVERED',
-          emptyCollected: i < 5 ? 0 : (d.emptyCollected || 1),
-          paymentStatus: i < 5 ? 'PENDING' : 'PAID',
-        }))
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // Dynamic current invoice total
   const currentInvoiceTotal = useMemo(() => {
     const CYLINDER_PRICES: Record<string, number> = {
@@ -513,7 +478,6 @@ export default function DeliveryScreen({
             activeBottomNav={activeBottomNav}
             setActiveBottomNav={setActiveBottomNav}
             onStartDelivery={handleStartDelivery}
-            onResetAllToPending={handleResetAllToPending}
             isSubmitting={isSubmitting}
             getInitials={getInitials}
           />
