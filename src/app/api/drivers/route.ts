@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { withApiHandler } from '@/lib/api-middleware';
 import { successResponse, badRequestResponse } from '@/lib/api-response';
+import { UserRole } from '@prisma/client';
 
 export const GET = withApiHandler(async () => {
   const partners = await prisma.deliveryPartner.findMany({
@@ -98,7 +100,14 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     return badRequestResponse('Driver name and phone number are required.');
   }
 
-  // Generate partnerCode if not provided (start after existing 5 beats DP-001..DP-005)
+  const cleanName = body.name.trim();
+  const cleanPhone = body.phone.trim();
+  const cleanEmail =
+    body.email && typeof body.email === 'string' && body.email.trim()
+      ? body.email.trim().toLowerCase()
+      : null;
+
+  // Generate partnerCode if not provided (start after existing beats DP-001..DP-005)
   let partnerCode = body.partnerCode?.trim();
   if (!partnerCode) {
     const allPartners = await prisma.deliveryPartner.findMany({
@@ -117,7 +126,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     partnerCode = `DP-${String(maxNum + 1).padStart(3, '0')}`;
   }
 
-  // Check uniqueness of partnerCode and phone
+  // Check uniqueness of partnerCode
   const existingCode = await prisma.deliveryPartner.findUnique({
     where: { partnerCode },
   });
@@ -138,11 +147,12 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     partnerCode = `DP-${String(maxNum + 2).padStart(3, '0')}`;
   }
 
-  const existingPhone = await prisma.deliveryPartner.findUnique({
-    where: { phone: body.phone.trim() },
+  // Check uniqueness of phone in DeliveryPartner
+  const existingPartnerPhone = await prisma.deliveryPartner.findUnique({
+    where: { phone: cleanPhone },
   });
-  if (existingPhone) {
-    return badRequestResponse(`A partner with phone number ${body.phone} already exists.`);
+  if (existingPartnerPhone) {
+    return badRequestResponse(`A delivery partner with phone number ${cleanPhone} already exists.`);
   }
 
   // Find default depot if none provided
@@ -152,28 +162,105 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     depotId = defaultDepot?.id;
   }
 
-  const newPartner = await prisma.deliveryPartner.create({
-    data: {
-      partnerCode,
-      name: body.name.trim(),
-      phone: body.phone.trim(),
-      altPhone: body.altPhone ? body.altPhone.trim() : null,
-      address: body.address ? body.address.trim() : null,
-      bloodGroup: body.bloodGroup || null,
-      status: body.status || 'ACTIVE',
-      depotId: depotId || null,
-      assignedVehicleId: body.assignedVehicleId || null,
-    },
-    include: {
-      assignedVehicle: true,
-      depot: true,
-    },
+  // Password for driver user account (default to 'supergas123' if not provided)
+  const rawPassword =
+    body.password && typeof body.password === 'string' && body.password.length >= 6
+      ? body.password
+      : 'supergas123';
+  const shaHash = crypto.createHash('sha256').update(rawPassword).digest('hex');
+  const passwordHash = `sha256$${shaHash}`;
+
+  // Execute in transaction: find or create User, then create DeliveryPartner linked to User
+  const result = await prisma.$transaction(async (tx) => {
+    // Check if a User already exists with this phone
+    let user = await tx.user.findFirst({
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          { phone: cleanPhone.startsWith('+91') ? cleanPhone.replace('+91', '').trim() : `+91${cleanPhone}` },
+        ],
+      },
+      include: {
+        partnerProfile: true,
+      },
+    });
+
+    if (user) {
+      if (user.partnerProfile) {
+        throw new Error(
+          `User with phone ${cleanPhone} is already linked to partner ${user.partnerProfile.partnerCode}.`
+        );
+      }
+      // Ensure role is DELIVERY_PARTNER and active
+      user = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          role: UserRole.DELIVERY_PARTNER,
+          isActive: true,
+          passwordHash,
+        },
+        include: {
+          partnerProfile: true,
+        },
+      });
+    } else {
+      // Create new User
+      user = await tx.user.create({
+        data: {
+          name: cleanName,
+          phone: cleanPhone,
+          email: cleanEmail,
+          passwordHash,
+          role: UserRole.DELIVERY_PARTNER,
+          isActive: true,
+        },
+        include: {
+          partnerProfile: true,
+        },
+      });
+    }
+
+    // Create DeliveryPartner linked to user
+    const newPartner = await tx.deliveryPartner.create({
+      data: {
+        partnerCode,
+        name: cleanName,
+        phone: cleanPhone,
+        altPhone: body.altPhone ? body.altPhone.trim() : null,
+        address: body.address ? body.address.trim() : null,
+        bloodGroup: body.bloodGroup || null,
+        status: body.status || 'ACTIVE',
+        userId: user.id,
+        depotId: depotId || null,
+        assignedVehicleId: body.assignedVehicleId || null,
+      },
+      include: {
+        assignedVehicle: true,
+        depot: true,
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            role: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    return { newPartner, user, initialPassword: rawPassword };
   });
 
   return successResponse(
     {
-      message: `Partner ${newPartner.name} (${newPartner.partnerCode}) created successfully.`,
-      partner: newPartner,
+      message: `Partner ${result.newPartner.name} (${result.newPartner.partnerCode}) created successfully with active login credentials.`,
+      partner: result.newPartner,
+      credentials: {
+        phone: result.user.phone,
+        defaultPassword: result.initialPassword,
+        role: result.user.role,
+      },
     },
     201
   );
