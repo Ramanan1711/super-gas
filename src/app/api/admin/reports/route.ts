@@ -34,9 +34,10 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
   if (normalized.includes('today')) {
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const todayLabel = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     return {
       dateFilter: { gte: start, lte: end },
-      periodLabel: 'Today',
+      periodLabel: period || `Today (${todayLabel})`,
       from: start.toISOString(),
       to: end.toISOString(),
     };
@@ -46,7 +47,7 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
     const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     return {
       dateFilter: { gte: start, lte: now },
-      periodLabel: 'Last 7 Days',
+      periodLabel: period || 'Last 7 Days',
       from: start.toISOString(),
       to: now.toISOString(),
     };
@@ -55,9 +56,10 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
   if (normalized.includes('prev') || normalized.includes('last_month') || normalized.includes('oct')) {
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
     const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    const prevMonthLabel = start.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
     return {
       dateFilter: { gte: start, lte: end },
-      periodLabel: 'Previous Month (Oct 2026)',
+      periodLabel: period || `Previous Month (${prevMonthLabel})`,
       from: start.toISOString(),
       to: end.toISOString(),
     };
@@ -68,7 +70,7 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
     const end = new Date(now.getFullYear(), 8, 30, 23, 59, 59, 999); // Sep 30
     return {
       dateFilter: { gte: start, lte: end },
-      periodLabel: 'Q3 2026 (Jul - Sep)',
+      periodLabel: period || `Q3 ${now.getFullYear()} (Jul - Sep)`,
       from: start.toISOString(),
       to: end.toISOString(),
     };
@@ -79,7 +81,7 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
     const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999); // Dec 31
     return {
       dateFilter: { gte: start, lte: end },
-      periodLabel: 'Q4 2026 Comprehensive',
+      periodLabel: period || `Q4 ${now.getFullYear()} Comprehensive`,
       from: start.toISOString(),
       to: end.toISOString(),
     };
@@ -88,9 +90,10 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
   // Default: Current month
   const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const currentMonthLabel = start.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
   return {
     dateFilter: { gte: start, lte: end },
-    periodLabel: 'This Month (Nov 2026)',
+    periodLabel: period || `This Month (${currentMonthLabel})`,
     from: start.toISOString(),
     to: end.toISOString(),
   };
@@ -863,7 +866,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
         totalApproved: totalApprovedExpenses,
         totalPending: totalPendingExpenses,
         totalRejected: totalRejectedExpenses,
-        totalClaims: expenseClaims.length || 47,
+        totalClaims: expenseClaims.length,
       },
       categories: expenseCategories,
       claims: expenseClaims.slice(0, 15).map((exp: ExpenseRow) => ({

@@ -189,8 +189,25 @@ function computeSvgDualTrendPath(
 }
 
 export default function AdminReportsPage() {
+  const currentDate = new Date();
+  const currentMonthStr = currentDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+  const prevMonthStr = prevMonthDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  const todayLabel = `Today (${currentDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })})`;
+  const thisMonthLabel = `This Month (${currentMonthStr})`;
+  const prevMonthLabel = `Previous Month (${prevMonthStr})`;
+
+  const periodOptions = [
+    todayLabel,
+    'Last 7 Days',
+    thisMonthLabel,
+    prevMonthLabel,
+    `Q3 ${currentDate.getFullYear()} (Jul - Sep)`,
+    `Q4 ${currentDate.getFullYear()} Comprehensive`,
+  ];
+
   const [activeTab, setActiveTab] = useState('Overall Branch Report');
-  const [selectedPeriod, setSelectedPeriod] = useState('This Month (Nov 2026)');
+  const [selectedPeriod, setSelectedPeriod] = useState(thisMonthLabel);
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [chartTimeRange, setChartTimeRange] = useState<'7 D' | '30 D' | 'Custom'>('30 D');
@@ -589,14 +606,7 @@ export default function AdminReportsPage() {
 
                 {showPeriodDropdown && (
                   <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1 text-xs font-bold text-slate-700">
-                    {[
-                      'Today',
-                      'Last 7 Days',
-                      'This Month (Nov 2026)',
-                      'Previous Month (Oct 2026)',
-                      'Q3 2026 (Jul - Sep)',
-                      'Q4 2026 Comprehensive',
-                    ].map((period) => (
+                    {periodOptions.map((period) => (
                       <div
                         key={period}
                         onClick={() => {
@@ -859,6 +869,19 @@ export default function AdminReportsPage() {
                 const formatCurrencyK = (num: number) =>
                   num >= 1000 ? `₹${Math.round(num / 1000)}k` : `₹${Math.round(num)}`;
 
+                const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                });
+                const todayFullStr = currentDate.toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                });
+                const fulfillmentVolumeSubtitle = selectedPeriod.includes('Month')
+                  ? `Fulfillment volume across branches (${firstDayOfMonth} – ${todayFullStr})`
+                  : `Fulfillment volume across branches (${selectedPeriod})`;
+
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     {/* Chart 1: Daily Delivery Performance */}
@@ -867,9 +890,15 @@ export default function AdminReportsPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="text-sm font-black text-slate-900">Daily Delivery Performance</h3>
-                            <p className="text-xs text-slate-400 font-medium mt-0.5">
-                              Fulfillment volume across branches ({selectedPeriod})
-                            </p>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 mt-0.5">
+                              <p className="text-xs text-slate-400 font-medium">
+                                {fulfillmentVolumeSubtitle}
+                              </p>
+                              <span className="hidden sm:inline text-slate-300">•</span>
+                              <p className="text-xs font-bold text-slate-600">
+                                Peak Day: <strong className="text-slate-900 font-extrabold">{peakDeliveryPoint.deliveries} Cylinders ({peakDeliveryPoint.date})</strong>
+                              </p>
+                            </div>
                           </div>
                           <div className="bg-slate-100 p-0.5 rounded-lg flex items-center text-[10px] font-bold">
                             {(['7 D', '30 D', 'Custom'] as const).map((range) => (
@@ -1833,39 +1862,41 @@ export default function AdminReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold">
-                      {(reportsData?.expensesReports?.claims?.length
-                        ? reportsData.expensesReports.claims
-                        : [
-                            { id: '1', claimNumber: 'EXP-20261024-001', date: '24 Oct', partnerName: 'Rajesh Kumar', vehicleReg: 'Van 04 (TN 58 AX 4821)', category: 'Fuel / Diesel', amount: 1200, status: 'APPROVED' },
-                            { id: '2', claimNumber: 'EXP-20261024-002', date: '24 Oct', partnerName: 'Suresh Babu', vehicleReg: 'Van 03 (TN 58 AX 4822)', category: 'Driver Allowance', amount: 350, status: 'APPROVED' },
-                            { id: '3', claimNumber: 'EXP-20261023-009', date: '23 Oct', partnerName: 'M. Selvam', vehicleReg: 'Van 01 (TN 58 AX 4819)', category: 'Vehicle Repair', amount: 1850, status: 'APPROVED' },
-                            { id: '4', claimNumber: 'EXP-20261022-014', date: '22 Oct', partnerName: 'K. Vignesh', vehicleReg: 'Van 02 (TN 58 AX 4820)', category: 'Toll Charges', amount: 480, status: 'APPROVED' },
-                          ]
-                      ).map((exp: { id: string; claimNumber: string; date: string; partnerName: string; vehicleReg: string; category: string; amount: number; status: string }) => (
-                        <tr key={exp.id} className="hover:bg-slate-50/80 transition">
-                          <td className="py-4 px-6 font-mono font-bold text-slate-700">{exp.claimNumber}</td>
-                          <td className="py-4 px-4 text-slate-600 font-bold">{exp.date}</td>
-                          <td className="py-4 px-4">
-                            <p className="font-extrabold text-slate-900 text-xs">{exp.partnerName}</p>
-                            <p className="text-[11px] text-slate-400 font-medium mt-0.5">{exp.vehicleReg}</p>
-                          </td>
-                          <td className="py-4 px-4 font-bold text-slate-800">{exp.category}</td>
-                          <td className="py-4 px-4 text-right font-black text-slate-900">₹{exp.amount.toLocaleString('en-IN')}</td>
-                          <td className="py-4 px-6 text-right">
-                            <span
-                              className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                exp.status === 'APPROVED'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : exp.status === 'PENDING'
-                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
-                              }`}
-                            >
-                              {exp.status}
-                            </span>
+                      {(reportsData?.expensesReports?.claims || []).length > 0 ? (
+                        reportsData.expensesReports.claims.map(
+                          (exp: { id: string; claimNumber: string; date: string; partnerName: string; vehicleReg: string; category: string; amount: number; status: string }) => (
+                            <tr key={exp.id} className="hover:bg-slate-50/80 transition">
+                              <td className="py-4 px-6 font-mono font-bold text-slate-700">{exp.claimNumber}</td>
+                              <td className="py-4 px-4 text-slate-600 font-bold">{exp.date}</td>
+                              <td className="py-4 px-4">
+                                <p className="font-extrabold text-slate-900 text-xs">{exp.partnerName}</p>
+                                <p className="text-[11px] text-slate-400 font-medium mt-0.5">{exp.vehicleReg}</p>
+                              </td>
+                              <td className="py-4 px-4 font-bold text-slate-800">{exp.category}</td>
+                              <td className="py-4 px-4 text-right font-black text-slate-900">₹{exp.amount.toLocaleString('en-IN')}</td>
+                              <td className="py-4 px-6 text-right">
+                                <span
+                                  className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                    exp.status === 'APPROVED'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : exp.status === 'PENDING'
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  }`}
+                                >
+                                  {exp.status}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        )
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                            No operating expense claims logged for this period.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
