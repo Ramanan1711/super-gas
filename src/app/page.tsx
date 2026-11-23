@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { prisma } from '@/lib/prisma';
 import DeliveryScreen, { DeliveryStats, Delivery } from '@/components/DeliveryScreen';
 import AdminLinkButton from '@/components/AdminLinkButton';
+import AuthGuard from '@/components/AuthGuard';
 
 async function DeliveryContainer() {
   let stats: DeliveryStats = {
@@ -75,6 +76,9 @@ function DeliverySkeleton() {
 export default function HomePage() {
   return (
     <div className="relative">
+      {/* Client-side auth guard defense-in-depth */}
+      <AuthGuard />
+
       {/* Conditionally rendered ONLY for Admin and Super Admin roles */}
       <AdminLinkButton />
 
