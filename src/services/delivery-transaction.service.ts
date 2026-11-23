@@ -308,9 +308,18 @@ export class DeliveryTransactionService {
         },
       });
 
+      // 5. If this is an end-of-shift drop, update delivery partner duty status to OFF_DUTY
+      if (input.dropType === 'END_OF_SHIFT') {
+        await tx.deliveryPartner.update({
+          where: { id: partnerId },
+          data: { status: 'OFF_DUTY' },
+        });
+      }
+
       return {
         handoverEvent,
         settlement: updatedSettlement,
+        partnerStatus: input.dropType === 'END_OF_SHIFT' ? 'OFF_DUTY' : undefined,
       };
     });
   }

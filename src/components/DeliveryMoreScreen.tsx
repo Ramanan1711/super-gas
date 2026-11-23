@@ -46,12 +46,15 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
     partnerCode: string;
     vehicle?: string;
     depot?: string;
+    status?: string;
   }>({
     name: 'Delivery Partner',
     partnerCode: 'DP-006',
     vehicle: 'Van 03 (TN 58 AX 4821)',
     depot: 'Madurai Central Hub',
+    status: 'ACTIVE',
   });
+  const [isSubmittingHandover, setIsSubmittingHandover] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -61,6 +64,38 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
     }
     router.push('/login');
     router.refresh();
+  };
+
+  const handleConfirmHandover = async () => {
+    try {
+      setIsSubmittingHandover(true);
+      const res = await fetch('/api/settlements/handover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partnerCode: driverProfile.partnerCode,
+          amount: Number(shiftSummary.cashOnHand) || 0,
+          dropType: 'END_OF_SHIFT',
+          receivedByName: 'Depot Vault Admin',
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error?.message || 'Handover submission failed');
+      }
+
+      const handoverCode = json.data?.handoverEvent?.handoverCode || 'HND-RECORDED';
+      setDriverProfile((prev) => ({ ...prev, status: 'OFF_DUTY' }));
+      setActiveModal(null);
+      alert(
+        `Shift ended successfully! Depot custody receipt ${handoverCode} recorded for ${driverProfile.partnerCode}. Duty status set to OFF_DUTY.`
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error submitting shift handover');
+    } finally {
+      setIsSubmittingHandover(false);
+    }
   };
 
   React.useEffect(() => {
@@ -75,6 +110,7 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             partnerCode: partner?.partnerCode || 'DP-006',
             vehicle: partner?.assignedVehicle?.regNumber || partner?.vehicle || 'Van 03 (TN 58 AX 4821)',
             depot: partner?.depot?.name || partner?.depot || 'Madurai Central Hub',
+            status: partner?.status || 'ACTIVE',
           });
         }
       })
@@ -138,7 +174,11 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
             <div className="w-13 h-13 rounded-full bg-[#3F4D67] text-white font-black text-base flex items-center justify-center shadow-inner tracking-wide">
               {driverProfile.name.slice(0, 2).toUpperCase()}
             </div>
-            <span className="w-3.5 h-3.5 rounded-full bg-[#17A44B] border-2 border-white absolute bottom-0 right-0 shadow-2xs" />
+            <span
+              className={`w-3.5 h-3.5 rounded-full border-2 border-white absolute bottom-0 right-0 shadow-2xs ${
+                driverProfile.status === 'OFF_DUTY' ? 'bg-slate-400' : 'bg-[#17A44B]'
+              }`}
+            />
           </div>
 
           {/* Driver Information */}
@@ -147,10 +187,17 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
               <h2 className="text-base font-black text-slate-900 tracking-tight truncate">
                 {driverProfile.name}
               </h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-bold shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>Active</span>
-              </span>
+              {driverProfile.status === 'OFF_DUTY' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                  <span>Off Duty</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-bold shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Active</span>
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5 leading-snug">
               ID: {driverProfile.partnerCode} • {driverProfile.vehicle}
@@ -431,19 +478,22 @@ export default function DeliveryMoreScreen({ onNavigateTab }: DeliveryMoreScreen
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition"
+                disabled={isSubmittingHandover}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
               >
                 Continue Shift
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  alert('Shift ended. Depot reconciliation report generated for Admin.');
-                  setActiveModal(null);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 text-white font-bold text-xs transition shadow-xs"
+                onClick={handleConfirmHandover}
+                disabled={isSubmittingHandover}
+                className="flex-1 py-2.5 rounded-xl bg-[#BC0118] hover:bg-red-800 disabled:opacity-50 text-white font-bold text-xs transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
               >
-                Confirm Handover
+                {isSubmittingHandover ? (
+                  <span>Recording Handover...</span>
+                ) : (
+                  <span>Confirm Handover</span>
+                )}
               </button>
             </div>
           </div>

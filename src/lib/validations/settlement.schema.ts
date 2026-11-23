@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createHandoverEventSchema = z.object({
   partnerId: z.string().optional(),
   partnerCode: z.string().optional(),
-  amount: z.number().positive('Handover cash amount must be greater than zero'),
+  amount: z.number().min(0, 'Handover cash amount cannot be negative').default(0),
   dropType: z.enum(['AFTERNOON_DROP', 'EVENING_VAULT', 'END_OF_SHIFT']).default('EVENING_VAULT'),
   receivedByName: z.string().min(2, 'Admin name is required').default('S. Raman (Admin)'),
   stampNumber: z.string().optional(),
