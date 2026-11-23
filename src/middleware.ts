@@ -17,15 +17,41 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Admin routes protection
-  if (pathname.startsWith('/admin')) {
+  // 2. Admin routes protection (both UI and API endpoints)
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
     if (!token) {
+      if (pathname.startsWith('/api/admin')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Authentication required. Please sign in with an administrator account.',
+            },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 401 }
+        );
+      }
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
-    // STRICT ENFORCEMENT: Delivery partner must NEVER access Admin flow
+    // STRICT ENFORCEMENT: Delivery partner must NEVER access Admin flow or Admin APIs
     if (role === 'DELIVERY_PARTNER') {
+      if (pathname.startsWith('/api/admin')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'FORBIDDEN',
+              message: 'Access denied. Administrator privileges required.',
+            },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 403 }
+        );
+      }
       const homeUrl = new URL('/', request.url);
       homeUrl.searchParams.set('access_denied', 'admin');
       return NextResponse.redirect(homeUrl);
@@ -75,11 +101,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - api routes
+     * - non-admin api routes (EXCEPT /api/admin/* which IS strictly protected)
      * - _next/static, _next/image
      * - static files (.png, .jpg, .svg, .ico, etc.)
      * - uploads
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|uploads|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/(?!admin)|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|uploads|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

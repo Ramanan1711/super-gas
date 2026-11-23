@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withApiHandler } from '@/lib/api-middleware';
+import { withApiHandler, requireAdmin } from '@/lib/api-middleware';
 import { successResponse } from '@/lib/api-response';
 import { OperationalActivityService } from '@/services/operational-activity.service';
 
@@ -100,6 +100,9 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
 }
 
 export const GET = withApiHandler(async (req: NextRequest) => {
+  const auth = await requireAdmin(req);
+  if (!auth.authorized) return auth.response;
+
   const periodParam = req.nextUrl.searchParams.get('period');
   const tabParam = req.nextUrl.searchParams.get('tab') || 'all';
   const fromParam = req.nextUrl.searchParams.get('from') || req.nextUrl.searchParams.get('startDate');

@@ -1,8 +1,12 @@
-import { withApiHandler } from '@/lib/api-middleware';
+import { NextRequest } from 'next/server';
+import { withApiHandler, requireAdmin } from '@/lib/api-middleware';
 import { successResponse } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma';
 
-export const GET = withApiHandler(async () => {
+export const GET = withApiHandler(async (req: NextRequest) => {
+  const auth = await requireAdmin(req);
+  if (!auth.authorized) return auth.response;
+
   const [
     totalCustomers,
     totalDrivers,

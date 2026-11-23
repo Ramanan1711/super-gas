@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withApiHandler } from '@/lib/api-middleware';
+import { withApiHandler, requireAdmin } from '@/lib/api-middleware';
 import { successResponse } from '@/lib/api-response';
 
 // Default project settings
@@ -48,6 +48,9 @@ const projectSettings = {
 };
 
 export const GET = withApiHandler(async (req: NextRequest) => {
+  const auth = await requireAdmin(req);
+  if (!auth.authorized) return auth.response;
+
   const action = req.nextUrl.searchParams.get('action');
 
   // Database Backup export provision
@@ -109,6 +112,9 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
+  const auth = await requireAdmin(req);
+  if (!auth.authorized) return auth.response;
+
   const body = await req.json().catch(() => ({}));
   const { agency, commercialPricing, fleetControls } = body;
 

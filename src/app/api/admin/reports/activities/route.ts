@@ -1,9 +1,12 @@
 import { NextRequest } from 'next/server';
-import { withApiHandler } from '@/lib/api-middleware';
+import { withApiHandler, requireAdmin } from '@/lib/api-middleware';
 import { successResponse } from '@/lib/api-response';
 import { OperationalActivityService } from '@/services/operational-activity.service';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
+  const auth = await requireAdmin(req);
+  if (!auth.authorized) return auth.response;
+
   const page = parseInt(req.nextUrl.searchParams.get('page') || '1', 10);
   const limit = parseInt(req.nextUrl.searchParams.get('limit') || '5', 10);
   const activityType = req.nextUrl.searchParams.get('type') || req.nextUrl.searchParams.get('activityType') || 'all';

@@ -1,10 +1,13 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withApiHandler } from '@/lib/api-middleware';
+import { withApiHandler, requireAdmin } from '@/lib/api-middleware';
 import { successResponse } from '@/lib/api-response';
 import { Prisma, PaymentStatus } from '@prisma/client';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
+  const auth = await requireAdmin(req);
+  if (!auth.authorized) return auth.response;
+
   const search = req.nextUrl.searchParams.get('search')?.trim().toLowerCase();
   const status = req.nextUrl.searchParams.get('status')?.trim().toUpperCase();
 
