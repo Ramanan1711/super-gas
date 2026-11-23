@@ -71,28 +71,19 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     ? folder
     : 'general';
 
-  // Store the file as a self-contained Data URL so that when saved to the database,
-  // it is completely portable and accessible from anywhere (localhost, Vercel production, mobile)
-  // without relying on local server filesystem writes or 404ing across environments.
-  const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
-  const publicUrl = dataUrl;
+  // 6. Write file directly to public/uploads disk storage
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', targetSubfolder);
+  await fs.mkdir(uploadDir, { recursive: true });
+  const filePath = path.join(uploadDir, uniqueFilename);
+  await fs.writeFile(filePath, buffer);
 
-  // Best-effort local backup for debugging in local development
-  if (!process.env.VERCEL) {
-    try {
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', targetSubfolder);
-      await fs.mkdir(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, uniqueFilename);
-      await fs.writeFile(filePath, buffer);
-    } catch {
-      // Ignore local filesystem backup errors
-    }
-  }
+  // Clean relative path URL for database storage to prevent PostgreSQL text column bloat
+  const fileUrl = `/uploads/${targetSubfolder}/${uniqueFilename}`;
 
   return successResponse(
     {
-      url: publicUrl,
-      fileUrl: publicUrl,
+      url: fileUrl,
+      fileUrl,
       filename: uniqueFilename,
       originalName,
       mimeType,
