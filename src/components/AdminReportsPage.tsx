@@ -17,6 +17,7 @@ import {
   Search,
   SlidersHorizontal,
   ShieldAlert,
+  ShieldCheck,
   Bell,
   Wallet,
   Receipt,
@@ -195,61 +196,129 @@ export default function AdminReportsPage() {
     { id: 'Expenses Reports', label: 'Expenses Reports', highlightRed: true },
   ];
 
-  // CSV Exporter
+  // 1. Client-Side CSV Export (Blob Generation via URL.createObjectURL)
   const exportCSV = () => {
     setShowExportDropdown(false);
     triggerToast('Generating CSV report download...');
 
-    let csvContent = 'data:text/csv;charset=utf-8,';
-    const filename = `SuperGas_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`;
+    let csvContent = '';
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `SuperGas_${activeTab.replace(/\s+/g, '_')}_${dateStr}.csv`;
 
     if (activeTab === 'Customer Reports' && reportsData?.customerReports?.customersList) {
-      csvContent += 'Customer Code,Name,Business,Type,Invoiced,Paid,Outstanding,Credit Limit,Deposits,Holding Cylinders\n';
+      csvContent += 'Customer Code,Name,Business Name,Phone,Type,Total Invoiced (INR),Total Paid (INR),Balance Due (INR),Credit Limit (INR),Security Deposit (INR),Holding Cylinders,Aging Category,Over Credit Limit\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reportsData.customerReports.customersList.forEach((c: any) => {
-        csvContent += `"${c.customerCode}","${c.name}","${c.businessName}","${c.type}",${c.totalInvoiced},${c.totalPaid},${c.outstandingBalance},${c.creditLimit},${c.securityDeposit},${c.holdingCylinders}\n`;
+        csvContent += `"${c.customerCode}","${c.name}","${c.businessName}","${c.phone}","${c.type}",${c.totalInvoiced},${c.totalPaid},${c.outstandingBalance},${c.creditLimit},${c.securityDeposit},${c.holdingCylinders},"${c.agingCategory}",${c.isOverCreditLimit ? 'YES' : 'NO'}\n`;
       });
     } else if (activeTab === 'Delivery Reports' && reportsData?.deliveryReports?.recentDeliveries) {
-      csvContent += 'Date,Customer Code,Customer Name,Cylinder Type,Quantity,Empties Collected,Amount,Payment Method,Payment Status,Status\n';
+      csvContent += 'Delivery ID,Date,Customer Code,Customer Name,Cylinder Type,Quantity,Empties Collected,Amount (INR),Payment Method,Payment Status,Status\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reportsData.deliveryReports.recentDeliveries.forEach((d: any) => {
-        csvContent += `"${d.date}","${d.customerCode}","${d.customerName}","${d.cylinderType}",${d.quantity},${d.emptyCollected},${d.amount},"${d.paymentMethod}","${d.paymentStatus}","${d.status}"\n`;
+        csvContent += `"${d.id}","${d.date}","${d.customerCode}","${d.customerName}","${d.cylinderType}",${d.quantity},${d.emptyCollected},${d.amount},"${d.paymentMethod}","${d.paymentStatus}","${d.status}"\n`;
+      });
+    } else if (activeTab === 'Invoice & Payment Reports' && reportsData?.invoiceReports) {
+      csvContent += 'Invoice Number,Date,Customer Name,Total Amount (INR),Paid Amount (INR),Balance Due (INR),Payment Status\n';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (reportsData.invoiceReports.invoicesList || []).forEach((inv: any) => {
+        csvContent += `"${inv.invoiceNumber}","${inv.date}","${inv.customerName}",${inv.totalAmount},${inv.paidAmount},${inv.balanceDue},"${inv.status}"\n`;
+      });
+    } else if (activeTab === 'Inventory Reports' && reportsData?.inventoryReports) {
+      csvContent += 'Product Specification,Filled Available,Empty Stock,Damaged/Quarantine,Reorder Threshold\n';
+      const spec = reportsData.inventoryReports.inventoryBySpec || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Object.entries(spec).forEach(([, item]: [string, any]) => {
+        csvContent += `"${item.label}",${item.filled},${item.empty},${item.damaged},${item.reorderLevel}\n`;
       });
     } else if (activeTab === 'Delivery Partner Reports' && reportsData?.partnerReports?.partnerPerformance) {
-      csvContent += 'Partner Code,Name,Phone,Vehicle,Depot,Deliveries,Cash Expected,Cash Handed Over,Shortage,Status\n';
+      csvContent += 'Partner Code,Name,Phone,Assigned Vehicle,Depot,Deliveries Completed,Cash Expected (INR),Cash Handed Over (INR),Shortage Discrepancy (INR),Settlement Status\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reportsData.partnerReports.partnerPerformance.forEach((p: any) => {
         csvContent += `"${p.partnerCode}","${p.name}","${p.phone}","${p.assignedVehicle}","${p.depotName}",${p.deliveriesCompleted},${p.cashExpected},${p.cashHandedOver},${p.shortage},"${p.handoverStatus}"\n`;
       });
+    } else if (activeTab === 'Expenses Reports' && reportsData?.expensesReports) {
+      csvContent += 'Claim Number,Date,Delivery Partner,Vehicle Reg,Category,Amount (INR),Review Status\n';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (reportsData.expensesReports.claims || []).forEach((exp: any) => {
+        csvContent += `"${exp.claimNumber}","${exp.date}","${exp.partnerName}","${exp.vehicleReg}","${exp.category}",${exp.amount},"${exp.status}"\n`;
+      });
     } else {
+      // Overall Branch Report
       csvContent += 'Metric,Value\n';
+      csvContent += `Reporting Period,"${selectedPeriod}"\n`;
       csvContent += `Total Customers,${reportMetrics.customers}\n`;
       csvContent += `Completed Deliveries,${reportMetrics.deliveries}\n`;
-      csvContent += `Total Revenue,${reportMetrics.revenue}\n`;
-      csvContent += `Total Receivables,${reportMetrics.receivables}\n`;
-      csvContent += `Approved OpEx,${reportMetrics.expenses}\n\n`;
+      csvContent += `Realized Revenue (INR),${reportMetrics.revenue}\n`;
+      csvContent += `Pending Receivables (INR),${reportMetrics.receivables}\n`;
+      csvContent += `Approved OpEx (INR),${reportMetrics.expenses}\n\n`;
       if (activitiesState.items.length > 0) {
-        csvContent += 'Date,Activity Type,Reference,Entity,Amount/Volume,Status\n';
+        csvContent += 'Date & Time,Activity Type,Reference ID,Related Entity,Subtitle,Amount/Volume,Status\n';
         activitiesState.items.forEach((act) => {
-          csvContent += `"${act.dateTime}","${act.activityLabel}","${act.referenceId}","${act.entityName}","${act.amountVolume}","${act.status}"\n`;
+          csvContent += `"${act.dateTime}","${act.activityLabel}","${act.referenceId}","${act.entityName}","${act.entitySubtitle}","${act.amountVolume}","${act.status}"\n`;
         });
       }
     }
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', filename);
+    link.href = url;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    triggerToast('Report CSV downloaded successfully!');
+    URL.revokeObjectURL(url);
+    triggerToast(`Report CSV (${activeTab}) downloaded successfully!`);
   };
 
+  // 2. Executive PDF Export (via window.print with @media print styling)
   const exportPDF = () => {
     setShowExportDropdown(false);
-    triggerToast('Opening print dialog for executive PDF summary...');
-    window.print();
+    triggerToast('Opening PDF print preview...');
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  };
+
+  // 3. Complete Compliance & Audit Bundle (Multi-domain JSON Package)
+  const exportAuditBundle = () => {
+    setShowExportDropdown(false);
+    triggerToast('Generating compliance & audit bundle...');
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const bundleData = {
+      meta: {
+        organization: 'Super Gas Agency Private Limited',
+        branch: 'Madurai Central HQ (TN-58)',
+        generatedAt: new Date().toISOString(),
+        reportingPeriod: selectedPeriod,
+        exportedBy: 'Agency Admin',
+        version: '2.0.0',
+      },
+      kpiSummary: {
+        totalCustomers: reportMetrics.customers,
+        completedDeliveries: reportMetrics.deliveries,
+        realizedRevenue: reportMetrics.revenue,
+        pendingReceivables: reportMetrics.receivables,
+        approvedOpEx: reportMetrics.expenses,
+        netOperatingMargin: reportMetrics.revenue - reportMetrics.expenses,
+      },
+      reports: reportsData || {},
+      recentOperationalAuditActivities: activitiesState.items,
+    };
+
+    const blob = new Blob([JSON.stringify(bundleData, null, 2)], {
+      type: 'application/json;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SuperGas_Compliance_Audit_Bundle_${dateStr}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast('Compliance & Audit bundle downloaded successfully!');
   };
 
   const handleSearchChange = (val: string) => {
@@ -272,22 +341,24 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] text-slate-800 font-sans antialiased overflow-hidden">
+    <div className="flex h-screen print:h-auto bg-[#F8FAFC] print:bg-white text-slate-800 font-sans antialiased overflow-hidden print:overflow-visible">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 print:hidden">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Main Admin Sidebar */}
-      <AdminSidebar activeItem="Reports" />
+      <div className="print:hidden shrink-0">
+        <AdminSidebar activeItem="Reports" />
+      </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto print:overflow-visible print:h-auto">
         {/* Top Header Bar */}
-        <header className="h-14 border-b border-slate-100 bg-white/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
+        <header className="h-14 border-b border-slate-100 bg-white/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 sticky top-0 z-30 print:hidden">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-600 inline-block animate-pulse" />
             <span className="text-[11px] font-bold text-slate-400">Super Gas Analytics &amp; Reporting Hub</span>
@@ -333,7 +404,28 @@ export default function AdminReportsPage() {
         </header>
 
         {/* Main Reports Container */}
-        <main className="p-6 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="p-6 sm:p-8 space-y-6 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none">
+          {/* Print Executive Header (Visible Only in Print/PDF Mode) */}
+          <div className="hidden print:block mb-8 pb-4 border-b-2 border-slate-900 bg-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-full bg-[#BC0118] inline-block" />
+                  <h1 className="text-2xl font-black text-slate-900 tracking-tight">SUPER GAS AGENCY</h1>
+                </div>
+                <p className="text-xs font-bold text-slate-600 mt-1">
+                  Official Operations, Logistics &amp; Financial Analytics Report
+                </p>
+              </div>
+              <div className="text-right text-xs text-slate-700 font-semibold space-y-1">
+                <p><span className="text-slate-500 font-normal">Section:</span> <strong className="text-slate-900 font-extrabold">{activeTab}</strong></p>
+                <p><span className="text-slate-500 font-normal">Period:</span> {selectedPeriod}</p>
+                <p><span className="text-slate-500 font-normal">Generated:</span> {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                <p><span className="text-slate-500 font-normal">Branch:</span> Madurai Central HQ (TN-58)</p>
+              </div>
+            </div>
+          </div>
+
           {/* Page Title & Controls */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -349,7 +441,7 @@ export default function AdminReportsPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 print:hidden">
               {/* Reporting Period Dropdown */}
               <div className="relative">
                 <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">
@@ -406,22 +498,39 @@ export default function AdminReportsPage() {
                 </button>
 
                 {showExportDropdown && (
-                  <div className="absolute top-full right-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1 text-xs font-bold text-slate-700">
+                  <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1.5 text-xs font-bold text-slate-700">
                     <button
                       type="button"
                       onClick={exportPDF}
-                      className="w-full text-left px-4 py-2 hover:bg-[#F1F4FA] cursor-pointer flex items-center gap-2"
+                      className="w-full text-left px-4 py-2.5 hover:bg-[#F1F4FA] cursor-pointer flex items-center gap-2.5 transition"
                     >
-                      <FileText className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Print / PDF Executive Report</span>
+                      <FileText className="w-4 h-4 text-rose-600" />
+                      <div>
+                        <p className="font-extrabold text-slate-900 leading-tight">Export as PDF Report</p>
+                        <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">Print-ready executive summary</p>
+                      </div>
                     </button>
                     <button
                       type="button"
                       onClick={exportCSV}
-                      className="w-full text-left px-4 py-2 hover:bg-[#F1F4FA] cursor-pointer flex items-center gap-2"
+                      className="w-full text-left px-4 py-2.5 hover:bg-[#F1F4FA] cursor-pointer flex items-center gap-2.5 transition border-t border-slate-100"
                     >
-                      <Download className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Export Raw CSV Dataset</span>
+                      <Download className="w-4 h-4 text-emerald-600" />
+                      <div>
+                        <p className="font-extrabold text-slate-900 leading-tight">Export CSV (Raw Data)</p>
+                        <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">Current tab dataset in RFC-4180 CSV</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exportAuditBundle}
+                      className="w-full text-left px-4 py-2.5 hover:bg-[#F1F4FA] cursor-pointer flex items-center gap-2.5 transition border-t border-slate-100"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <div>
+                        <p className="font-extrabold text-slate-900 leading-tight">Compliance &amp; Audit Bundle</p>
+                        <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">Complete multi-domain JSON package</p>
+                      </div>
                     </button>
                   </div>
                 )}
@@ -430,7 +539,7 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Tab Navigation Strip (7 Dedicated Tabs) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200/80">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200/80 print:hidden">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -708,7 +817,7 @@ export default function AdminReportsPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2.5 relative">
+                  <div className="flex items-center gap-2.5 relative print:hidden">
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
