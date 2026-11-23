@@ -167,6 +167,7 @@ export interface LedgerTransaction {
 export interface CustomerLedgerRecord {
   id: string;
   name: string;
+  customerName?: string;
   customerCode: string;
   phone: string;
   address?: string;
@@ -235,6 +236,65 @@ export default function AdminInvoicesPage({
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState('Active');
   const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState<CustomerLedgerRecord | null>(null);
 
+  // Modals
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+  const [showInvestigateModal, setShowInvestigateModal] = useState(false);
+  const [isSubmittingModal, setIsSubmittingModal] = useState(false);
+
+  // Record Payment form
+  const [paymentCustomer, setPaymentCustomer] = useState('Sri Krishna Sweets (CUS-00366)');
+  const [paymentAmount, setPaymentAmount] = useState('4,000');
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Bank Transfer'>('Cash');
+  const [paymentRef, setPaymentRef] = useState('PAY-558802');
+
+  // Create Invoice form
+  const [newCustomer, setNewCustomer] = useState('Mohammed Ali (CUS-00125)');
+  const [newCylinderType, setNewCylinderType] = useState('19kg Commercial');
+  const [newQuantity, setNewQuantity] = useState('5');
+  const [newRate, setNewRate] = useState('240');
+
+  const reloadInvoicesData = async () => {
+    try {
+      const res = await fetch('/api/admin/invoices');
+      const json = await res.json();
+      if (json?.success && json?.data) {
+        if (Array.isArray(json.data.invoices)) {
+          setInvoicesList(json.data.invoices);
+        }
+        if (Array.isArray(json.data.payments)) {
+          setPaymentsList(json.data.payments);
+        }
+        if (Array.isArray(json.data.customerLedgers)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const normalizedLedgers: CustomerLedgerRecord[] = json.data.customerLedgers.map((cl: any) => ({
+            id: cl.id,
+            name: cl.name || cl.customerName || 'Customer',
+            customerCode: cl.customerCode || 'CUS-001',
+            phone: cl.phone || '',
+            address: cl.address || '',
+            partnerVehicle: cl.partnerVehicle,
+            category: cl.category || 'Domestic Consumer',
+            assignedPartner: cl.assignedPartner || 'Unassigned',
+            assignedPartnerCode: cl.assignedPartnerCode,
+            totalInvoiced: Number(cl.totalInvoiced ?? cl.totalPurchases ?? 0),
+            paymentsReceived: Number(cl.paymentsReceived ?? cl.totalPaid ?? 0),
+            outstandingBalance: Number(cl.outstandingBalance ?? 0),
+            availableAdvance: Number(cl.availableAdvance ?? 0),
+            totalAmountPaid: Number(cl.totalAmountPaid ?? cl.paymentsReceived ?? cl.totalPaid ?? 0),
+            paidInvoicesCount: Number(cl.paidInvoicesCount ?? 0),
+            pendingInvoicesCount: Number(cl.pendingInvoicesCount ?? 0),
+            status: cl.status || (Number(cl.outstandingBalance || 0) > 0 ? 'Outstanding' : 'Settled'),
+            transactions: Array.isArray(cl.transactions) ? cl.transactions : (Array.isArray(cl.history) ? cl.history : []),
+          }));
+          setCustomerLedgerList(normalizedLedgers);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to reload live invoices:', err);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     fetch('/api/admin/invoices')
@@ -279,6 +339,11 @@ export default function AdminInvoicesPage({
               transactions: Array.isArray(cl.transactions) ? cl.transactions : (Array.isArray(cl.history) ? cl.history : []),
             }));
             setCustomerLedgerList(normalizedLedgers);
+            if (normalizedLedgers.length > 0) {
+              const firstCode = normalizedLedgers[0].customerCode || normalizedLedgers[0].id;
+              setNewCustomer((prev) => (!prev || prev.includes('(CUS-00125)') ? firstCode : prev));
+              setPaymentCustomer((prev) => (!prev || prev.includes('(CUS-00366)') ? firstCode : prev));
+            }
           }
         }
       })
@@ -353,23 +418,6 @@ export default function AdminInvoicesPage({
       null
     );
   }, [activeCustomerLedgerId, customerLedgerList]);
-
-  // Modals
-  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
-  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
-  const [showInvestigateModal, setShowInvestigateModal] = useState(false);
-
-  // Record Payment form
-  const [paymentCustomer, setPaymentCustomer] = useState('Sri Krishna Sweets (CUS-00366)');
-  const [paymentAmount, setPaymentAmount] = useState('4,000');
-  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Bank Transfer'>('Cash');
-  const [paymentRef, setPaymentRef] = useState('PAY-558802');
-
-  // Create Invoice form
-  const [newCustomer, setNewCustomer] = useState('Mohammed Ali (CUS-00125)');
-  const [newCylinderType, setNewCylinderType] = useState('19kg Commercial');
-  const [newQuantity, setNewQuantity] = useState('5');
-  const [newRate, setNewRate] = useState('240');
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -594,16 +642,73 @@ export default function AdminInvoicesPage({
     });
   }, [customerLedgerList, ledgerSearchQuery, ledgerPartnerFilter, ledgerBalanceFilter, ledgerStatusFilter]);
 
-  const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
+  const handleCreateInvoiceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowCreateInvoiceModal(false);
-    triggerToast(`Invoice for ${newCustomer} generated successfully!`);
+    try {
+      setIsSubmittingModal(true);
+      const res = await fetch('/api/admin/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'CREATE_INVOICE',
+          customerId: newCustomer,
+          cylinderType: newCylinderType,
+          quantity: parseInt(newQuantity, 10) || 1,
+          rate: parseFloat(newRate) || 240,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message || 'Failed to create invoice');
+      }
+
+      setShowCreateInvoiceModal(false);
+      triggerToast(data.data?.message || `Invoice generated successfully!`);
+      await reloadInvoicesData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error creating invoice');
+    } finally {
+      setIsSubmittingModal(false);
+    }
   };
 
-  const handleRecordPaymentSubmit = (e: React.FormEvent) => {
+  const handleRecordPaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowRecordPaymentModal(false);
-    triggerToast(`Payment of ₹${paymentAmount} recorded successfully with FIFO allocation!`);
+    try {
+      setIsSubmittingModal(true);
+      const cleanAmount = parseFloat(String(paymentAmount).replace(/,/g, ''));
+      if (isNaN(cleanAmount) || cleanAmount <= 0) {
+        alert('Please enter a valid positive payment amount');
+        return;
+      }
+
+      const res = await fetch('/api/admin/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'RECORD_PAYMENT',
+          customerId: paymentCustomer,
+          amount: cleanAmount,
+          paymentMode,
+          paymentRef,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message || 'Failed to record payment');
+      }
+
+      setShowRecordPaymentModal(false);
+      triggerToast(
+        data.data?.message ||
+          `Payment of ₹${paymentAmount} recorded successfully with FIFO allocation!`
+      );
+      await reloadInvoicesData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error recording payment');
+    } finally {
+      setIsSubmittingModal(false);
+    }
   };
 
   return (
@@ -4015,10 +4120,20 @@ export default function AdminInvoicesPage({
                   onChange={(e) => setNewCustomer(e.target.value)}
                   className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 >
-                  <option value="Mohammed Ali (CUS-00125)">Mohammed Ali (CUS-00125) · Commercial Catering</option>
-                  <option value="Rajesh Kumar (CUS-00124)">Rajesh Kumar (CUS-00124) · Domestic</option>
-                  <option value="Priya Stores (CUS-00126)">Priya Stores (CUS-00126) · Commercial</option>
-                  <option value="Lakshmi Agencies (CUS-00128)">Lakshmi Agencies (CUS-00128) · Bulk</option>
+                  {customerLedgerList.length > 0 ? (
+                    customerLedgerList.map((c) => (
+                      <option key={c.id || c.customerCode} value={c.customerCode || c.id}>
+                        {c.name} ({c.customerCode}) · {c.category || 'Consumer'}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Mohammed Ali (CUS-00125)">Mohammed Ali (CUS-00125) · Commercial Catering</option>
+                      <option value="Rajesh Kumar (CUS-00124)">Rajesh Kumar (CUS-00124) · Domestic</option>
+                      <option value="Priya Stores (CUS-00126)">Priya Stores (CUS-00126) · Commercial</option>
+                      <option value="Lakshmi Agencies (CUS-00128)">Lakshmi Agencies (CUS-00128) · Bulk</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -4077,10 +4192,11 @@ export default function AdminInvoicesPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-2"
+                  disabled={isSubmittingModal}
+                  className="px-5 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-2"
                 >
                   <Check className="w-4 h-4 stroke-[2.5]" />
-                  <span>Generate Invoice</span>
+                  <span>{isSubmittingModal ? 'Generating...' : 'Generate Invoice'}</span>
                 </button>
               </div>
             </form>
@@ -4116,10 +4232,20 @@ export default function AdminInvoicesPage({
                   onChange={(e) => setPaymentCustomer(e.target.value)}
                   className="w-full bg-[#F1F4FA] rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 >
-                  <option value="Sri Krishna Sweets (CUS-00366)">Sri Krishna Sweets (CUS-00366) · ₹4,800 total due</option>
-                  <option value="Mohammed Ali (CUS-00125)">Mohammed Ali (CUS-00125) · ₹700 total due</option>
-                  <option value="Hotel Annapoorna (CUS-00542)">Hotel Annapoorna (CUS-00542) · ₹5,580 total due</option>
-                  <option value="Priya Stores (CUS-00126)">Priya Stores (CUS-00126) · ₹1,800 total due</option>
+                  {customerLedgerList.length > 0 ? (
+                    customerLedgerList.map((c) => (
+                      <option key={c.id || c.customerCode} value={c.customerCode || c.id}>
+                        {c.name} ({c.customerCode}) · ₹{c.outstandingBalance.toLocaleString('en-IN')} total due
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Sri Krishna Sweets (CUS-00366)">Sri Krishna Sweets (CUS-00366) · ₹4,800 total due</option>
+                      <option value="Mohammed Ali (CUS-00125)">Mohammed Ali (CUS-00125) · ₹700 total due</option>
+                      <option value="Hotel Annapoorna (CUS-00542)">Hotel Annapoorna (CUS-00542) · ₹5,580 total due</option>
+                      <option value="Priya Stores (CUS-00126)">Priya Stores (CUS-00126) · ₹1,800 total due</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -4170,10 +4296,11 @@ export default function AdminInvoicesPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-2"
+                  disabled={isSubmittingModal}
+                  className="px-5 py-2.5 bg-[#BC0118] hover:bg-red-800 active:scale-98 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-2"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Confirm &amp; Allocate</span>
+                  <span>{isSubmittingModal ? 'Recording...' : 'Confirm & Allocate'}</span>
                 </button>
               </div>
             </form>

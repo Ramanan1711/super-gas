@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withApiHandler, requireAdmin } from '@/lib/api-middleware';
-import { successResponse } from '@/lib/api-response';
-import { Prisma, PaymentStatus } from '@prisma/client';
+import { successResponse, errorResponse } from '@/lib/api-response';
+import { Prisma, PaymentStatus, PaymentMethod } from '@prisma/client';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
   const auth = await requireAdmin(req);
@@ -333,4 +333,262 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     payments: formattedPayments,
     customerLedgers: formattedLedgers,
   });
+});
+
+export const POST = withApiHandler(async (req: NextRequest) => {
+  const auth = await requireAdmin(req);
+  if (!auth.authorized) return auth.response;
+
+  const body = await req.json().catch(() => ({}));
+  const action = String(body.action || '').toUpperCase();
+
+  // Helper to find customer by id, code, or name
+  const resolveCustomer = async (input: string, tx: Prisma.TransactionClient) => {
+    if (!input) return null;
+    const trimmed = input.trim();
+
+    // 1. Try by ID
+    let customer = await tx.customer.findUnique({ where: { id: trimmed } });
+    if (customer) return customer;
+
+    // 2. Try by customerCode directly
+    customer = await tx.customer.findUnique({ where: { customerCode: trimmed } });
+    if (customer) return customer;
+
+    // 3. Extract CUS-XXXXX pattern from string (e.g. "Mohammed Ali (CUS-00125)")
+    const codeMatch = trimmed.match(/CUS-\d+/i);
+    if (codeMatch) {
+      customer = await tx.customer.findFirst({
+        where: { customerCode: { equals: codeMatch[0], mode: 'insensitive' } },
+      });
+      if (customer) return customer;
+    }
+
+    // 4. Try by name
+    const cleanName = trimmed.replace(/\(CUS-.*?\)/gi, '').trim();
+    if (cleanName) {
+      customer = await tx.customer.findFirst({
+        where: {
+          OR: [
+            { name: { contains: cleanName, mode: 'insensitive' } },
+            { businessName: { contains: cleanName, mode: 'insensitive' } },
+          ],
+        },
+      });
+      if (customer) return customer;
+    }
+
+    // 5. Fallback to first available customer
+    return tx.customer.findFirst({ orderBy: { createdAt: 'asc' } });
+  };
+
+  // Case 1: RECORD_PAYMENT (Offline Payment with FIFO Allocation)
+  if (action === 'RECORD_PAYMENT') {
+    const customerInput = body.customerId || body.customer || body.customerName;
+    const rawAmount = String(body.amount || '').replace(/,/g, '').trim();
+    const amount = parseFloat(rawAmount);
+
+    if (isNaN(amount) || amount <= 0) {
+      return errorResponse('Valid positive payment amount is required', 'BAD_REQUEST', 400);
+    }
+
+    let paymentMethod: PaymentMethod = PaymentMethod.CASH;
+    const rawMode = String(body.paymentMode || body.paymentMethod || '').toUpperCase();
+    if (rawMode.includes('UPI') || rawMode.includes('QR')) {
+      paymentMethod = PaymentMethod.UPI_QR;
+    } else if (rawMode.includes('BANK') || rawMode.includes('NEFT') || rawMode.includes('TRANSFER')) {
+      paymentMethod = PaymentMethod.BANK_TRANSFER;
+    } else if (rawMode.includes('CREDIT')) {
+      paymentMethod = PaymentMethod.CREDIT_TERMS;
+    } else {
+      paymentMethod = PaymentMethod.CASH;
+    }
+
+    const refNumber =
+      body.referenceNumber ||
+      body.paymentRef ||
+      `PAY-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const customer = await resolveCustomer(customerInput, tx);
+      if (!customer) {
+        throw new Error('Customer not found for payment recording');
+      }
+
+      // Fetch unpaid or partially paid invoices in FIFO order (oldest first)
+      const unpaidInvoices = await tx.invoice.findMany({
+        where: {
+          customerId: customer.id,
+          paymentStatus: { in: [PaymentStatus.UNPAID, PaymentStatus.PARTIALLY_PAID] },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      let remainingPayment = amount;
+      const allocatedInvoices: Array<{
+        invoiceId: string;
+        invoiceNumber: string;
+        allocatedAmount: number;
+        newBalanceDue: number;
+      }> = [];
+
+      for (const inv of unpaidInvoices) {
+        if (remainingPayment <= 0) break;
+        const due = inv.balanceDue > 0 ? inv.balanceDue : Math.max(0, inv.totalAmount - inv.paidAmount);
+        if (due <= 0) continue;
+
+        const payForThis = Math.min(due, remainingPayment);
+        const newPaid = inv.paidAmount + payForThis;
+        const newBalance = Math.max(0, inv.totalAmount - newPaid);
+        const newStatus = newBalance === 0 ? PaymentStatus.PAID : PaymentStatus.PARTIALLY_PAID;
+
+        await tx.invoice.update({
+          where: { id: inv.id },
+          data: {
+            paidAmount: newPaid,
+            balanceDue: newBalance,
+            paymentStatus: newStatus,
+          },
+        });
+
+        allocatedInvoices.push({
+          invoiceId: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          allocatedAmount: payForThis,
+          newBalanceDue: newBalance,
+        });
+
+        remainingPayment -= payForThis;
+      }
+
+      // Create PaymentTransaction
+      const paymentTx = await tx.paymentTransaction.create({
+        data: {
+          customerId: customer.id,
+          invoiceId: allocatedInvoices.length > 0 ? allocatedInvoices[0].invoiceId : null,
+          amount,
+          paymentMethod,
+          paymentStatus: PaymentStatus.PAID,
+          referenceNumber: refNumber,
+          notes:
+            body.notes ||
+            `Admin offline payment (FIFO: ${allocatedInvoices.length} bills updated, unallocated surplus: ₹${remainingPayment})`,
+        },
+      });
+
+      // Update customer ledger
+      const prevBalance = customer.currentBalance || 0;
+      const newCustomerBalance = prevBalance - amount;
+
+      await tx.customerLedgerEntry.create({
+        data: {
+          customerId: customer.id,
+          type: 'PAYMENT',
+          referenceNumber: refNumber,
+          debit: 0,
+          credit: amount,
+          runningBalance: newCustomerBalance,
+          notes: `Payment recorded via ${paymentMethod} (${allocatedInvoices.length} invoices cleared/settled)`,
+        },
+      });
+
+      // Update customer outstanding currentBalance
+      await tx.customer.update({
+        where: { id: customer.id },
+        data: { currentBalance: newCustomerBalance },
+      });
+
+      return {
+        customer,
+        paymentTx,
+        allocatedInvoices,
+        remainingPayment,
+      };
+    });
+
+    return successResponse(
+      {
+        payment: result.paymentTx,
+        allocatedInvoices: result.allocatedInvoices,
+        unallocatedAmount: result.remainingPayment,
+        customerName: result.customer.name,
+      },
+      201
+    );
+  }
+
+  // Case 2: CREATE_INVOICE (Ad-hoc Invoice Generation)
+  const customerInput = body.customerId || body.customer || body.customerName;
+  const cylinderType = body.cylinderType || '19kg Commercial';
+  const quantity = Math.max(1, parseInt(String(body.quantity || '1'), 10) || 1);
+  const rate = Math.max(0, parseFloat(String(body.rate || '240')) || 240);
+  const subtotal = quantity * rate;
+  const taxAmount = parseFloat(String(body.taxAmount || '0')) || 0;
+  const totalAmount = subtotal + taxAmount;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const customer = await resolveCustomer(customerInput, tx);
+    if (!customer) {
+      throw new Error('Customer not found for invoice creation');
+    }
+
+    // Generate unique invoice number
+    const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    let invoiceNumber = `INV-${todayStr}-${Math.floor(100 + Math.random() * 900)}`;
+    let collision = await tx.invoice.findUnique({ where: { invoiceNumber } });
+    while (collision) {
+      invoiceNumber = `INV-${todayStr}-${Math.floor(100 + Math.random() * 900)}`;
+      collision = await tx.invoice.findUnique({ where: { invoiceNumber } });
+    }
+
+    const prevBalance = customer.currentBalance || 0;
+    const newBalance = prevBalance + totalAmount;
+
+    // Create Invoice
+    const invoice = await tx.invoice.create({
+      data: {
+        invoiceNumber,
+        customerId: customer.id,
+        subtotal,
+        taxAmount,
+        totalAmount,
+        paidAmount: 0,
+        balanceDue: totalAmount,
+        paymentStatus: PaymentStatus.UNPAID,
+      },
+    });
+
+    // Create CustomerLedgerEntry
+    await tx.customerLedgerEntry.create({
+      data: {
+        customerId: customer.id,
+        type: 'INVOICE',
+        referenceNumber: invoice.invoiceNumber,
+        debit: totalAmount,
+        credit: 0,
+        runningBalance: newBalance,
+        notes: `${quantity}x ${cylinderType} ad-hoc invoice generated by admin`,
+      },
+    });
+
+    // Update customer currentBalance
+    await tx.customer.update({
+      where: { id: customer.id },
+      data: { currentBalance: newBalance },
+    });
+
+    return {
+      customer,
+      invoice,
+    };
+  });
+
+  return successResponse(
+    {
+      invoice: result.invoice,
+      customerName: result.customer.name,
+      message: `Invoice ${result.invoice.invoiceNumber} created successfully`,
+    },
+    201
+  );
 });
