@@ -112,7 +112,11 @@ export default function AdminReportsPage() {
 
   useEffect(() => {
     let isMounted = true;
-    fetch(`/api/admin/reports?period=${encodeURIComponent(selectedPeriod)}`)
+    const params = new URLSearchParams({
+      period: selectedPeriod,
+      tab: activeTab,
+    });
+    fetch(`/api/admin/reports?${params.toString()}`)
       .then((res) => res.json())
       .then((json) => {
         if (!isMounted) return;
@@ -144,7 +148,7 @@ export default function AdminReportsPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedPeriod, refreshIndex]);
+  }, [selectedPeriod, activeTab, refreshIndex]);
 
   // Database-level paginated query for operational activities
   useEffect(() => {
