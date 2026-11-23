@@ -1,14 +1,30 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withApiHandler } from '@/lib/api-middleware';
+import { withApiHandler, getAuthenticatedUser } from '@/lib/api-middleware';
 import { successResponse, notFoundResponse } from '@/lib/api-response';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
-  const queryParam =
+  let queryParam =
     req.nextUrl.searchParams.get('regNumber') ||
     req.nextUrl.searchParams.get('vehicleReg') ||
-    req.nextUrl.searchParams.get('vehicleId') ||
-    'TN 58 AX 4821';
+    req.nextUrl.searchParams.get('vehicleId');
+
+  if (!queryParam) {
+    const authUser = await getAuthenticatedUser(req);
+    if (authUser) {
+      const partner = await prisma.deliveryPartner.findUnique({
+        where: { userId: authUser.id },
+        include: { assignedVehicle: true },
+      });
+      if (partner?.assignedVehicle?.regNumber) {
+        queryParam = partner.assignedVehicle.regNumber;
+      }
+    }
+  }
+
+  if (!queryParam) {
+    queryParam = 'TN 58 AX 4821';
+  }
 
   const vehicle = await prisma.vehicle.findFirst({
     where: {

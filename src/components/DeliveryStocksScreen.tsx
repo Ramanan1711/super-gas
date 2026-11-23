@@ -91,11 +91,27 @@ export default function DeliveryStocksScreen() {
   const [transferNotes, setTransferNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [driverInfo, setDriverInfo] = useState<{
+    name: string;
+    partnerCode: string;
+    vehicleReg: string;
+    vehicleModel?: string;
+    depotName?: string;
+    status?: string;
+  }>({
+    name: 'Suresh Babu',
+    partnerCode: 'DP-003',
+    vehicleReg: 'TN 58 AX 4821',
+    vehicleModel: 'Van 03',
+    depotName: 'Madurai Central Depot',
+    status: 'On Route',
+  });
 
   // Fetch live vehicle inventory on mount & reload
-  const fetchInventory = async () => {
+  const fetchInventory = async (targetReg?: string) => {
     try {
-      const res = await fetch('/api/inventory/vehicle?regNumber=TN%2058%20AX%204821');
+      const reg = targetReg || driverInfo.vehicleReg || 'TN 58 AX 4821';
+      const res = await fetch(`/api/inventory/vehicle?regNumber=${encodeURIComponent(reg)}`);
       if (!res.ok) return;
       const result = await res.json();
       if (result.success && result.data?.summary) {
@@ -111,7 +127,50 @@ export default function DeliveryStocksScreen() {
     let ignore = false;
     async function loadData() {
       try {
-        const res = await fetch('/api/inventory/vehicle?regNumber=TN%2058%20AX%204821');
+        let activeReg = 'TN 58 AX 4821';
+        let activeCode = 'DP-003';
+        let activeName = 'Suresh Babu';
+        let activeModel = 'Van 03';
+        let activeDepot = 'Madurai Central Depot';
+
+        // 1. Resolve driver and vehicle from session
+        try {
+          const meRes = await fetch('/api/auth/me');
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            const partner = meData?.data?.partnerProfile;
+            const user = meData?.data?.user;
+            if (partner || user) {
+              activeName = partner?.name || user?.name || activeName;
+              activeCode = partner?.partnerCode || activeCode;
+              if (partner?.assignedVehicle?.regNumber) {
+                activeReg = partner.assignedVehicle.regNumber;
+                activeModel = partner.assignedVehicle.model || 'Delivery Van';
+              }
+              if (partner?.depot?.name) {
+                activeDepot = partner.depot.name;
+              }
+              if (!ignore) {
+                setDriverInfo({
+                  name: activeName,
+                  partnerCode: activeCode,
+                  vehicleReg: activeReg,
+                  vehicleModel: activeModel,
+                  depotName: activeDepot,
+                  status:
+                    partner?.status === 'ACTIVE' || partner?.status === 'ON_DUTY'
+                      ? 'On Route'
+                      : 'Off Duty',
+                });
+              }
+            }
+          }
+        } catch (authErr) {
+          console.warn('Could not fetch active user for vehicle info:', authErr);
+        }
+
+        // 2. Fetch inventory for resolved vehicle
+        const res = await fetch(`/api/inventory/vehicle?regNumber=${encodeURIComponent(activeReg)}`);
         if (!res.ok) return;
         const result = await res.json();
         if (!ignore && result.success && result.data?.summary) {
@@ -137,8 +196,8 @@ export default function DeliveryStocksScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          partnerCode: 'DP-003',
-          vehicleReg: 'TN 58 AX 4821',
+          partnerCode: driverInfo.partnerCode,
+          vehicleReg: driverInfo.vehicleReg,
           transferType,
           notes: transferNotes || (transferType === 'LOAD_VEHICLE' ? 'Depot truck reload' : 'End of shift empty return'),
           items: [
@@ -157,7 +216,7 @@ export default function DeliveryStocksScreen() {
         throw new Error(result.error?.message || 'Failed to submit stock handover');
       }
 
-      await fetchInventory();
+      await fetchInventory(driverInfo.vehicleReg);
       setShowHandoverModal(false);
       setTransferNotes('');
       setToastMsg(
@@ -220,15 +279,15 @@ export default function DeliveryStocksScreen() {
             </div>
             <div>
               <h2 className="text-sm font-black text-slate-900 leading-tight">
-                Suresh Babu
+                {driverInfo.name}
               </h2>
               <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                DP-003 • Van 03 (TN 58 AX 4821)
+                {driverInfo.partnerCode} • {driverInfo.vehicleModel} ({driverInfo.vehicleReg})
               </p>
             </div>
           </div>
           <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full">
-            On Route
+            {driverInfo.status}
           </span>
         </div>
 
@@ -583,7 +642,7 @@ export default function DeliveryStocksScreen() {
                   Depot Stock Transfer
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
-                  Van TN 58 AX 4821 ↔ Madurai Central Depot
+                  Van {driverInfo.vehicleReg} ↔ {driverInfo.depotName}
                 </p>
               </div>
               <button
