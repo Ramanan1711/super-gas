@@ -4,10 +4,19 @@ import { withApiHandler } from '@/lib/api-middleware';
 import { successResponse, notFoundResponse } from '@/lib/api-response';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
-  const regNumber = req.nextUrl.searchParams.get('regNumber') || 'TN 58 AX 4821';
+  const queryParam =
+    req.nextUrl.searchParams.get('regNumber') ||
+    req.nextUrl.searchParams.get('vehicleReg') ||
+    req.nextUrl.searchParams.get('vehicleId') ||
+    'TN 58 AX 4821';
 
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { regNumber },
+  const vehicle = await prisma.vehicle.findFirst({
+    where: {
+      OR: [
+        { regNumber: queryParam },
+        { id: queryParam },
+      ],
+    },
     include: {
       depot: true,
       inventory: {
@@ -22,29 +31,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     return notFoundResponse('Vehicle');
   }
 
-  // Auto-reconcile with completed customer deliveries to ensure van custody never lags behind
-  const completedDeliveries = await prisma.delivery.findMany({
-    where: { status: 'DELIVERED' },
-  });
-  const totalEmptiesFromDeliveries = completedDeliveries.reduce(
-    (sum: number, d: { emptyCollected?: number | null }) => sum + (d.emptyCollected || 0),
-    0
-  );
-
-  // If DB inventory record lagged behind completed deliveries, reconcile the primary product
-  if (vehicle.inventory.length > 0) {
-    const currentTotalEmpty = vehicle.inventory.reduce((sum: number, inv: { emptyCount: number }) => sum + inv.emptyCount, 0);
-    if (currentTotalEmpty < totalEmptiesFromDeliveries) {
-      const diff = totalEmptiesFromDeliveries - currentTotalEmpty;
-      vehicle.inventory[0].emptyCount += diff;
-      await prisma.vehicleInventory.update({
-        where: { id: vehicle.inventory[0].id },
-        data: { emptyCount: vehicle.inventory[0].emptyCount },
-      });
-    }
-  }
-
-  // Calculate totals
+  // Calculate totals from actual vehicle inventory records
   let totalFilled = 0;
   let totalEmpty = 0;
   let totalDamaged = 0;
