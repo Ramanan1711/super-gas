@@ -1,4 +1,4 @@
-import AdminReportsPage from '@/components/AdminReportsPage';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Reports | Super Gas Logistics Core',
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function ReportRoute() {
-  return <AdminReportsPage />;
+  redirect('/admin/reports');
 }
