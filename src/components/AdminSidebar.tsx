@@ -38,20 +38,21 @@ export default function AdminSidebar({
   const router = useRouter();
   const [internalActive, setInternalActive] = useState<string | null>(null);
   const [internalCollapsed, setInternalCollapsed] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null);
-
-  useEffect(() => {
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(() => {
     if (typeof document !== 'undefined') {
       const matchRole = document.cookie.match(/(?:^|;\s*)user_role=([^;]+)/);
       const matchName = document.cookie.match(/(?:^|;\s*)user_name=([^;]+)/);
       if (matchRole || matchName) {
-        setCurrentUser({
+        return {
           name: matchName ? decodeURIComponent(matchName[1]) : 'Agency Admin',
           role: matchRole ? decodeURIComponent(matchRole[1]) : 'ADMIN',
-        });
+        };
       }
     }
+    return null;
+  });
 
+  useEffect(() => {
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((json) => {

@@ -12,8 +12,6 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     deliveries,
     invoices,
     depotInventory,
-    vehicleInventory,
-    cylinderProducts,
     deliveryPartners,
     dailySettlements,
     expenseClaims,
@@ -40,12 +38,6 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     }),
     prisma.depotInventory.findMany({
       include: { product: true, depot: true },
-    }),
-    prisma.vehicleInventory.findMany({
-      include: { product: true, vehicle: true },
-    }),
-    prisma.cylinderProduct.findMany({
-      orderBy: { weightKg: 'asc' },
     }),
     prisma.deliveryPartner.findMany({
       include: {

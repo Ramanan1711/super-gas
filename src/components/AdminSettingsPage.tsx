@@ -78,8 +78,28 @@ export default function AdminSettingsPage() {
   >('users');
 
   // Authentication role of current viewer
-  const [currentUserRole, setCurrentUserRole] = useState<'SUPER_ADMIN' | 'ADMIN' | 'DELIVERY_PARTNER' | null>(null);
-  const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [currentUserRole, setCurrentUserRole] = useState<'SUPER_ADMIN' | 'ADMIN' | 'DELIVERY_PARTNER' | null>(() => {
+    if (typeof document !== 'undefined') {
+      const matchRole = document.cookie.match(/(?:^|;\s*)user_role=([^;]+)/);
+      if (matchRole && matchRole[1]) {
+        const val = decodeURIComponent(matchRole[1]);
+        if (val === 'SUPER_ADMIN' || val === 'ADMIN' || val === 'DELIVERY_PARTNER') {
+          return val;
+        }
+      }
+    }
+    return null;
+  });
+
+  const [currentUserName, setCurrentUserName] = useState<string>(() => {
+    if (typeof document !== 'undefined') {
+      const matchName = document.cookie.match(/(?:^|;\s*)user_name=([^;]+)/);
+      if (matchName && matchName[1]) {
+        return decodeURIComponent(matchName[1]);
+      }
+    }
+    return '';
+  });
 
   // Loading & notification states
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -205,18 +225,6 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     let isMounted = true;
-
-    // Fast-path from cookie to prevent UI layout flash
-    if (typeof document !== 'undefined') {
-      const matchRole = document.cookie.match(/(?:^|;\s*)user_role=([^;]+)/);
-      const matchName = document.cookie.match(/(?:^|;\s*)user_name=([^;]+)/);
-      if (matchRole && matchRole[1]) {
-        setCurrentUserRole(decodeURIComponent(matchRole[1]) as any);
-      }
-      if (matchName && matchName[1]) {
-        setCurrentUserName(decodeURIComponent(matchName[1]));
-      }
-    }
 
     Promise.all([
       fetch('/api/admin/users').then((r) => r.json()),

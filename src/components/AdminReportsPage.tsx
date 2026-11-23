@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import Link from 'next/link';
 import AdminSidebar from './AdminSidebar';
 import {
   Calendar,
@@ -17,17 +16,12 @@ import {
   TrendingUp,
   Search,
   SlidersHorizontal,
-  Info,
-  ArrowRight,
   ShieldAlert,
   Bell,
   Wallet,
   Receipt,
   User,
   PackageCheck,
-  AlertTriangle,
-  Building2,
-  ShieldCheck,
   RefreshCw,
 } from 'lucide-react';
 
@@ -120,9 +114,9 @@ export default function AdminReportsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reportsData, setReportsData] = useState<any>(null);
@@ -136,11 +130,12 @@ export default function AdminReportsPage() {
     expenses: 52400,
   });
 
-  const loadReports = (periodParam: string) => {
-    setIsLoading(true);
-    fetch(`/api/admin/reports?period=${encodeURIComponent(periodParam)}`)
+  useEffect(() => {
+    let isMounted = true;
+    fetch(`/api/admin/reports?period=${encodeURIComponent(selectedPeriod)}`)
       .then((res) => res.json())
       .then((json) => {
+        if (!isMounted) return;
         if (json.success && json.data) {
           setReportsData(json.data);
           const o = json.data.overall?.metrics;
@@ -157,12 +152,16 @@ export default function AdminReportsPage() {
         }
       })
       .catch((err) => console.warn('Failed loading reports:', err))
-      .finally(() => setIsLoading(false));
-  };
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
 
-  useEffect(() => {
-    loadReports(selectedPeriod);
-  }, [selectedPeriod]);
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPeriod, refreshIndex]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -278,7 +277,10 @@ export default function AdminReportsPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => loadReports(selectedPeriod)}
+              onClick={() => {
+                setIsLoading(true);
+                setRefreshIndex((prev) => prev + 1);
+              }}
               title="Refresh Data"
               className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
             >
@@ -356,6 +358,7 @@ export default function AdminReportsPage() {
                       <div
                         key={period}
                         onClick={() => {
+                          setIsLoading(true);
                           setSelectedPeriod(period);
                           setShowPeriodDropdown(false);
                           triggerToast(`Switched period to ${period}`);
@@ -1254,7 +1257,7 @@ export default function AdminReportsPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">TODAY'S CASH COLLECTED</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">TODAY&apos;S CASH COLLECTED</span>
                   <div className="text-2xl font-black text-slate-900 mt-2">
                     ₹{(reportMetrics.revenue).toLocaleString('en-IN')}
                   </div>
@@ -1393,7 +1396,6 @@ export default function AdminReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {(reportsData?.expensesReports?.claims?.length
                         ? reportsData.expensesReports.claims
                         : [
@@ -1402,8 +1404,7 @@ export default function AdminReportsPage() {
                             { id: '3', claimNumber: 'EXP-20261023-009', date: '23 Oct', partnerName: 'M. Selvam', vehicleReg: 'Van 01 (TN 58 AX 4819)', category: 'Vehicle Repair', amount: 1850, status: 'APPROVED' },
                             { id: '4', claimNumber: 'EXP-20261022-014', date: '22 Oct', partnerName: 'K. Vignesh', vehicleReg: 'Van 02 (TN 58 AX 4820)', category: 'Toll Charges', amount: 480, status: 'APPROVED' },
                           ]
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      ).map((exp: any) => (
+                      ).map((exp: { id: string; claimNumber: string; date: string; partnerName: string; vehicleReg: string; category: string; amount: number; status: string }) => (
                         <tr key={exp.id} className="hover:bg-slate-50/80 transition">
                           <td className="py-4 px-6 font-mono font-bold text-slate-700">{exp.claimNumber}</td>
                           <td className="py-4 px-4 text-slate-600 font-bold">{exp.date}</td>
