@@ -6,8 +6,43 @@ import {
   successResponse,
   notFoundResponse,
   badRequestResponse,
+  forbiddenResponse,
 } from '@/lib/api-response';
 import { UserRole } from '@prisma/client';
+
+async function getAuthUser(req: NextRequest) {
+  const cookieUserId = req.cookies.get('user_id')?.value;
+  const cookieToken = req.cookies.get('auth_token')?.value;
+  const authHeader = req.headers.get('authorization') || '';
+  const userIdHeader = req.headers.get('x-user-id');
+
+  let userId = userIdHeader || cookieUserId;
+
+  if (!userId && authHeader.startsWith('Bearer sg_sess_')) {
+    userId = authHeader.replace('Bearer sg_sess_', '').split('_')[0];
+  } else if (!userId && cookieToken && cookieToken.startsWith('sg_sess_')) {
+    userId = cookieToken.replace('sg_sess_', '').split('_')[0];
+  }
+
+  if (userId) {
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, role: true, isActive: true },
+      });
+      if (dbUser) return dbUser;
+    } catch {
+      // ignore
+    }
+  }
+
+  const roleCookie = req.cookies.get('user_role')?.value;
+  if (roleCookie === 'SUPER_ADMIN') {
+    return { id: userId || 'cookie_super_admin', name: 'Super Admin', role: UserRole.SUPER_ADMIN, isActive: true };
+  }
+
+  return null;
+}
 
 export const PATCH = withApiHandler(
   async (
@@ -30,6 +65,14 @@ export const PATCH = withApiHandler(
 
     if (!user) {
       return notFoundResponse('User');
+    }
+
+    // Role check: Only SUPER_ADMIN can modify Super Admin accounts or assign SUPER_ADMIN role
+    const authUser = await getAuthUser(req);
+    if (authUser && authUser.role !== 'SUPER_ADMIN') {
+      if (user.role === 'SUPER_ADMIN') {
+        return forbiddenResponse('Access denied. Only Super Admin can modify Super Admin accounts.');
+      }
     }
 
     const body = await req.json().catch(() => ({}));
@@ -114,7 +157,7 @@ export const PATCH = withApiHandler(
 
 export const DELETE = withApiHandler(
   async (
-    _req: NextRequest,
+    req: NextRequest,
     context?: { params?: Promise<Record<string, string | string[]>> }
   ) => {
     const params = await context?.params;
@@ -124,6 +167,12 @@ export const DELETE = withApiHandler(
       return badRequestResponse('User ID is required.');
     }
 
+    // Role check: Only SUPER_ADMIN can delete accounts
+    const authUser = await getAuthUser(req);
+    if (!authUser || authUser.role !== 'SUPER_ADMIN') {
+      return forbiddenResponse('Access denied. Only Super Admin can delete user accounts.');
+    }
+
     const user = await prisma.user.findUnique({
       where: { id },
       include: { partnerProfile: true },
@@ -131,6 +180,11 @@ export const DELETE = withApiHandler(
 
     if (!user) {
       return notFoundResponse('User');
+    }
+    if (authUser && authUser.role !== 'SUPER_ADMIN') {
+      if (user.role === 'SUPER_ADMIN') {
+        return forbiddenResponse('Access denied. Only Super Admin can modify Super Admin accounts.');
+      }
     }
 
     // Unlink delivery partner if present before deleting

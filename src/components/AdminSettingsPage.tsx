@@ -77,6 +77,10 @@ export default function AdminSettingsPage() {
     'users' | 'agency' | 'pricing' | 'fleet' | 'backup'
   >('users');
 
+  // Authentication role of current viewer
+  const [currentUserRole, setCurrentUserRole] = useState<'SUPER_ADMIN' | 'ADMIN' | 'DELIVERY_PARTNER' | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string>('');
+
   // Loading & notification states
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [usersList, setUsersList] = useState<UserItem[]>([]);
@@ -157,10 +161,19 @@ export default function AdminSettingsPage() {
   // Load live users & settings
   const loadData = async () => {
     try {
-      const [usersRes, settingsRes] = await Promise.all([
+      const [usersRes, settingsRes, meRes] = await Promise.all([
         fetch('/api/admin/users'),
         fetch('/api/admin/settings'),
+        fetch('/api/auth/me'),
       ]);
+
+      if (meRes.ok) {
+        const meJson = await meRes.json();
+        if (meJson.success && meJson.data?.user) {
+          setCurrentUserRole(meJson.data.user.role);
+          setCurrentUserName(meJson.data.user.name);
+        }
+      }
 
       if (usersRes.ok) {
         const json = await usersRes.json();
@@ -192,12 +205,30 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     let isMounted = true;
+
+    // Fast-path from cookie to prevent UI layout flash
+    if (typeof document !== 'undefined') {
+      const matchRole = document.cookie.match(/(?:^|;\s*)user_role=([^;]+)/);
+      const matchName = document.cookie.match(/(?:^|;\s*)user_name=([^;]+)/);
+      if (matchRole && matchRole[1]) {
+        setCurrentUserRole(decodeURIComponent(matchRole[1]) as any);
+      }
+      if (matchName && matchName[1]) {
+        setCurrentUserName(decodeURIComponent(matchName[1]));
+      }
+    }
+
     Promise.all([
       fetch('/api/admin/users').then((r) => r.json()),
       fetch('/api/admin/settings').then((r) => r.json()),
+      fetch('/api/auth/me').then((r) => r.json()),
     ])
-      .then(([usersJson, settingsJson]) => {
+      .then(([usersJson, settingsJson, meJson]) => {
         if (!isMounted) return;
+        if (meJson?.success && meJson.data?.user) {
+          setCurrentUserRole(meJson.data.user.role);
+          setCurrentUserName(meJson.data.user.name);
+        }
         if (usersJson.success && usersJson.data) {
           setUsersList(usersJson.data.users || []);
           setDepotsList(usersJson.data.depots || []);
@@ -263,6 +294,10 @@ export default function AdminSettingsPage() {
   // Submit User Creation
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUserRole !== 'SUPER_ADMIN') {
+      alert('Access Denied: Only Super Admin is authorized to create user accounts and provision credentials.');
+      return;
+    }
     if (!createName.trim()) {
       alert('Please enter user full name');
       return;
@@ -497,17 +532,26 @@ export default function AdminSettingsPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setCreatePassword(generateStrongPassword());
-                setShowCreateUserModal(true);
-              }}
-              className="flex items-center justify-center gap-2 bg-[#BC0118] hover:bg-red-800 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition active:scale-98 cursor-pointer shrink-0"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Create User &amp; Credentials</span>
-            </button>
+            {/* Only SUPER_ADMIN can see and use Create User & Credentials */}
+            {currentUserRole === 'SUPER_ADMIN' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateRole('ADMIN');
+                  setCreatePassword(generateStrongPassword());
+                  setShowCreateUserModal(true);
+                }}
+                className="flex items-center justify-center gap-2 bg-[#BC0118] hover:bg-red-800 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition active:scale-98 cursor-pointer shrink-0"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Create User &amp; Credentials</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold bg-slate-100 px-3 py-2 rounded-xl shrink-0">
+                <Shield className="w-4 h-4 text-slate-400" />
+                <span>Role: {currentUserRole === 'ADMIN' ? 'Agency Admin' : currentUserRole || 'Admin'}</span>
+              </div>
+            )}
           </div>
 
           {/* Navigation Tabs */}
@@ -588,6 +632,26 @@ export default function AdminSettingsPage() {
           {/* TAB 1: USER ACCOUNTS & CREDENTIALS PROVISIONING */}
           {activeTab === 'users' && (
             <div className="space-y-6">
+              {/* Super Admin Access Control Banner */}
+              {currentUserRole && currentUserRole !== 'SUPER_ADMIN' && (
+                <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-900">User Creation &amp; Provisioning Restricted to Super Admin</h4>
+                      <p className="text-[11px] text-amber-700 font-medium">
+                        You are signed in as an Administrator ({currentUserName || 'Admin'}). Only Super Admin can create user credentials or modify administrative accounts.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-amber-200 text-amber-900 px-2.5 py-1 rounded-full whitespace-nowrap self-start sm:self-auto">
+                    View Only Access
+                  </span>
+                </div>
+              )}
+
               {/* Quick Metrics */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
@@ -868,41 +932,47 @@ export default function AdminSettingsPage() {
 
                               {/* Actions */}
                               <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                <div className="flex items-center justify-center gap-2">
-                                  {/* Reset Password */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setResetTargetUser(user);
-                                      setNewPasswordInput(generateStrongPassword());
-                                    }}
-                                    className="border border-red-200 hover:bg-red-50 text-[#BC0118] font-bold text-xs px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1"
-                                    title="Reset Password"
-                                  >
-                                    <KeyRound className="w-3 h-3" />
-                                    <span>Reset Pwd</span>
-                                  </button>
+                                {currentUserRole === 'SUPER_ADMIN' ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    {/* Reset Password */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setResetTargetUser(user);
+                                        setNewPasswordInput(generateStrongPassword());
+                                      }}
+                                      className="border border-red-200 hover:bg-red-50 text-[#BC0118] font-bold text-xs px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1"
+                                      title="Reset Password"
+                                    >
+                                      <KeyRound className="w-3 h-3" />
+                                      <span>Reset Pwd</span>
+                                    </button>
 
-                                  {/* Toggle Active */}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleActive(user)}
-                                    className="p-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg transition cursor-pointer"
-                                    title={user.isActive ? 'Deactivate User' : 'Activate User'}
-                                  >
-                                    <PowerIcon active={user.isActive} />
-                                  </button>
+                                    {/* Toggle Active */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleActive(user)}
+                                      className="p-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg transition cursor-pointer"
+                                      title={user.isActive ? 'Deactivate User' : 'Activate User'}
+                                    >
+                                      <PowerIcon active={user.isActive} />
+                                    </button>
 
-                                  {/* Delete */}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteUser(user)}
-                                    className="p-1.5 border border-slate-200 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer"
-                                    title="Delete User"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                                    {/* Delete */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteUser(user)}
+                                      className="p-1.5 border border-slate-200 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer"
+                                      title="Delete User"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 font-medium italic">
+                                    Super Admin Managed
+                                  </span>
+                                )}
                               </td>
                             </tr>
                           );

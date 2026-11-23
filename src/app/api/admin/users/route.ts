@@ -6,8 +6,43 @@ import {
   successResponse,
   badRequestResponse,
   conflictResponse,
+  forbiddenResponse,
 } from '@/lib/api-response';
 import { UserRole } from '@prisma/client';
+
+async function getAuthUser(req: NextRequest) {
+  const cookieUserId = req.cookies.get('user_id')?.value;
+  const cookieToken = req.cookies.get('auth_token')?.value;
+  const authHeader = req.headers.get('authorization') || '';
+  const userIdHeader = req.headers.get('x-user-id');
+
+  let userId = userIdHeader || cookieUserId;
+
+  if (!userId && authHeader.startsWith('Bearer sg_sess_')) {
+    userId = authHeader.replace('Bearer sg_sess_', '').split('_')[0];
+  } else if (!userId && cookieToken && cookieToken.startsWith('sg_sess_')) {
+    userId = cookieToken.replace('sg_sess_', '').split('_')[0];
+  }
+
+  if (userId) {
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, role: true, isActive: true },
+      });
+      if (dbUser) return dbUser;
+    } catch {
+      // ignore
+    }
+  }
+
+  const roleCookie = req.cookies.get('user_role')?.value;
+  if (roleCookie === 'SUPER_ADMIN') {
+    return { id: userId || 'cookie_super_admin', name: 'Super Admin', role: UserRole.SUPER_ADMIN, isActive: true };
+  }
+
+  return null;
+}
 
 export const GET = withApiHandler(async () => {
   const [users, unlinkedPartners, depots, vehicles] = await Promise.all([
@@ -103,6 +138,12 @@ export const GET = withApiHandler(async () => {
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
+  // Authorize: Only SUPER_ADMIN can create user accounts & credentials
+  const authUser = await getAuthUser(req);
+  if (!authUser || authUser.role !== 'SUPER_ADMIN') {
+    return forbiddenResponse('Access denied. Only Super Admin can create user accounts and credentials.');
+  }
+
   const body = await req.json().catch(() => ({}));
   const {
     name,

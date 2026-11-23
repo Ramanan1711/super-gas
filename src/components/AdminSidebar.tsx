@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -38,6 +38,32 @@ export default function AdminSidebar({
   const router = useRouter();
   const [internalActive, setInternalActive] = useState<string | null>(null);
   const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const matchRole = document.cookie.match(/(?:^|;\s*)user_role=([^;]+)/);
+      const matchName = document.cookie.match(/(?:^|;\s*)user_name=([^;]+)/);
+      if (matchRole || matchName) {
+        setCurrentUser({
+          name: matchName ? decodeURIComponent(matchName[1]) : 'Agency Admin',
+          role: matchRole ? decodeURIComponent(matchRole[1]) : 'ADMIN',
+        });
+      }
+    }
+
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.user) {
+          setCurrentUser({
+            name: json.data.user.name,
+            role: json.data.user.role,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Automatically derive active navigation item directly from the URL pathname
   const active = useMemo(() => {
@@ -237,7 +263,7 @@ export default function AdminSidebar({
           <>
             <div
               className="w-10 h-10 rounded-full bg-[#BC0118] text-white flex items-center justify-center shadow-2xs shrink-0 cursor-pointer"
-              title="Agency Admin"
+              title={`${currentUser?.name || 'Agency Admin'} (${currentUser?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'})`}
             >
               <User className="w-5 h-5 stroke-[2.2]" />
             </div>
@@ -259,11 +285,22 @@ export default function AdminSidebar({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-extrabold text-slate-900 leading-tight truncate">
-                  Agency Admin
+                  {currentUser?.name || 'Agency Admin'}
                 </p>
-                <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5 truncate">
-                  Administrator
-                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span
+                    className={`inline-block w-1.5 h-1.5 rounded-full ${
+                      currentUser?.role === 'SUPER_ADMIN' ? 'bg-purple-600' : 'bg-[#BC0118]'
+                    }`}
+                  />
+                  <p className="text-xs text-slate-500 font-semibold leading-tight truncate">
+                    {currentUser?.role === 'SUPER_ADMIN'
+                      ? 'Super Admin'
+                      : currentUser?.role === 'ADMIN'
+                      ? 'Admin'
+                      : 'Administrator'}
+                  </p>
+                </div>
               </div>
             </div>
 
