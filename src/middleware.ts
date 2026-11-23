@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionToken } from '@/lib/session';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('auth_token')?.value;
-  const role = request.cookies.get('user_role')?.value;
+  const session = await verifySessionToken(token);
+  const isAuthenticated = !!session;
+  const verifiedRole = session?.role;
 
   // 1. If accessing Login page
   if (pathname === '/login') {
-    if (token) {
-      if (role === 'DELIVERY_PARTNER') {
+    if (isAuthenticated) {
+      if (verifiedRole === 'DELIVERY_PARTNER') {
         return NextResponse.redirect(new URL('/', request.url));
       }
       return NextResponse.redirect(new URL('/admin', request.url));
@@ -19,7 +22,7 @@ export function middleware(request: NextRequest) {
 
   // 2. Admin routes protection (both UI and API endpoints)
   if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-    if (!token) {
+    if (!isAuthenticated) {
       if (pathname.startsWith('/api/admin')) {
         return NextResponse.json(
           {
@@ -37,8 +40,9 @@ export function middleware(request: NextRequest) {
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
-    // STRICT ENFORCEMENT: Delivery partner must NEVER access Admin flow or Admin APIs
-    if (role === 'DELIVERY_PARTNER') {
+
+    // STRICT ENFORCEMENT: Only ADMIN or SUPER_ADMIN can access Admin UI and Admin APIs
+    if (verifiedRole !== 'ADMIN' && verifiedRole !== 'SUPER_ADMIN') {
       if (pathname.startsWith('/api/admin')) {
         return NextResponse.json(
           {
@@ -64,10 +68,10 @@ export function middleware(request: NextRequest) {
   // - If Admin / Super Admin: redirect to /admin (Admin flow)
   // - If Delivery Partner: allow on '/' (Delivery flow)
   if (pathname === '/') {
-    if (!token) {
+    if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+    if (verifiedRole === 'ADMIN' || verifiedRole === 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
     return NextResponse.next();
@@ -86,7 +90,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/all-deliveries');
 
   if (isProtectedDeliveryRoute) {
-    if (!token) {
+    if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }

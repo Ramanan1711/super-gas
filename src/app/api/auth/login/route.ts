@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { withApiHandler, validateBody } from '@/lib/api-middleware';
 import { successResponse, unauthorizedResponse } from '@/lib/api-response';
 import { loginSchema } from '@/lib/validations/auth.schema';
+import { createSignedSessionToken } from '@/lib/session';
 
 export const POST = withApiHandler(async (req: NextRequest) => {
   const body = await validateBody(req, loginSchema);
@@ -58,8 +59,8 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     return unauthorizedResponse('Invalid credentials.');
   }
 
-  // Create sanitized user session response
-  const sessionToken = `sg_sess_${user.id}_${Date.now()}`;
+  // Create cryptographically signed user session token
+  const sessionToken = await createSignedSessionToken(user.id, user.role);
   const sessionData = {
     user: {
       id: user.id,

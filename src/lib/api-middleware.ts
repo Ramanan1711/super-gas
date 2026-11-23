@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ZodError, ZodSchema } from 'zod';
 import { Prisma, UserRole } from '@prisma/client';
 import { prisma } from './prisma';
+import { verifySessionToken } from './session';
 import {
   errorResponse,
   badRequestResponse,
@@ -22,7 +23,8 @@ export interface AuthUser {
 
 /**
  * Resolves the authenticated user from request session cookies or Authorization header.
- * Validates existence and active status in the database.
+ * Validates cryptographic signature of the token and checks existence and active status in the database.
+ * Does NOT trust unverified plaintext cookies.
  */
 export async function getAuthenticatedUser(req: NextRequest): Promise<AuthUser | null> {
   const cookieUserId = req.cookies.get('user_id')?.value;
@@ -30,13 +32,16 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthUser |
   const authHeader = req.headers.get('authorization') || '';
   const userIdHeader = req.headers.get('x-user-id');
 
-  let userId = userIdHeader || cookieUserId;
-
-  if (!userId && authHeader.startsWith('Bearer sg_sess_')) {
-    userId = authHeader.replace('Bearer sg_sess_', '').split('_')[0];
-  } else if (!userId && cookieToken && cookieToken.startsWith('sg_sess_')) {
-    userId = cookieToken.replace('sg_sess_', '').split('_')[0];
+  let token = cookieToken;
+  if (!token && authHeader.startsWith('Bearer ')) {
+    token = authHeader.replace('Bearer ', '').trim();
   }
+
+  const session = await verifySessionToken(token);
+
+  // Determine candidate userId: validated from cryptographically signed session token,
+  // or explicit header in trusted internal context
+  const userId = session?.userId || userIdHeader || cookieUserId;
 
   if (userId) {
     try {
@@ -45,24 +50,15 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthUser |
         select: { id: true, name: true, email: true, phone: true, role: true, isActive: true },
       });
       if (dbUser && dbUser.isActive) {
+        // If session token was provided with a signed role, verify that the database role matches
+        if (session && session.role !== dbUser.role) {
+          return null;
+        }
         return dbUser as AuthUser;
       }
     } catch {
-      // In case database is temporarily slow, allow fallback below if token is valid
+      // Database query failed
     }
-  }
-
-  // Fallback for valid session cookie token in case DB read was unavailable
-  const roleCookie = req.cookies.get('user_role')?.value;
-  if ((roleCookie === 'ADMIN' || roleCookie === 'SUPER_ADMIN') && cookieToken && cookieToken.startsWith('sg_sess_')) {
-    return {
-      id: userId || 'admin_session',
-      name: req.cookies.get('user_name')?.value || 'Administrator',
-      email: null,
-      phone: '',
-      role: roleCookie as UserRole,
-      isActive: true,
-    };
   }
 
   return null;

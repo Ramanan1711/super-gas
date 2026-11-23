@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withApiHandler } from '@/lib/api-middleware';
+import { verifySessionToken } from '@/lib/session';
 import { successResponse, notFoundResponse } from '@/lib/api-response';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
@@ -9,11 +10,19 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const cookieUserId = req.cookies.get('user_id')?.value;
   const cookieToken = req.cookies.get('auth_token')?.value;
 
+  let token = cookieToken;
+  if (!token && authHeader.startsWith('Bearer ')) {
+    token = authHeader.replace('Bearer ', '').trim();
+  }
+
+  const session = await verifySessionToken(token);
+  const targetUserId = session?.userId || userIdHeader || cookieUserId;
+
   let user = null;
 
-  if (userIdHeader) {
+  if (targetUserId) {
     user = await prisma.user.findUnique({
-      where: { id: userIdHeader },
+      where: { id: targetUserId },
       include: {
         partnerProfile: {
           include: {
@@ -23,50 +32,6 @@ export const GET = withApiHandler(async (req: NextRequest) => {
         },
       },
     });
-  } else if (cookieUserId) {
-    user = await prisma.user.findUnique({
-      where: { id: cookieUserId },
-      include: {
-        partnerProfile: {
-          include: {
-            depot: true,
-            assignedVehicle: true,
-          },
-        },
-      },
-    });
-  } else if (authHeader.startsWith('Bearer sg_sess_')) {
-    const parts = authHeader.replace('Bearer sg_sess_', '').split('_');
-    const userId = parts[0];
-    if (userId) {
-      user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          partnerProfile: {
-            include: {
-              depot: true,
-              assignedVehicle: true,
-            },
-          },
-        },
-      });
-    }
-  } else if (cookieToken && cookieToken.startsWith('sg_sess_')) {
-    const parts = cookieToken.replace('sg_sess_', '').split('_');
-    const userId = parts[0];
-    if (userId) {
-      user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          partnerProfile: {
-            include: {
-              depot: true,
-              assignedVehicle: true,
-            },
-          },
-        },
-      });
-    }
   }
 
   // Fallback to active driver profile (e.g. Varun or Suresh) if no user found
