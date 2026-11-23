@@ -68,6 +68,45 @@ function generatePaginationPages(currentPage: number, totalPages: number): (numb
   return pages;
 }
 
+export function getDateBoundariesForPeriod(period: string): { startDate: string; endDate: string } {
+  const now = new Date();
+  const norm = period.toLowerCase();
+
+  if (norm.includes('today')) {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
+  }
+
+  if (norm.includes('7') || norm.includes('week')) {
+    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return { startDate: start.toISOString(), endDate: now.toISOString() };
+  }
+
+  if (norm.includes('prev') || norm.includes('last_month') || norm.includes('oct')) {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
+  }
+
+  if (norm.includes('q3')) {
+    const start = new Date(now.getFullYear(), 6, 1, 0, 0, 0, 0); // Jul 1
+    const end = new Date(now.getFullYear(), 8, 30, 23, 59, 59, 999); // Sep 30
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
+  }
+
+  if (norm.includes('q4') || norm.includes('quarter')) {
+    const start = new Date(now.getFullYear(), 9, 1, 0, 0, 0, 0); // Oct 1
+    const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999); // Dec 31
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
+  }
+
+  // Default: Current month
+  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { startDate: start.toISOString(), endDate: end.toISOString() };
+}
+
 export default function AdminReportsPage() {
   const [activeTab, setActiveTab] = useState('Overall Branch Report');
   const [selectedPeriod, setSelectedPeriod] = useState('This Month (Nov 2026)');
@@ -113,9 +152,14 @@ export default function AdminReportsPage() {
 
   useEffect(() => {
     let isMounted = true;
+    const { startDate, endDate } = getDateBoundariesForPeriod(selectedPeriod);
     const params = new URLSearchParams({
       period: selectedPeriod,
       tab: activeTab,
+      startDate,
+      endDate,
+      from: startDate,
+      to: endDate,
     });
     fetch(`/api/admin/reports?${params.toString()}`)
       .then((res) => res.json())
@@ -154,12 +198,17 @@ export default function AdminReportsPage() {
   // Database-level paginated query for operational activities
   useEffect(() => {
     let ignore = false;
+    const { startDate, endDate } = getDateBoundariesForPeriod(selectedPeriod);
     const params = new URLSearchParams({
       page: String(currentPage),
       limit: String(pageSize),
       type: activityFilter,
       search: searchQuery.trim(),
       period: selectedPeriod,
+      startDate,
+      endDate,
+      from: startDate,
+      to: endDate,
     });
 
     fetch(`/api/admin/reports/activities?${params.toString()}`)
@@ -464,6 +513,7 @@ export default function AdminReportsPage() {
                       'Last 7 Days',
                       'This Month (Nov 2026)',
                       'Previous Month (Oct 2026)',
+                      'Q3 2026 (Jul - Sep)',
                       'Q4 2026 Comprehensive',
                     ].map((period) => (
                       <div

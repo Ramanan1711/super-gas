@@ -9,6 +9,8 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const activityType = req.nextUrl.searchParams.get('type') || req.nextUrl.searchParams.get('activityType') || 'all';
   const search = req.nextUrl.searchParams.get('search') || '';
   const period = req.nextUrl.searchParams.get('period') || '';
+  const startDate = req.nextUrl.searchParams.get('startDate') || req.nextUrl.searchParams.get('from') || undefined;
+  const endDate = req.nextUrl.searchParams.get('endDate') || req.nextUrl.searchParams.get('to') || undefined;
 
   const result = await OperationalActivityService.getPaginatedActivities({
     page,
@@ -16,6 +18,8 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     activityType,
     search,
     period,
+    startDate,
+    endDate,
   });
 
   return successResponse(result);

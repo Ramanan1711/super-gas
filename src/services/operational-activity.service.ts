@@ -22,6 +22,10 @@ export interface GetActivitiesParams {
   activityType?: string;
   search?: string;
   period?: string;
+  startDate?: string;
+  endDate?: string;
+  from?: string;
+  to?: string;
 }
 
 export interface PaginatedActivitiesResult {
@@ -133,19 +137,68 @@ export class OperationalActivityService {
     const filter = (params.activityType || 'all').toLowerCase();
     const search = (params.search || '').trim();
 
+    const startInput = params.startDate || params.from;
+    const endInput = params.endDate || params.to;
+
+    let dateFilter: { gte?: Date; lte?: Date } | undefined = undefined;
+    if (startInput || endInput) {
+      dateFilter = {};
+      if (startInput) {
+        const d = new Date(startInput);
+        if (!isNaN(d.getTime())) dateFilter.gte = d;
+      }
+      if (endInput) {
+        const d = new Date(endInput);
+        if (!isNaN(d.getTime())) {
+          d.setHours(23, 59, 59, 999);
+          dateFilter.lte = d;
+        }
+      }
+    } else if (params.period) {
+      const now = new Date();
+      const norm = params.period.toLowerCase();
+      if (norm.includes('today')) {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        dateFilter = { gte: start, lte: end };
+      } else if (norm.includes('7') || norm.includes('week')) {
+        const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        dateFilter = { gte: start, lte: now };
+      } else if (norm.includes('prev') || norm.includes('last_month') || norm.includes('oct')) {
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        dateFilter = { gte: start, lte: end };
+      } else if (norm.includes('q3')) {
+        const start = new Date(now.getFullYear(), 6, 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), 8, 30, 23, 59, 59, 999);
+        dateFilter = { gte: start, lte: end };
+      } else if (norm.includes('q4') || norm.includes('quarter')) {
+        const start = new Date(now.getFullYear(), 9, 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        dateFilter = { gte: start, lte: end };
+      } else if (norm.includes('month')) {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        dateFilter = { gte: start, lte: end };
+      }
+    }
+
     try {
       // 1. Specific domain pagination with database-level skip/take
       if (filter === 'delivery') {
-        const where = search
-          ? {
-              OR: [
-                { cylinderType: { contains: search, mode: 'insensitive' as const } },
-                { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                { customer: { customerCode: { contains: search, mode: 'insensitive' as const } } },
-                { id: { contains: search, mode: 'insensitive' as const } },
-              ],
-            }
-          : {};
+        const where = {
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { cylinderType: { contains: search, mode: 'insensitive' as const } },
+                  { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+                  { customer: { customerCode: { contains: search, mode: 'insensitive' as const } } },
+                  { id: { contains: search, mode: 'insensitive' as const } },
+                ],
+              }
+            : {}),
+        };
 
         const [deliveries, totalCount] = await Promise.all([
           prisma.delivery.findMany({
@@ -182,15 +235,18 @@ export class OperationalActivityService {
       }
 
       if (filter === 'invoice') {
-        const where = search
-          ? {
-              OR: [
-                { invoiceNumber: { contains: search, mode: 'insensitive' as const } },
-                { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                { customer: { customerCode: { contains: search, mode: 'insensitive' as const } } },
-              ],
-            }
-          : {};
+        const where = {
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { invoiceNumber: { contains: search, mode: 'insensitive' as const } },
+                  { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+                  { customer: { customerCode: { contains: search, mode: 'insensitive' as const } } },
+                ],
+              }
+            : {}),
+        };
 
         const [invoices, totalCount] = await Promise.all([
           prisma.invoice.findMany({
@@ -234,6 +290,7 @@ export class OperationalActivityService {
       if (filter === 'payment') {
         const where = {
           type: 'PAYMENT' as const,
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
           ...(search
             ? {
                 OR: [
@@ -281,15 +338,18 @@ export class OperationalActivityService {
       }
 
       if (filter === 'expense') {
-        const where = search
-          ? {
-              OR: [
-                { claimNumber: { contains: search, mode: 'insensitive' as const } },
-                { description: { contains: search, mode: 'insensitive' as const } },
-                { partner: { name: { contains: search, mode: 'insensitive' as const } } },
-              ],
-            }
-          : {};
+        const where = {
+          ...(dateFilter ? { claimDate: dateFilter } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { claimNumber: { contains: search, mode: 'insensitive' as const } },
+                  { description: { contains: search, mode: 'insensitive' as const } },
+                  { partner: { name: { contains: search, mode: 'insensitive' as const } } },
+                ],
+              }
+            : {}),
+        };
 
         const [expenses, totalCount] = await Promise.all([
           prisma.expenseClaim.findMany({
@@ -336,14 +396,17 @@ export class OperationalActivityService {
       }
 
       if (filter === 'handover') {
-        const where = search
-          ? {
-              OR: [
-                { handoverCode: { contains: search, mode: 'insensitive' as const } },
-                { partner: { name: { contains: search, mode: 'insensitive' as const } } },
-              ],
-            }
-          : {};
+        const where = {
+          ...(dateFilter ? { handoverTime: dateFilter } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { handoverCode: { contains: search, mode: 'insensitive' as const } },
+                  { partner: { name: { contains: search, mode: 'insensitive' as const } } },
+                ],
+              }
+            : {}),
+        };
 
         const [handovers, totalCount] = await Promise.all([
           prisma.cashHandoverEvent.findMany({
@@ -386,6 +449,81 @@ export class OperationalActivityService {
       // 2. Cross-domain Unified Query ('all') with database-level fetch & pagination
       const fetchDepth = offset + limit;
 
+      const unifiedDeliveryWhere = {
+        ...(dateFilter ? { createdAt: dateFilter } : {}),
+        ...(search
+          ? {
+              OR: [
+                { cylinderType: { contains: search, mode: 'insensitive' as const } },
+                { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+                { customer: { customerCode: { contains: search, mode: 'insensitive' as const } } },
+              ],
+            }
+          : {}),
+      };
+
+      const unifiedDeliveryCountWhere = {
+        ...(dateFilter ? { createdAt: dateFilter } : {}),
+        ...(search
+          ? {
+              OR: [
+                { cylinderType: { contains: search, mode: 'insensitive' as const } },
+                { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+              ],
+            }
+          : {}),
+      };
+
+      const unifiedInvoiceWhere = {
+        ...(dateFilter ? { createdAt: dateFilter } : {}),
+        ...(search
+          ? {
+              OR: [
+                { invoiceNumber: { contains: search, mode: 'insensitive' as const } },
+                { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+              ],
+            }
+          : {}),
+      };
+
+      const unifiedLedgerWhere = {
+        type: 'PAYMENT' as const,
+        ...(dateFilter ? { createdAt: dateFilter } : {}),
+        ...(search
+          ? {
+              OR: [
+                { referenceNumber: { contains: search, mode: 'insensitive' as const } },
+                { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+              ],
+            }
+          : {}),
+      };
+
+      const unifiedExpenseWhere = {
+        ...(dateFilter ? { claimDate: dateFilter } : {}),
+        ...(search
+          ? {
+              OR: [
+                { claimNumber: { contains: search, mode: 'insensitive' as const } },
+                { description: { contains: search, mode: 'insensitive' as const } },
+                { partner: { name: { contains: search, mode: 'insensitive' as const } } },
+              ],
+            }
+          : {}),
+      };
+
+      const unifiedHandoverWhere = {
+        ...(dateFilter ? { handoverTime: dateFilter } : {}),
+        ...(search
+          ? {
+              OR: [
+                { handoverCode: { contains: search, mode: 'insensitive' as const } },
+                { partner: { name: { contains: search, mode: 'insensitive' as const } } },
+              ],
+            }
+          : {}),
+      };
+
       const [
         deliveries,
         deliveryCount,
@@ -399,132 +537,53 @@ export class OperationalActivityService {
         handoverCount,
       ] = await Promise.all([
         prisma.delivery.findMany({
-          where: search
-            ? {
-                OR: [
-                  { cylinderType: { contains: search, mode: 'insensitive' as const } },
-                  { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                  { customer: { customerCode: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedDeliveryWhere,
           include: { customer: true },
           orderBy: { createdAt: 'desc' },
           take: fetchDepth,
         }),
         prisma.delivery.count({
-          where: search
-            ? {
-                OR: [
-                  { cylinderType: { contains: search, mode: 'insensitive' as const } },
-                  { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedDeliveryCountWhere,
         }),
 
         prisma.invoice.findMany({
-          where: search
-            ? {
-                OR: [
-                  { invoiceNumber: { contains: search, mode: 'insensitive' as const } },
-                  { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedInvoiceWhere,
           include: { customer: true },
           orderBy: { createdAt: 'desc' },
           take: fetchDepth,
         }),
         prisma.invoice.count({
-          where: search
-            ? {
-                OR: [
-                  { invoiceNumber: { contains: search, mode: 'insensitive' as const } },
-                  { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedInvoiceWhere,
         }),
 
         prisma.customerLedgerEntry.findMany({
-          where: {
-            type: 'PAYMENT',
-            ...(search
-              ? {
-                  OR: [
-                    { referenceNumber: { contains: search, mode: 'insensitive' as const } },
-                    { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                  ],
-                }
-              : {}),
-          },
+          where: unifiedLedgerWhere,
           include: { customer: true },
           orderBy: { createdAt: 'desc' },
           take: fetchDepth,
         }),
         prisma.customerLedgerEntry.count({
-          where: {
-            type: 'PAYMENT',
-            ...(search
-              ? {
-                  OR: [
-                    { referenceNumber: { contains: search, mode: 'insensitive' as const } },
-                    { customer: { name: { contains: search, mode: 'insensitive' as const } } },
-                  ],
-                }
-              : {}),
-          },
+          where: unifiedLedgerWhere,
         }),
 
         prisma.expenseClaim.findMany({
-          where: search
-            ? {
-                OR: [
-                  { claimNumber: { contains: search, mode: 'insensitive' as const } },
-                  { description: { contains: search, mode: 'insensitive' as const } },
-                  { partner: { name: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedExpenseWhere,
           include: { partner: true, vehicle: true },
           orderBy: { claimDate: 'desc' },
           take: fetchDepth,
         }),
         prisma.expenseClaim.count({
-          where: search
-            ? {
-                OR: [
-                  { claimNumber: { contains: search, mode: 'insensitive' as const } },
-                  { description: { contains: search, mode: 'insensitive' as const } },
-                  { partner: { name: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedExpenseWhere,
         }),
 
         prisma.cashHandoverEvent.findMany({
-          where: search
-            ? {
-                OR: [
-                  { handoverCode: { contains: search, mode: 'insensitive' as const } },
-                  { partner: { name: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedHandoverWhere,
           include: { partner: true, settlement: true },
           orderBy: { handoverTime: 'desc' },
           take: fetchDepth,
         }),
         prisma.cashHandoverEvent.count({
-          where: search
-            ? {
-                OR: [
-                  { handoverCode: { contains: search, mode: 'insensitive' as const } },
-                  { partner: { name: { contains: search, mode: 'insensitive' as const } } },
-                ],
-              }
-            : {},
+          where: unifiedHandoverWhere,
         }),
       ]);
 

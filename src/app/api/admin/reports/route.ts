@@ -22,7 +22,7 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
     }
     return {
       dateFilter: filter,
-      periodLabel: 'Custom Date Range',
+      periodLabel: period || 'Custom Date Range',
       from: filter.gte?.toISOString() || null,
       to: filter.lte?.toISOString() || null,
     };
@@ -57,7 +57,18 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
     const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     return {
       dateFilter: { gte: start, lte: end },
-      periodLabel: 'Previous Month',
+      periodLabel: 'Previous Month (Oct 2026)',
+      from: start.toISOString(),
+      to: end.toISOString(),
+    };
+  }
+
+  if (normalized.includes('q3')) {
+    const start = new Date(now.getFullYear(), 6, 1, 0, 0, 0, 0); // Jul 1
+    const end = new Date(now.getFullYear(), 8, 30, 23, 59, 59, 999); // Sep 30
+    return {
+      dateFilter: { gte: start, lte: end },
+      periodLabel: 'Q3 2026 (Jul - Sep)',
       from: start.toISOString(),
       to: end.toISOString(),
     };
@@ -68,7 +79,7 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
     const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999); // Dec 31
     return {
       dateFilter: { gte: start, lte: end },
-      periodLabel: 'Q4 Comprehensive',
+      periodLabel: 'Q4 2026 Comprehensive',
       from: start.toISOString(),
       to: end.toISOString(),
     };
@@ -88,8 +99,8 @@ function resolveDateFilter(period: string | null, from: string | null, to: strin
 export const GET = withApiHandler(async (req: NextRequest) => {
   const periodParam = req.nextUrl.searchParams.get('period');
   const tabParam = req.nextUrl.searchParams.get('tab') || 'all';
-  const fromParam = req.nextUrl.searchParams.get('from');
-  const toParam = req.nextUrl.searchParams.get('to');
+  const fromParam = req.nextUrl.searchParams.get('from') || req.nextUrl.searchParams.get('startDate');
+  const toParam = req.nextUrl.searchParams.get('to') || req.nextUrl.searchParams.get('endDate');
 
   const { dateFilter, periodLabel, from, to } = resolveDateFilter(periodParam, fromParam, toParam);
 
@@ -162,8 +173,8 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   ] = await Promise.all([
     prisma.customer.findMany({
       include: {
-        deliveries: { select: { id: true, quantity: true, emptyCollected: true, amount: true, status: true } },
-        invoices: { select: { id: true, totalAmount: true, paidAmount: true, balanceDue: true, paymentStatus: true } },
+        deliveries: { where: deliveryWhere, select: { id: true, quantity: true, emptyCollected: true, amount: true, status: true } },
+        invoices: { where: invoiceWhere, select: { id: true, totalAmount: true, paidAmount: true, balanceDue: true, paymentStatus: true } },
       },
       orderBy: { name: 'asc' },
     }).catch(() => []),
@@ -189,11 +200,16 @@ export const GET = withApiHandler(async (req: NextRequest) => {
       include: {
         assignedVehicle: true,
         depot: true,
-        dailySettlements: { orderBy: { businessDate: 'desc' }, take: 1 },
+        dailySettlements: {
+          where: dateFilter ? { businessDate: dateFilter } : {},
+          orderBy: { businessDate: 'desc' },
+          take: 1,
+        },
       },
       orderBy: { partnerCode: 'asc' },
     }).catch(() => []),
     prisma.dailySettlement.findMany({
+      where: dateFilter ? { businessDate: dateFilter } : {},
       include: { partner: true, handovers: true },
       orderBy: { businessDate: 'desc' },
     }).catch(() => []),
@@ -561,6 +577,8 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     page: 1,
     limit: 5,
     period: periodLabel,
+    startDate: from || undefined,
+    endDate: to || undefined,
   });
 
   return successResponse({
