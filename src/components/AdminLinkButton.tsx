@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useSyncExternalStore, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Shield } from 'lucide-react';
 
-function getInitialAdminState(): boolean {
+const emptySubscribe = () => () => {};
+
+function getClientSnapshot(): boolean {
   if (typeof document === 'undefined') return false;
   const cookies = document.cookie.split('; ');
   const roleCookie = cookies.find((c) => c.startsWith('user_role='));
@@ -15,8 +17,18 @@ function getInitialAdminState(): boolean {
   return false;
 }
 
+function getServerSnapshot(): boolean {
+  return false;
+}
+
 export default function AdminLinkButton() {
-  const [isAdmin, setIsAdmin] = useState<boolean>(getInitialAdminState);
+  const isCookieAdmin = useSyncExternalStore(
+    emptySubscribe,
+    getClientSnapshot,
+    getServerSnapshot
+  );
+
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -30,7 +42,9 @@ export default function AdminLinkButton() {
       });
   }, []);
 
-  if (!isAdmin) {
+  const showButton = isAdmin !== null ? isAdmin : isCookieAdmin;
+
+  if (!showButton) {
     return null;
   }
 
