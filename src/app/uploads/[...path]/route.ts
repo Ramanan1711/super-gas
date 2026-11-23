@@ -44,10 +44,7 @@ export async function GET(
   try {
     const claim = await prisma.expenseClaim.findFirst({
       where: {
-        OR: [
-          { receiptUrl: { contains: filename } },
-          { receiptUrl: { startsWith: 'data:' } },
-        ],
+        receiptUrl: { contains: filename },
       },
       orderBy: { createdAt: 'desc' },
     });
