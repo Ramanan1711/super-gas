@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminSidebar from './AdminSidebar';
 import {
   Calendar,
@@ -40,70 +40,32 @@ interface OperationalActivity {
   statusType: 'completed' | 'verified' | 'partial' | 'approved' | 'discrepancy';
 }
 
-const initialActivities: OperationalActivity[] = [
-  {
-    id: 'act-1',
-    dateTime: 'Today, 04:15 PM',
-    activityType: 'delivery',
-    activityLabel: 'Cylinder Delivery',
-    referenceId: 'DEL-20261024-94',
-    entityName: 'Hotel Annapoorna (CUS-00042)',
-    entitySubtitle: 'Partner: DP-003 Suresh Babu',
-    amountVolume: '6x19kg Filled Delivered',
-    status: 'Completed',
-    statusType: 'completed',
-  },
-  {
-    id: 'act-2',
-    dateTime: 'Today, 03:30 PM',
-    activityType: 'payment',
-    activityLabel: 'Customer Payment',
-    referenceId: 'PAY-20261024-81',
-    entityName: 'Sri Krishna Sweets (CUS-00088)',
-    entitySubtitle: 'Bank Ref: UPI-SBIN-99214',
-    amountVolume: '₹3,700.00 (UPI)',
-    amountGreen: true,
-    status: 'Verified (FIFO)',
-    statusType: 'verified',
-  },
-  {
-    id: 'act-3',
-    dateTime: 'Today, 02:10 PM',
-    activityType: 'invoice',
-    activityLabel: 'Invoice Generated',
-    referenceId: 'INV-20261024-89',
-    entityName: 'Rajesh Kumar (CUS-00124)',
-    entitySubtitle: 'Direct Counter Delivery',
-    amountVolume: '₹1,500.00',
-    status: 'Partially Paid (Bal: ₹500)',
-    statusType: 'partial',
-  },
-  {
-    id: 'act-4',
-    dateTime: 'Today, 01:20 PM',
-    activityType: 'expense',
-    activityLabel: 'Expense Claim',
-    referenceId: 'EXP-DP-20261024-04',
-    entityName: 'DP-001 Rajesh Kumar (Diesel Van 04)',
-    entitySubtitle: 'Fuel Receipt: BPCL-4921',
-    amountVolume: '₹1,200.00',
-    status: 'Approved',
-    statusType: 'approved',
-  },
-  {
-    id: 'act-5',
-    dateTime: 'Today, 11:45 AM',
-    activityType: 'handover',
-    activityLabel: 'Depot Cash Handover',
-    referenceId: 'CASH-20261016-001',
-    entityName: 'Suresh Babu (Van 03)',
-    entitySubtitle: 'Cash Shortage: ₹2,000 pending tally',
-    amountVolume: '₹16,500 / ₹18,500',
-    amountHighlight: true,
-    status: 'Discrepancy Flagged',
-    statusType: 'discrepancy',
-  },
-];
+function generatePaginationPages(currentPage: number, totalPages: number): (number | '...')[] {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages: (number | '...')[] = [];
+  pages.push(1);
+
+  if (currentPage > 3) {
+    pages.push('...');
+  }
+
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  if (currentPage < totalPages - 2) {
+    pages.push('...');
+  }
+
+  pages.push(totalPages);
+  return pages;
+}
 
 export default function AdminReportsPage() {
   const [activeTab, setActiveTab] = useState('Overall Branch Report');
@@ -117,6 +79,24 @@ export default function AdminReportsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshIndex, setRefreshIndex] = useState(0);
+
+  // Pagination state for operational activities table
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+  const [activitiesState, setActivitiesState] = useState<{
+    items: OperationalActivity[];
+    totalCount: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>({
+    items: [],
+    totalCount: 0,
+    page: 1,
+    limit: 5,
+    totalPages: 1,
+  });
+  const [isActivitiesLoading, setIsActivitiesLoading] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reportsData, setReportsData] = useState<any>(null);
@@ -138,6 +118,9 @@ export default function AdminReportsPage() {
         if (!isMounted) return;
         if (json.success && json.data) {
           setReportsData(json.data);
+          if (json.data.overall?.activities) {
+            setActivitiesState(json.data.overall.activities);
+          }
           const o = json.data.overall?.metrics;
           if (o) {
             setReportMetrics({
@@ -162,6 +145,36 @@ export default function AdminReportsPage() {
       isMounted = false;
     };
   }, [selectedPeriod, refreshIndex]);
+
+  // Database-level paginated query for operational activities
+  useEffect(() => {
+    let ignore = false;
+    const params = new URLSearchParams({
+      page: String(currentPage),
+      limit: String(pageSize),
+      type: activityFilter,
+      search: searchQuery.trim(),
+      period: selectedPeriod,
+    });
+
+    fetch(`/api/admin/reports/activities?${params.toString()}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!ignore && json.success && json.data) {
+          setActivitiesState(json.data);
+        }
+      })
+      .catch((err) => console.warn('Failed loading operational activities:', err))
+      .finally(() => {
+        if (!ignore) {
+          setIsActivitiesLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [currentPage, activityFilter, searchQuery, selectedPeriod, refreshIndex]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -210,7 +223,13 @@ export default function AdminReportsPage() {
       csvContent += `Completed Deliveries,${reportMetrics.deliveries}\n`;
       csvContent += `Total Revenue,${reportMetrics.revenue}\n`;
       csvContent += `Total Receivables,${reportMetrics.receivables}\n`;
-      csvContent += `Approved OpEx,${reportMetrics.expenses}\n`;
+      csvContent += `Approved OpEx,${reportMetrics.expenses}\n\n`;
+      if (activitiesState.items.length > 0) {
+        csvContent += 'Date,Activity Type,Reference,Entity,Amount/Volume,Status\n';
+        activitiesState.items.forEach((act) => {
+          csvContent += `"${act.dateTime}","${act.activityLabel}","${act.referenceId}","${act.entityName}","${act.amountVolume}","${act.status}"\n`;
+        });
+      }
     }
 
     const encodedUri = encodeURI(csvContent);
@@ -229,28 +248,24 @@ export default function AdminReportsPage() {
     window.print();
   };
 
-  const filteredActivities = useMemo(() => {
-    const list = reportsData?.overall?.recentTransactions?.length
-      ? reportsData.overall.recentTransactions
-      : initialActivities;
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setCurrentPage(1);
+    setIsActivitiesLoading(true);
+  };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return list.filter((act: any) => {
-      if (activityFilter !== 'all' && act.activityType !== activityFilter) {
-        return false;
-      }
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const match =
-          act.referenceId.toLowerCase().includes(q) ||
-          act.entityName.toLowerCase().includes(q) ||
-          act.entitySubtitle.toLowerCase().includes(q) ||
-          act.activityLabel.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-      return true;
-    });
-  }, [reportsData, activityFilter, searchQuery]);
+  const handleFilterChange = (val: string, label: string) => {
+    setActivityFilter(val);
+    setCurrentPage(1);
+    setIsActivitiesLoading(true);
+    setShowFilterMenu(false);
+    triggerToast(`Filtered by ${label}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    setIsActivitiesLoading(true);
+  };
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-800 font-sans antialiased overflow-hidden">
@@ -696,7 +711,7 @@ export default function AdminReportsPage() {
                         type="text"
                         placeholder="Filter ledger records..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                         className="bg-[#F1F4FA] text-xs font-semibold text-slate-800 placeholder:text-slate-400 pl-8 pr-3 py-2 rounded-xl outline-none w-56 sm:w-64 border-none"
                       />
                     </div>
@@ -723,11 +738,7 @@ export default function AdminReportsPage() {
                           ].map((f) => (
                             <div
                               key={f.val}
-                              onClick={() => {
-                                setActivityFilter(f.val);
-                                setShowFilterMenu(false);
-                                triggerToast(`Filtered by ${f.label}`);
-                              }}
+                              onClick={() => handleFilterChange(f.val, f.label)}
                               className={`px-4 py-2 hover:bg-[#F1F4FA] cursor-pointer ${
                                 activityFilter === f.val ? 'text-[#BC0118] font-black' : ''
                               }`}
@@ -754,38 +765,145 @@ export default function AdminReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold">
-                      {filteredActivities.map((act: OperationalActivity) => (
-                        <tr
-                          key={act.id}
-                          onClick={() => triggerToast(`Transaction ${act.referenceId}`)}
-                          className="hover:bg-slate-50/80 transition cursor-pointer"
-                        >
-                          <td className="py-4 px-6 text-slate-700 font-bold whitespace-nowrap">{act.dateTime}</td>
-                          <td className="py-4 px-4 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-black bg-rose-50 border border-rose-200/60 text-[#BC0118]">
-                              <Truck className="w-3.5 h-3.5" />
-                              {act.activityLabel}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 font-mono text-xs text-slate-600 whitespace-nowrap font-bold">
-                            {act.referenceId}
-                          </td>
-                          <td className="py-4 px-4">
-                            <p className="font-extrabold text-slate-900 text-xs">{act.entityName}</p>
-                            <p className="text-[11px] text-slate-400 font-medium mt-0.5">{act.entitySubtitle}</p>
-                          </td>
-                          <td className="py-4 px-4 whitespace-nowrap">
-                            <span className="font-black text-xs text-slate-800">{act.amountVolume}</span>
-                          </td>
-                          <td className="py-4 px-6 text-right whitespace-nowrap">
-                            <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              {act.status}
-                            </span>
+                      {isActivitiesLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-10 text-center text-slate-400 font-medium">
+                            <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#BC0118]" />
+                            <span>Loading live operational transactions from database...</span>
                           </td>
                         </tr>
-                      ))}
+                      ) : activitiesState.items.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-10 text-center text-slate-400 font-medium">
+                            No operational transactions found for the selected filter or search criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        activitiesState.items.map((act: OperationalActivity) => (
+                          <tr
+                            key={act.id}
+                            onClick={() => triggerToast(`Transaction ${act.referenceId}`)}
+                            className="hover:bg-slate-50/80 transition cursor-pointer"
+                          >
+                            <td className="py-4 px-6 text-slate-700 font-bold whitespace-nowrap">{act.dateTime}</td>
+                            <td className="py-4 px-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-black border ${
+                                  act.activityType === 'delivery'
+                                    ? 'bg-rose-50 border-rose-200/60 text-[#BC0118]'
+                                    : act.activityType === 'payment'
+                                    ? 'bg-emerald-50 border-emerald-200/60 text-emerald-700'
+                                    : act.activityType === 'invoice'
+                                    ? 'bg-blue-50 border-blue-200/60 text-blue-700'
+                                    : act.activityType === 'expense'
+                                    ? 'bg-amber-50 border-amber-200/60 text-amber-700'
+                                    : 'bg-purple-50 border-purple-200/60 text-purple-700'
+                                }`}
+                              >
+                                {act.activityType === 'delivery' && <Truck className="w-3.5 h-3.5" />}
+                                {act.activityType === 'payment' && <Wallet className="w-3.5 h-3.5" />}
+                                {act.activityType === 'invoice' && <Receipt className="w-3.5 h-3.5" />}
+                                {act.activityType === 'expense' && <CreditCard className="w-3.5 h-3.5" />}
+                                {act.activityType === 'handover' && <Banknote className="w-3.5 h-3.5" />}
+                                <span>{act.activityLabel}</span>
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 font-mono text-xs text-slate-600 whitespace-nowrap font-bold">
+                              {act.referenceId}
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="font-extrabold text-slate-900 text-xs">{act.entityName}</p>
+                              <p className="text-[11px] text-slate-400 font-medium mt-0.5">{act.entitySubtitle}</p>
+                            </td>
+                            <td className="py-4 px-4 whitespace-nowrap">
+                              <span
+                                className={`text-xs font-black ${
+                                  act.amountGreen
+                                    ? 'text-emerald-700'
+                                    : act.amountHighlight
+                                    ? 'text-rose-600'
+                                    : 'text-slate-800'
+                                }`}
+                              >
+                                {act.amountVolume}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-right whitespace-nowrap">
+                              <span
+                                className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                                  act.statusType === 'completed' ||
+                                  act.statusType === 'approved' ||
+                                  act.statusType === 'verified'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : act.statusType === 'partial'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                                }`}
+                              >
+                                {act.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Strip with Live Database Page Selection */}
+                <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 font-semibold bg-white">
+                  <p>
+                    {activitiesState.totalCount === 0
+                      ? 'Showing 0 of 0 daily operational records'
+                      : `Showing ${(activitiesState.page - 1) * activitiesState.limit + 1} to ${Math.min(
+                          activitiesState.page * activitiesState.limit,
+                          activitiesState.totalCount
+                        )} of ${activitiesState.totalCount} daily operational records`}
+                  </p>
+
+                  <div className="flex items-center gap-1 font-bold">
+                    <button
+                      type="button"
+                      disabled={currentPage <= 1 || isActivitiesLoading}
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                      className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600 transition cursor-pointer text-xs"
+                      title="Previous Page"
+                    >
+                      &lt;
+                    </button>
+
+                    {generatePaginationPages(currentPage, activitiesState.totalPages).map((p, idx) =>
+                      p === '...' ? (
+                        <span key={`dots-${idx}`} className="px-1 text-slate-400 select-none">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={`page-${p}`}
+                          type="button"
+                          disabled={isActivitiesLoading}
+                          onClick={() => handlePageChange(Number(p))}
+                          className={`w-7 h-7 rounded-lg text-xs font-black transition cursor-pointer ${
+                            currentPage === Number(p)
+                              ? 'bg-[#BC0118] text-white shadow-2xs'
+                              : 'hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={currentPage >= activitiesState.totalPages || isActivitiesLoading}
+                      onClick={() => handlePageChange(Math.min(activitiesState.totalPages, currentPage + 1))}
+                      className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600 transition cursor-pointer text-xs"
+                      title="Next Page"
+                    >
+                      &gt;
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

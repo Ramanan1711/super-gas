@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withApiHandler } from '@/lib/api-middleware';
 import { successResponse } from '@/lib/api-response';
+import { OperationalActivityService } from '@/services/operational-activity.service';
 
 export const GET = withApiHandler(async (req: NextRequest) => {
   const period = req.nextUrl.searchParams.get('period') || 'month';
@@ -362,28 +363,18 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     expenseCategories.other = { label: 'Toll & Other Transit OpEx', amount: 2000, count: 5 };
   }
 
-  // Combined Operational Activity Feed
-  const recentTransactions = deliveries.slice(0, 10).map((d: DeliveryRow) => ({
-    id: d.id,
-    dateTime: new Date(d.createdAt).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
-    activityType: 'delivery' as const,
-    activityLabel: 'Cylinder Delivery',
-    referenceId: `DEL-${d.id.slice(-6).toUpperCase()}`,
-    entityName: `${d.customer?.name || 'Customer'} (${d.customer?.customerCode || 'CUS-001'})`,
-    entitySubtitle: `Payment: ${d.paymentMethod} • Status: ${d.paymentStatus}`,
-    amountVolume: `${d.quantity}x ${d.cylinderType} (Filled)`,
-    status: d.status === 'DELIVERED' ? 'Completed' : d.status,
-    statusType: d.status === 'DELIVERED' ? ('completed' as const) : ('partial' as const),
-  }));
+  // Combined Operational Activity Feed with database-level cross-domain pagination
+  const activitiesResult = await OperationalActivityService.getPaginatedActivities({
+    page: 1,
+    limit: 5,
+    period,
+  });
 
   return successResponse({
     period,
     overall: {
+      activities: activitiesResult,
+      recentTransactions: activitiesResult.items,
       metrics: {
         totalCustomers,
         totalDeliveries,
@@ -404,7 +395,6 @@ export const GET = withApiHandler(async (req: NextRequest) => {
         bank: bankCollected,
         total: cashCollected + upiCollected + bankCollected,
       },
-      recentTransactions,
     },
     customerReports: {
       metrics: {
