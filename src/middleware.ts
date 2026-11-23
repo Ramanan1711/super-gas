@@ -33,9 +33,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Root and delivery routes protection
+  // 3. Root '/' route handling:
+  // - If unauthenticated: redirect to /login
+  // - If Admin / Super Admin: redirect to /admin (Admin flow)
+  // - If Delivery Partner: allow on '/' (Delivery flow)
+  if (pathname === '/') {
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 4. Delivery routes protection
   const isProtectedDeliveryRoute =
-    pathname === '/' ||
     pathname.startsWith('/delivery') ||
     pathname.startsWith('/expenses') ||
     pathname.startsWith('/settlements') ||
