@@ -1,10 +1,5 @@
-import AdminDeliveryPartnersPage from '@/components/AdminDeliveryPartnersPage';
-
-export const metadata = {
-  title: 'Delivery Partners | Super Gas Logistics Core',
-  description: 'Manage delivery partner fleet, custody matrix, and dispatch gate passes.',
-};
+import { redirect } from 'next/navigation';
 
 export default function DeliveryPartnerRoute() {
-  return <AdminDeliveryPartnersPage />;
+  redirect('/admin/delivery-partners');
 }

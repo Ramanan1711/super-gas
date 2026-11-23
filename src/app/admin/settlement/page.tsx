@@ -1,10 +1,5 @@
-import AdminSettlementsPage from '@/components/AdminSettlementsPage';
-
-export const metadata = {
-  title: 'Settlements | Super Gas Logistics Core',
-  description: 'Review and reconcile daily cash collected by delivery partners against digital run sheets.',
-};
+import { redirect } from 'next/navigation';
 
 export default function SettlementRoute() {
-  return <AdminSettlementsPage />;
+  redirect('/admin/settlements');
 }
