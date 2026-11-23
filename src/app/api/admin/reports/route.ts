@@ -245,7 +245,13 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   invoices.forEach((inv: InvoiceRow) => {
     totalInvoicedAmount += inv.totalAmount;
     totalPaidAmount += inv.paidAmount;
-    totalBalanceDue += inv.balanceDue;
+    const due =
+      inv.balanceDue > 0
+        ? inv.balanceDue
+        : inv.paymentStatus !== 'PAID'
+        ? Math.max(0, inv.totalAmount - inv.paidAmount)
+        : 0;
+    totalBalanceDue += due;
     totalGstEstimate += inv.taxAmount || Math.round(inv.totalAmount * 0.18 * 100) / 100;
   });
 
@@ -262,7 +268,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     totalGstEstimate = Math.round(totalInvoicedAmount * 0.18);
   }
 
-  // Approved OpEx
+  // Approved OpEx strictly from database
   let totalApprovedExpenses = 0;
   let totalPendingExpenses = 0;
   let totalRejectedExpenses = 0;
@@ -272,11 +278,6 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     else if (exp.status === 'PENDING') totalPendingExpenses += exp.amount;
     else if (exp.status === 'REJECTED') totalRejectedExpenses += exp.amount;
   });
-
-  // Fallback demo OpEx baseline if fresh database
-  if (totalApprovedExpenses === 0 && expenseClaims.length === 0) {
-    totalApprovedExpenses = 52400;
-  }
 
   // ==========================================
   // TAB 2: CUSTOMER REPORTS BREAKDOWN
@@ -378,12 +379,12 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   }
 
   const emptyCollectionRate = totalFilledDelivered > 0
-    ? Math.round((totalEmptyCollected / totalFilledDelivered) * 100)
-    : 92;
+    ? Number(((totalEmptyCollected / totalFilledDelivered) * 100).toFixed(1))
+    : 0;
 
   const fulfillmentRate = totalDeliveries > 0
-    ? Math.round((completedDeliveries / totalDeliveries) * 100)
-    : 98;
+    ? Number(((completedDeliveries / totalDeliveries) * 100).toFixed(1))
+    : 0;
 
   // ==========================================
   // TAB 4: INVOICE & PAYMENT SPLIT BREAKDOWN (Using Prisma GroupBy)
@@ -564,13 +565,137 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     });
   }
 
-  if (totalApprovedExpenses === 52400 && expenseClaims.length === 0) {
-    expenseCategories.fuel = { label: 'Fuel & Diesel', amount: 22100, count: 18 };
-    expenseCategories.allowance = { label: 'Driver Daily Allowance', amount: 15600, count: 14 };
-    expenseCategories.maintenance = { label: 'Vehicle Maintenance & Repairs', amount: 8450, count: 4 };
-    expenseCategories.utilities = { label: 'Depot Utilities & Supplies', amount: 4250, count: 6 };
-    expenseCategories.other = { label: 'Toll & Other Transit OpEx', amount: 2000, count: 5 };
+  // ==========================================
+  // TIME SERIES TRENDS (Daily Delivery & Revenue Performance)
+  // ==========================================
+  const now = new Date();
+  const nowTime = now.getTime();
+  const rangeStart = dateFilter?.gte ? new Date(dateFilter.gte) : new Date(nowTime - 29 * 24 * 60 * 60 * 1000);
+  const rangeEnd = dateFilter?.lte ? new Date(dateFilter.lte) : new Date(nowTime);
+
+  const currentCursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate());
+  const finalCursor = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const dayCount = Math.min(31, Math.max(7, Math.round((finalCursor.getTime() - currentCursor.getTime()) / dayMs) + 1));
+
+  const trendDays: {
+    key: string;
+    date: string;
+    deliveries: number;
+    completed: number;
+    emptyCollected: number;
+    invoiced: number;
+    collected: number;
+  }[] = [];
+
+  const normalizedPeriod = (periodLabel || '').toLowerCase();
+  if (normalizedPeriod.includes('today')) {
+    const hours = [8, 10, 12, 14, 16, 18, 20];
+    hours.forEach((h) => {
+      const timeStr = `${h % 12 === 0 ? 12 : h % 12}:00 ${h >= 12 ? 'PM' : 'AM'}`;
+      trendDays.push({
+        key: `hour-${h}`,
+        date: timeStr,
+        deliveries: 0,
+        completed: 0,
+        emptyCollected: 0,
+        invoiced: 0,
+        collected: 0,
+      });
+    });
+
+    deliveries.forEach((d: DeliveryRow) => {
+      const hour = new Date(d.createdAt).getHours();
+      const slot =
+        trendDays.find((_, idx) => {
+          const nextHour = hours[idx + 1] || 24;
+          return hour >= hours[idx] && hour < nextHour;
+        }) || trendDays[trendDays.length - 1];
+
+      slot.deliveries += 1;
+      if (d.status === 'DELIVERED') slot.completed += 1;
+      slot.emptyCollected += d.emptyCollected || 0;
+      slot.invoiced += d.amount;
+      if (d.paymentStatus === 'PAID') slot.collected += d.amount;
+    });
+
+    invoices.forEach((inv: InvoiceRow) => {
+      const hour = new Date(inv.createdAt).getHours();
+      const slot =
+        trendDays.find((_, idx) => {
+          const nextHour = hours[idx + 1] || 24;
+          return hour >= hours[idx] && hour < nextHour;
+        }) || trendDays[trendDays.length - 1];
+      slot.invoiced += inv.totalAmount;
+      slot.collected += inv.paidAmount;
+    });
+  } else {
+    const startOffset = Math.max(0, dayCount - 1);
+    for (let i = startOffset; i >= 0; i--) {
+      const d = new Date(finalCursor.getTime() - i * dayMs);
+      const key = d.toISOString().slice(0, 10);
+      const dateLabel = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      trendDays.push({
+        key,
+        date: dateLabel,
+        deliveries: 0,
+        completed: 0,
+        emptyCollected: 0,
+        invoiced: 0,
+        collected: 0,
+      });
+    }
+
+    deliveries.forEach((d: DeliveryRow) => {
+      const key = new Date(d.createdAt).toISOString().slice(0, 10);
+      const slot = trendDays.find((t) => t.key === key);
+      if (slot) {
+        slot.deliveries += 1;
+        if (d.status === 'DELIVERED') slot.completed += 1;
+        slot.emptyCollected += d.emptyCollected || 0;
+        slot.invoiced += d.amount;
+        if (d.paymentStatus === 'PAID') slot.collected += d.amount;
+      }
+    });
+
+    invoices.forEach((inv: InvoiceRow) => {
+      const key = new Date(inv.createdAt).toISOString().slice(0, 10);
+      const slot = trendDays.find((t) => t.key === key);
+      if (slot) {
+        slot.invoiced += inv.totalAmount;
+        slot.collected += inv.paidAmount;
+      }
+    });
   }
+
+  let peakDeliveryDay = { date: trendDays[trendDays.length - 1]?.date || 'Today', deliveries: 0, completionRate: 100 };
+  let maxDeliveriesCount = -1;
+  trendDays.forEach((td) => {
+    if (td.deliveries > maxDeliveriesCount) {
+      maxDeliveriesCount = td.deliveries;
+      peakDeliveryDay = {
+        date: td.date,
+        deliveries: td.deliveries,
+        completionRate: td.deliveries > 0 ? Number(((td.completed / td.deliveries) * 100).toFixed(1)) : 100,
+      };
+    }
+  });
+
+  let peakRevenueDay = { date: trendDays[trendDays.length - 1]?.date || 'Today', amount: 0 };
+  let maxRevenueAmount = -1;
+  trendDays.forEach((td) => {
+    const rev = td.collected > 0 ? td.collected : td.invoiced;
+    if (rev > maxRevenueAmount) {
+      maxRevenueAmount = rev;
+      peakRevenueDay = {
+        date: td.date,
+        amount: rev,
+      };
+    }
+  });
+
+  const realReceivables = totalBalanceDue > 0 ? totalBalanceDue : totalCustomerReceivables;
 
   // Combined Operational Activity Feed with database-level cross-domain pagination
   const activitiesResult = await OperationalActivityService.getPaginatedActivities({
@@ -606,10 +731,33 @@ export const GET = withApiHandler(async (req: NextRequest) => {
         cancelledDeliveries,
         totalInvoicedAmount,
         totalPaidAmount,
-        totalBalanceDue: Math.max(totalBalanceDue, totalCustomerReceivables),
+        totalBalanceDue: realReceivables,
+        totalReceivables: realReceivables,
         totalApprovedExpenses,
         fulfillmentRate,
         emptyCollectionRate,
+      },
+      deliveryTrend: {
+        points: trendDays.map((td) => ({
+          date: td.date,
+          deliveries: td.deliveries,
+          completed: td.completed,
+          emptyCollected: td.emptyCollected,
+        })),
+        peakDay: peakDeliveryDay,
+        fulfillmentRate,
+        emptyCollectionRate,
+      },
+      revenueTrend: {
+        points: trendDays.map((td) => ({
+          date: td.date,
+          invoiced: td.invoiced,
+          collected: td.collected,
+        })),
+        peakDay: peakRevenueDay,
+        totalInvoiced: totalInvoicedAmount,
+        totalCollected: totalPaidAmount,
+        receivables: realReceivables,
       },
       cylinderSpecDeliveryMap,
       paymentSplit: {

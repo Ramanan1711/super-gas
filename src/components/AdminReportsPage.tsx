@@ -107,6 +107,87 @@ export function getDateBoundariesForPeriod(period: string): { startDate: string;
   return { startDate: start.toISOString(), endDate: end.toISOString() };
 }
 
+function computeSvgTrendPath(
+  data: number[],
+  width = 450,
+  height = 125,
+  paddingLeft = 25,
+  paddingTop = 20
+) {
+  if (!data || data.length === 0) {
+    return {
+      linePath: `M ${paddingLeft} ${paddingTop + height} L ${paddingLeft + width} ${paddingTop + height}`,
+      areaPath: `M ${paddingLeft} ${paddingTop + height} L ${paddingLeft + width} ${paddingTop + height} Z`,
+      points: [{ x: paddingLeft + width, y: paddingTop + height, value: 0 }],
+      maxY: 10,
+      peakIndex: 0,
+    };
+  }
+
+  const rawMax = Math.max(...data, 1);
+  const maxY = Math.ceil(rawMax * 1.15);
+  const n = data.length;
+
+  const points = data.map((val, idx) => {
+    const x = paddingLeft + (idx / Math.max(1, n - 1)) * width;
+    const y = paddingTop + height - (val / maxY) * height;
+    return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, value: val };
+  });
+
+  const linePath = points.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${paddingTop + height} L ${points[0].x} ${paddingTop + height} Z`;
+
+  let peakIndex = 0;
+  let maxV = -1;
+  points.forEach((p, idx) => {
+    if (p.value >= maxV) {
+      maxV = p.value;
+      peakIndex = idx;
+    }
+  });
+
+  return { linePath, areaPath, points, maxY, peakIndex };
+}
+
+function computeSvgDualTrendPath(
+  data: number[],
+  maxY: number,
+  width = 450,
+  height = 125,
+  paddingLeft = 30,
+  paddingTop = 20
+) {
+  if (!data || data.length === 0) {
+    return {
+      linePath: `M ${paddingLeft} ${paddingTop + height} L ${paddingLeft + width} ${paddingTop + height}`,
+      points: [{ x: paddingLeft + width, y: paddingTop + height, value: 0 }],
+      peakIndex: 0,
+    };
+  }
+
+  const safeMax = Math.max(maxY, 1);
+  const n = data.length;
+
+  const points = data.map((val, idx) => {
+    const x = paddingLeft + (idx / Math.max(1, n - 1)) * width;
+    const y = paddingTop + height - (val / safeMax) * height;
+    return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, value: val };
+  });
+
+  const linePath = points.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+
+  let peakIndex = 0;
+  let maxV = -1;
+  points.forEach((p, idx) => {
+    if (p.value >= maxV) {
+      maxV = p.value;
+      peakIndex = idx;
+    }
+  });
+
+  return { linePath, points, peakIndex };
+}
+
 export default function AdminReportsPage() {
   const [activeTab, setActiveTab] = useState('Overall Branch Report');
   const [selectedPeriod, setSelectedPeriod] = useState('This Month (Nov 2026)');
@@ -147,7 +228,7 @@ export default function AdminReportsPage() {
     invoices: 0,
     revenue: 0,
     receivables: 0,
-    expenses: 52400,
+    expenses: 0,
   });
 
   useEffect(() => {
@@ -177,8 +258,8 @@ export default function AdminReportsPage() {
               deliveries: o.completedDeliveries || 0,
               invoices: json.data.invoiceReports?.metrics?.invoicesCount || o.completedDeliveries || 0,
               revenue: o.totalPaidAmount || 0,
-              receivables: o.totalBalanceDue || 0,
-              expenses: o.totalApprovedExpenses || 52400,
+              receivables: o.totalBalanceDue ?? o.totalReceivables ?? 0,
+              expenses: o.totalApprovedExpenses ?? 0,
             });
           }
         }
@@ -726,136 +807,211 @@ export default function AdminReportsPage() {
               </div>
 
               {/* Charts Row 1: Daily Delivery Performance & Revenue vs Collection Trend */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* Chart 1: Daily Delivery Performance */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between">
+              {(() => {
+                // Chart 1: Sliced delivery points based on chartTimeRange
+                const rawDeliveryPoints: {
+                  date: string;
+                  deliveries: number;
+                  completed: number;
+                  emptyCollected: number;
+                }[] = reportsData?.overall?.deliveryTrend?.points || [];
+
+                const deliveryPoints =
+                  chartTimeRange === '7 D'
+                    ? rawDeliveryPoints.slice(-7)
+                    : rawDeliveryPoints;
+
+                const deliveryValues = deliveryPoints.map((p) => p.deliveries);
+                const deliverySvg = computeSvgTrendPath(deliveryValues, 450, 125, 25, 20);
+                const peakDeliveryIndex = deliverySvg.peakIndex;
+                const peakDeliveryPoint = deliveryPoints[peakDeliveryIndex] || {
+                  date: reportsData?.overall?.deliveryTrend?.peakDay?.date || 'Today',
+                  deliveries: reportsData?.overall?.deliveryTrend?.peakDay?.deliveries || 0,
+                  completionRate: reportsData?.overall?.deliveryTrend?.peakDay?.completionRate || 100,
+                };
+                const peakSvgCoord = deliverySvg.points[peakDeliveryIndex] || { x: 410, y: 40 };
+
+                // Chart 2: Revenue points
+                const rawRevenuePoints: { date: string; invoiced: number; collected: number }[] =
+                  reportsData?.overall?.revenueTrend?.points || [];
+
+                const revenuePoints =
+                  chartTimeRange === '7 D'
+                    ? rawRevenuePoints.slice(-7)
+                    : rawRevenuePoints;
+
+                const invoicedValues = revenuePoints.map((p) => p.invoiced);
+                const collectedValues = revenuePoints.map((p) => p.collected);
+                const maxRevenueVal = Math.max(...invoicedValues, ...collectedValues, 1000);
+                const revenueMaxY = Math.ceil(maxRevenueVal * 1.15);
+
+                const invoicedSvg = computeSvgDualTrendPath(invoicedValues, revenueMaxY, 450, 125, 30, 20);
+                const collectedSvg = computeSvgDualTrendPath(collectedValues, revenueMaxY, 450, 125, 30, 20);
+
+                const peakRevenuePoint = reportsData?.overall?.revenueTrend?.peakDay || {
+                  date: revenuePoints[revenuePoints.length - 1]?.date || 'Today',
+                  amount: reportMetrics.revenue,
+                };
+                const peakRevenueSvgCoord =
+                  collectedSvg.points[collectedSvg.peakIndex] ||
+                  invoicedSvg.points[invoicedSvg.peakIndex] || { x: 450, y: 40 };
+
+                const formatCurrencyK = (num: number) =>
+                  num >= 1000 ? `₹${Math.round(num / 1000)}k` : `₹${Math.round(num)}`;
+
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* Chart 1: Daily Delivery Performance */}
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between">
                       <div>
-                        <h3 className="text-sm font-black text-slate-900">Daily Delivery Performance</h3>
-                        <p className="text-xs text-slate-400 font-medium mt-0.5">
-                          Fulfillment volume across branches ({selectedPeriod})
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900">Daily Delivery Performance</h3>
+                            <p className="text-xs text-slate-400 font-medium mt-0.5">
+                              Fulfillment volume across branches ({selectedPeriod})
+                            </p>
+                          </div>
+                          <div className="bg-slate-100 p-0.5 rounded-lg flex items-center text-[10px] font-bold">
+                            {(['7 D', '30 D', 'Custom'] as const).map((range) => (
+                              <button
+                                key={range}
+                                type="button"
+                                onClick={() => setChartTimeRange(range)}
+                                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                                  chartTimeRange === range
+                                    ? 'bg-white text-slate-900 font-black shadow-2xs'
+                                    : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                              >
+                                {range}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 relative h-48 w-full">
+                          <svg className="w-full h-full overflow-visible" viewBox="0 0 500 170" preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id="deliveryAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#BC0118" stopOpacity="0.18" />
+                                <stop offset="100%" stopColor="#BC0118" stopOpacity="0.01" />
+                              </linearGradient>
+                            </defs>
+                            <line x1="20" y1="20" x2="490" y2="20" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="20" y1="55" x2="490" y2="55" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="20" y1="90" x2="490" y2="90" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="20" y1="125" x2="490" y2="125" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="20" y1="150" x2="490" y2="150" stroke="#E2E8F0" />
+                            <text x="5" y="24" fill="#94A3B8" fontSize="8" fontWeight="bold">{Math.round(deliverySvg.maxY)}</text>
+                            <text x="5" y="59" fill="#94A3B8" fontSize="8" fontWeight="bold">{Math.round(deliverySvg.maxY * 0.75)}</text>
+                            <text x="5" y="94" fill="#94A3B8" fontSize="8" fontWeight="bold">{Math.round(deliverySvg.maxY * 0.5)}</text>
+                            <text x="5" y="129" fill="#94A3B8" fontSize="8" fontWeight="bold">{Math.round(deliverySvg.maxY * 0.25)}</text>
+                            <text x="5" y="153" fill="#94A3B8" fontSize="8" fontWeight="bold">0</text>
+                            <path
+                              d={deliverySvg.areaPath}
+                              fill="url(#deliveryAreaGrad)"
+                            />
+                            <path
+                              d={deliverySvg.linePath}
+                              fill="none"
+                              stroke="#BC0118"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                            />
+                            {/* Dynamic Peak Day Point & Tooltip */}
+                            <circle cx={peakSvgCoord.x} cy={peakSvgCoord.y} r="4.5" fill="#BC0118" stroke="#FFFFFF" strokeWidth="2" />
+                            <g transform={`translate(${Math.max(55, Math.min(440, peakSvgCoord.x))}, ${Math.max(26, peakSvgCoord.y - 12)})`}>
+                              <rect x="-52" y="-22" width="104" height="20" rx="5" fill="#0F172A" />
+                              <polygon points="-4,-2 0,2 4,-2" fill="#0F172A" />
+                              <text x="0" y="-8" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold">
+                                {peakDeliveryPoint.date}: {peakDeliveryPoint.deliveries} Deliveries
+                              </text>
+                            </g>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <p className="text-slate-600">
+                          Empty Return Rate: <strong className="text-slate-900 font-extrabold">{reportsData?.overall?.deliveryTrend?.emptyCollectionRate ?? reportsData?.overall?.metrics?.emptyCollectionRate ?? 0}%</strong>
+                        </p>
+                        <p className="text-emerald-600 font-extrabold">
+                          Fulfillment Rate: {reportsData?.overall?.deliveryTrend?.fulfillmentRate ?? reportsData?.overall?.metrics?.fulfillmentRate ?? 0}%
                         </p>
                       </div>
-                      <div className="bg-slate-100 p-0.5 rounded-lg flex items-center text-[10px] font-bold">
-                        {(['7 D', '30 D', 'Custom'] as const).map((range) => (
-                          <button
-                            key={range}
-                            type="button"
-                            onClick={() => setChartTimeRange(range)}
-                            className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                              chartTimeRange === range
-                                ? 'bg-white text-slate-900 font-black shadow-2xs'
-                                : 'text-slate-500 hover:text-slate-800'
-                            }`}
-                          >
-                            {range}
-                          </button>
-                        ))}
-                      </div>
                     </div>
 
-                    <div className="mt-5 relative h-48 w-full">
-                      <svg className="w-full h-full overflow-visible" viewBox="0 0 500 170" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="deliveryAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#BC0118" stopOpacity="0.18" />
-                            <stop offset="100%" stopColor="#BC0118" stopOpacity="0.01" />
-                          </linearGradient>
-                        </defs>
-                        <line x1="20" y1="20" x2="490" y2="20" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="20" y1="55" x2="490" y2="55" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="20" y1="90" x2="490" y2="90" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="20" y1="125" x2="490" y2="125" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="20" y1="150" x2="490" y2="150" stroke="#E2E8F0" />
-                        <text x="5" y="24" fill="#94A3B8" fontSize="8" fontWeight="bold">20</text>
-                        <text x="5" y="59" fill="#94A3B8" fontSize="8" fontWeight="bold">15</text>
-                        <text x="5" y="94" fill="#94A3B8" fontSize="8" fontWeight="bold">10</text>
-                        <text x="5" y="129" fill="#94A3B8" fontSize="8" fontWeight="bold">5</text>
-                        <text x="5" y="153" fill="#94A3B8" fontSize="8" fontWeight="bold">0</text>
-                        <path
-                          d="M 20 120 Q 55 125 75 110 T 130 95 T 185 105 T 240 75 T 295 85 T 350 55 T 410 40 L 460 55 L 460 150 L 20 150 Z"
-                          fill="url(#deliveryAreaGrad)"
-                        />
-                        <path
-                          d="M 20 120 Q 55 125 75 110 T 130 95 T 185 105 T 240 75 T 295 85 T 350 55 T 410 40 L 460 55"
-                          fill="none"
-                          stroke="#BC0118"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                        />
-                        <circle cx="410" cy="40" r="4" fill="#BC0118" stroke="#FFFFFF" strokeWidth="2" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <p className="text-slate-600">
-                      Empty Return Rate: <strong className="text-slate-900 font-extrabold">{reportsData?.overall?.metrics?.emptyCollectionRate || 92}%</strong>
-                    </p>
-                    <p className="text-emerald-600 font-extrabold">
-                      Fulfillment Rate: {reportsData?.overall?.metrics?.fulfillmentRate || 98}%
-                    </p>
-                  </div>
-                </div>
-
-                {/* Chart 2: Revenue vs Collection Trend */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between">
+                    {/* Chart 2: Revenue vs Collection Trend */}
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between">
                       <div>
-                        <h3 className="text-sm font-black text-slate-900">Revenue vs Collection Trend</h3>
-                        <p className="text-xs text-slate-400 font-medium mt-0.5">
-                          Invoiced revenue vs realized bank/cash receipts
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900">Revenue vs Collection Trend</h3>
+                            <p className="text-xs text-slate-400 font-medium mt-0.5">
+                              Invoiced revenue vs realized bank/cash receipts
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs font-bold">
+                            <span className="flex items-center gap-1.5 text-slate-800">
+                              <span className="w-2.5 h-2.5 rounded-2xs bg-slate-900 inline-block" />
+                              Invoiced
+                            </span>
+                            <span className="flex items-center gap-1.5 text-[#BC0118]">
+                              <span className="w-2.5 h-2.5 rounded-2xs bg-[#BC0118] inline-block" />
+                              Collected
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 relative h-48 w-full">
+                          <svg className="w-full h-full overflow-visible" viewBox="0 0 500 170" preserveAspectRatio="none">
+                            <line x1="25" y1="20" x2="490" y2="20" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="25" y1="55" x2="490" y2="55" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="25" y1="90" x2="490" y2="90" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="25" y1="125" x2="490" y2="125" stroke="#F1F5F9" strokeDasharray="3 3" />
+                            <line x1="25" y1="150" x2="490" y2="150" stroke="#E2E8F0" />
+                            <text x="5" y="24" fill="#94A3B8" fontSize="8" fontWeight="bold">{formatCurrencyK(revenueMaxY)}</text>
+                            <text x="5" y="59" fill="#94A3B8" fontSize="8" fontWeight="bold">{formatCurrencyK(revenueMaxY * 0.75)}</text>
+                            <text x="5" y="94" fill="#94A3B8" fontSize="8" fontWeight="bold">{formatCurrencyK(revenueMaxY * 0.5)}</text>
+                            <text x="5" y="129" fill="#94A3B8" fontSize="8" fontWeight="bold">{formatCurrencyK(revenueMaxY * 0.25)}</text>
+                            <text x="5" y="153" fill="#94A3B8" fontSize="8" fontWeight="bold">₹0</text>
+                            <path
+                              d={invoicedSvg.linePath}
+                              fill="none"
+                              stroke="#1E293B"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d={collectedSvg.linePath}
+                              fill="none"
+                              stroke="#BC0118"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                            />
+                            {/* Dynamic Peak Day Point & Tooltip */}
+                            <circle cx={peakRevenueSvgCoord.x} cy={peakRevenueSvgCoord.y} r="4" fill="#BC0118" stroke="#FFFFFF" strokeWidth="2" />
+                            <g transform={`translate(${Math.max(55, Math.min(440, peakRevenueSvgCoord.x))}, ${Math.max(26, peakRevenueSvgCoord.y - 12)})`}>
+                              <rect x="-56" y="-22" width="112" height="20" rx="5" fill="#0F172A" />
+                              <polygon points="-4,-2 0,2 4,-2" fill="#0F172A" />
+                              <text x="0" y="-8" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold">
+                                {peakRevenuePoint.date}: ₹{peakRevenuePoint.amount.toLocaleString('en-IN')}
+                              </text>
+                            </g>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <p className="text-slate-600">
+                          Realized: <strong className="text-slate-900 font-extrabold">₹{reportMetrics.revenue.toLocaleString('en-IN')}</strong>
+                        </p>
+                        <p className="text-[#BC0118] font-extrabold">
+                          Receivables: ₹{reportMetrics.receivables.toLocaleString('en-IN')}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 text-xs font-bold">
-                        <span className="flex items-center gap-1.5 text-slate-800">
-                          <span className="w-2.5 h-2.5 rounded-2xs bg-slate-900 inline-block" />
-                          Invoiced
-                        </span>
-                        <span className="flex items-center gap-1.5 text-[#BC0118]">
-                          <span className="w-2.5 h-2.5 rounded-2xs bg-[#BC0118] inline-block" />
-                          Collected
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 relative h-48 w-full">
-                      <svg className="w-full h-full overflow-visible" viewBox="0 0 500 170" preserveAspectRatio="none">
-                        <line x1="25" y1="20" x2="490" y2="20" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="25" y1="55" x2="490" y2="55" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="25" y1="90" x2="490" y2="90" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="25" y1="125" x2="490" y2="125" stroke="#F1F5F9" strokeDasharray="3 3" />
-                        <line x1="25" y1="150" x2="490" y2="150" stroke="#E2E8F0" />
-                        <path
-                          d="M 30 115 Q 100 80 150 90 T 260 55 T 370 45 L 450 35"
-                          fill="none"
-                          stroke="#1E293B"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M 30 125 Q 100 100 150 105 T 260 65 T 370 55 L 450 45"
-                          fill="none"
-                          stroke="#BC0118"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                        />
-                        <circle cx="450" cy="35" r="3.5" fill="#1E293B" stroke="#FFFFFF" strokeWidth="1.5" />
-                        <circle cx="450" cy="45" r="3.5" fill="#BC0118" stroke="#FFFFFF" strokeWidth="1.5" />
-                      </svg>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <p className="text-slate-600">
-                      Realized: <strong className="text-slate-900 font-extrabold">₹{reportMetrics.revenue.toLocaleString('en-IN')}</strong>
-                    </p>
-                    <p className="text-[#BC0118] font-extrabold">
-                      Receivables: ₹{reportMetrics.receivables.toLocaleString('en-IN')}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Recent Branch Operational Activity Table */}
               <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
